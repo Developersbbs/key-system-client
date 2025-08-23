@@ -12,30 +12,30 @@ const Layout = ({ children }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-
+  
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/");
   };
   
   const isActive = (path) => location.pathname.startsWith(path);
-
+  
   const adminNavItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
     { path: '/admin/members', label: 'Members', icon: Users },
     {path: '/settings', label: 'Settings', icon: Settings },
   ];
-
+  
   const memberNavItems = [
     { path: '/member', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
   ];
-
+  
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
-
+  
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col">
       {/* --- SIDEBAR (for logged-in users) --- */}
       {isLoggedIn && (
         <aside className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 flex flex-col`}>
@@ -68,7 +68,7 @@ const Layout = ({ children }) => {
       )}
       
       {/* --- MAIN CONTENT WRAPPER (pushes content based on sidebar width) --- */}
-      <div className={`min-h-screen flex flex-col transition-all duration-300 ${
+      <div className={`flex-grow transition-all duration-300 ${
           isLoggedIn ? (sidebarMinimized ? 'md:pl-20' : 'md:pl-64') : 'pl-0'
         }`}
       >
@@ -98,10 +98,10 @@ const Layout = ({ children }) => {
                   <>
                     <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium hidden md:block">Home</Link>
                     
-                    <a href="#about" >About</a>
-                  <a href="#contacts" >Contacts</a>
-                  <a href="#features" >Features</a>
-                  <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium">Login</Link>
+                    <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium">About</a>
+                    <a href="#contacts" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium">Contacts</a>
+                    <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium">Features</a>
+                    <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium">Login</Link>
                     <Link to="/" className="bg-gradient-to-r from-teal-600 to-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:opacity-90">
                       Get Started
                     </Link>
@@ -112,29 +112,36 @@ const Layout = ({ children }) => {
           </div>
         </header>
         
-        <main className="flex-grow p-6">
+        <main className="flex-grow p-6 pb-20">
           {children}
         </main>
         
         {/* --- FOOTER --- */}
-        <footer className="w-full bg-white dark:bg-gray-800 shadow-inner mt-auto">
-          <div className="container mx-auto px-6 py-8">
+        <footer className=" bottom-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-inner z-20">
+          <div className="container mx-auto px-6 py-8 flex flex-col items-center ml-10">
             {!isLoggedIn && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8 ml-86">
-                <div className="space-y-4">
-                  <Link to="/"><img src={logo} alt="Key System Logo" className="h-10" /></Link>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">Empowering financial knowledge for a prosperous future.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 w-full max-w-6xl">
+                {/* Column 1: Logo & Tagline */}
+                <div className="space-y-4 text-center md:text-left">
+                  <Link to="/" className="inline-block">
+                    <img src={logo} alt="Key System Logo" className="h-10 mx-auto md:mx-0" />
+                  </Link>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Empowering financial knowledge for a prosperous future.
+                  </p>
                 </div>
-                <div>
+                {/* Column 2: Quick Links */}
+                <div className=' ml-22'>
                   <h4 className="font-semibold text-gray-800 dark:text-white mb-4">Quick Links</h4>
                   <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                     <li><a href="/#home" className="hover:text-blue-600">Home</a></li>
                     <li><a href="/#about" className="hover:text-blue-600">About Us</a></li>
                   </ul>
                 </div>
-                <div>
+                {/* Column 3: Follow Us */}
+                <div className=' ml-28'>
                   <h4 className="font-semibold text-gray-800 dark:text-white mb-4">Follow Us</h4>
-                  <div className="flex space-x-4 text-gray-500">
+                  <div className="flex space-x-4 justify-center md:justify-start">
                     <a href="#" aria-label="Twitter" className="hover:text-blue-600"><Twitter size={20} /></a>
                     <a href="#" aria-label="Facebook" className="hover:text-blue-600"><Facebook size={20} /></a>
                     <a href="#" aria-label="LinkedIn" className="hover:text-blue-600"><Linkedin size={20} /></a>
@@ -142,7 +149,7 @@ const Layout = ({ children }) => {
                 </div>
               </div>
             )}
-            <div className={`text-center ${!isLoggedIn ? 'border-t border-gray-200 dark:border-gray-700 pt-8' : ''}`}>
+            <div className="text-center w-full">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 &copy; {new Date().getFullYear()} <span className="font-semibold">Key System</span>. All rights reserved.
               </p>
