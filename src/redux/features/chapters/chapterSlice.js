@@ -67,6 +67,17 @@ export const deleteChapter = createAsyncThunk(
     }
   }
 );
+export const submitMcqs = createAsyncThunk(
+  'chapters/submitMcqs',
+  async ({ chapterId, answers }, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.post(`/member/chapters/${chapterId}/submit-mcqs`, { answers });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to submit results');
+    }
+  }
+);
 
 // --- Slice Definition ---
 const chapterSlice = createSlice({
