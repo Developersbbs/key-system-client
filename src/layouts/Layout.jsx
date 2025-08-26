@@ -88,7 +88,7 @@ const Layout = ({ children }) => {
                 {isLoggedIn ? (
                   <div className="flex items-center gap-3">
                     <span className="text-gray-800 dark:text-white font-medium hidden sm:block">
-                      Welcome, {user?.name || 'User'}
+                       {user?.name || 'User'}
                     </span>
                     <div className="w-10 h-10 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-full flex items-center justify-center">
                       <User size={20} />

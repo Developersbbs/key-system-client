@@ -25,26 +25,30 @@ const YouTubeEmbed = ({ url }) => {
 // Helper component for the entire interactive MCQ section
 const McqSection = ({ chapter, user }) => {
   const dispatch = useDispatch();
-  const [answers, setAnswers] = useState({});
   
-  // ✅ NEW: This logic checks for pre-existing results when the component loads
-  const initialResults = useMemo(() => {
+  const initialData = useMemo(() => {
     const existingResult = user?.mcqResults?.find(r => r.chapterId === chapter._id);
     if (existingResult) {
       return {
-        result: existingResult,
-        correctAnswers: chapter.mcqs.map(mcq => ({
-          mcqId: mcq._id,
-          answer: mcq.correctAnswerIndex,
-          explanation: mcq.explanation,
-        })),
+        // ✅ FIXED: The userAnswers object is already in the correct format.
+        // We just use it directly and provide a fallback to an empty object.
+        answers: existingResult.userAnswers || {},
+        results: {
+          result: existingResult,
+          correctAnswers: chapter.mcqs.map(mcq => ({
+            mcqId: mcq._id,
+            answer: mcq.correctAnswerIndex,
+            explanation: mcq.explanation,
+          })),
+        }
       };
     }
-    return null;
+    return { answers: {}, results: null }; // Default for a new quiz
   }, [user, chapter]);
 
-  const [results, setResults] = useState(initialResults);
-
+  const [answers, setAnswers] = useState(initialData.answers);
+  const [results, setResults] = useState(initialData.results);
+  
   const handleAnswerChange = (mcqId, optionIndex) => {
     setAnswers(prev => ({ ...prev, [mcqId]: optionIndex }));
   };
@@ -81,13 +85,11 @@ const McqSection = ({ chapter, user }) => {
                   const isSelected = selectedOptionIndex === index;
                   
                   return (
-                    <label key={index}
-                      className={`flex items-center p-3 rounded-lg border-2 transition-all ${isSubmitted ? '' : 'cursor-pointer'} ${
+                    <label key={index} className={`flex items-center p-3 rounded-lg border-2 transition-all ${isSubmitted ? '' : 'cursor-pointer'} ${
                         isSubmitted && isCorrect ? 'bg-green-50 border-green-400' :
                         isSubmitted && isSelected ? 'bg-red-50 border-red-400' :
                         'hover:bg-gray-50 border-gray-200'
-                      }`}
-                    >
+                      }`}>
                       <input type="radio" name={`mcq-${mcq._id}`} className="w-4 h-4 mr-3"
                         disabled={isSubmitted}
                         checked={isSelected}
@@ -126,18 +128,18 @@ const McqSection = ({ chapter, user }) => {
   );
 };
 
-
 const Chapter = () => {
   const { courseId, chapterId } = useParams();
   const dispatch = useDispatch();
   const { selectedChapter: chapter, loading, error } = useSelector((state) => state.chapters);
-  const { user } = useSelector((state) => state.auth); // Get the user object
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (courseId && chapterId) {
       dispatch(fetchChapterById({ courseId, chapterId }));
     }
   }, [dispatch, courseId, chapterId]);
+
 
   
 
