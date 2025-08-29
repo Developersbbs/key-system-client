@@ -1,12 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import apiClient from '../../../api/apiClient';
+import apiClient from '../../../api/apiClient'; // Adjust path if needed
+
+const handleApiError = (err) => {
+  return err.response?.data?.message || err.message || 'An unexpected error occurred';
+};
+
+// --- Thunks ---
 
 export const fetchAllMembers = createAsyncThunk('members/fetchAll', async (_, { rejectWithValue }) => {
   try {
     const res = await apiClient.get('/admin/members');
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || 'Failed to fetch members');
+    return rejectWithValue(handleApiError(err));
   }
 });
 
@@ -15,7 +21,7 @@ export const fetchAllAdmins = createAsyncThunk('members/fetchAllAdmins', async (
     const res = await apiClient.get('/admin/admins');
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || 'Failed to fetch admins');
+    return rejectWithValue(handleApiError(err));
   }
 });
 
@@ -24,22 +30,23 @@ export const updateUserRole = createAsyncThunk('members/updateRole', async ({ us
     const res = await apiClient.put(`/admin/users/${userId}/role`, { role });
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.response?.data?.message || 'Failed to update role');
+    return rejectWithValue(handleApiError(err));
   }
 });
 
-// ✅ ADD THIS THUNK to update course access
-export const updateCourseAccess = createAsyncThunk(
-  'members/updateCourseAccess',
-  async ({ userId, courseId, hasAccess }, { rejectWithValue }) => {
+// ✅ NEW: This is the correct thunk for your new multi-level access system
+export const updateUserLevels = createAsyncThunk(
+  'members/updateLevels',
+  async ({ userId, levels }, { rejectWithValue }) => {
     try {
-      const res = await apiClient.put(`/admin/users/${userId}/access`, { courseId, hasAccess });
-      return res.data; // Return the updated user
+      const res = await apiClient.put(`/admin/users/${userId}/levels`, { levels });
+      return res.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to update access');
+      return rejectWithValue(handleApiError(err));
     }
   }
 );
+
 
 const memberSlice = createSlice({
   name: 'members',
@@ -49,9 +56,14 @@ const memberSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
+      // --- FULFILLED HANDLERS ---
       .addCase(fetchAllMembers.fulfilled, (state, action) => {
         state.members = action.payload;
       })
@@ -68,14 +80,16 @@ const memberSlice = createSlice({
           state.members.push(updatedUser);
         }
       })
-      // ✅ ADD THIS HANDLER to update the user in the state
-      .addCase(updateCourseAccess.fulfilled, (state, action) => {
+      // ✅ CORRECTED: Handler for updating user levels
+      .addCase(updateUserLevels.fulfilled, (state, action) => {
         const updatedUser = action.payload;
         const index = state.members.findIndex(m => m._id === updatedUser._id);
         if (index !== -1) {
           state.members[index] = updatedUser;
         }
       })
+      
+      // --- GENERIC MATCHERS (Must come last) ---
       .addMatcher((action) => action.type.endsWith('/pending'), (state) => {
         state.loading = true;
         state.error = null;
@@ -87,4 +101,5 @@ const memberSlice = createSlice({
   },
 });
 
+export const { clearError } = memberSlice.actions;
 export default memberSlice.reducer;

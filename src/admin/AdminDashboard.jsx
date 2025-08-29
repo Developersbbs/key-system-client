@@ -47,10 +47,10 @@ const AdminDashboard = () => {
 
       {/* Stats Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard icon={BookOpen} color="blue" label="Total Courses" value={courses.length} />
-        <StatCard icon={ListChecks} color="purple" label="Total Chapters" value={totalChapters} />
-        <StatCard icon={Users} color="green" label="Total Members" value={members.length} />
-        <StatCard icon={ShieldCheck} color="red" label="Total Admins" value={admins.length} />
+        <StatCard icon={BookOpen} color="teal" label="Total Courses" value={courses.length} />
+        <StatCard icon={ListChecks} color="teal" label="Total Chapters" value={totalChapters} />
+        <StatCard icon={Users} color="teal" label="Total Members" value={members.length} />
+        <StatCard icon={ShieldCheck} color="teal" label="Total Admins" value={admins.length} />
       </div>
 
       {/* Quick Actions & Recent Activity */}
@@ -59,10 +59,10 @@ const AdminDashboard = () => {
         <div className="lg:col-span-1 bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-4">
-            <Link to="/admin/courses" className="block w-full text-center bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-3 rounded-lg hover:bg-teal-700 transition">
+            <Link to="/admin/courses" className="block w-full text-center bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 rounded-lg hover:bg-teal-700 transition">
               Manage Courses
             </Link>
-            <Link to="/admin/members" className="block w-full text-center bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-3 rounded-lg hover:bg-teal-800 transition">
+            <Link to="/admin/members" className="block w-full text-center bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 rounded-lg hover:bg-teal-800 transition">
               Manage Users
             </Link>
           </div>

@@ -19,6 +19,7 @@ import AdminMembers from "./admin/AdminMembers";
 // Import the Redux action to check for a user session
 import { fetchUserProfile } from "./redux/features/auth/authSlice";
 import AdminDashboard from "./admin/AdminDashboard";
+import AdminLevels from "./admin/AdminLevels";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -52,8 +53,9 @@ const App = () => {
           {/* --- Admin-Specific Routes --- */}
           <Route path="/admin/courses" element={<AdminCourses />} />
           <Route path="/admin/members" element={<AdminMembers />} />
+           <Route path="/admin/levels" element={<AdminLevels />} />
           <Route path="/admin/courses/:courseId/chapters" element={<AdminChapter />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </Layout>
     </BrowserRouter>

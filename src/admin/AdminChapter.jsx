@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/Admin/AdminChapter.jsx
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -9,12 +10,17 @@ import {
   deleteChapter,
   clearError
 } from '../redux/features/chapters/chapterSlice';
-import { Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Clock, FileText, Video, Link as LinkIcon, CheckCircle, XCircle, Timer, PlayCircle } from 'lucide-react';
+import apiClient from '../api/apiClient'; // Must have baseURL: '/api'
+import {
+  Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Clock, FileText, Video, Link as LinkIcon,
+  CheckCircle, XCircle, Timer, PlayCircle, Upload, RefreshCw, AlertCircle
+} from 'lucide-react';
 
 const AdminChapter = () => {
   const dispatch = useDispatch();
   const { courseId } = useParams();
-  const { chapters, loading, error } = useSelector((state) => state.chapters);
+  const { chapters, error } = useSelector((state) => state.chapters);
+  const fileInputRef = useRef(null);
 
   // --- State Management ---
   const initialFormState = {
@@ -35,6 +41,16 @@ const AdminChapter = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [expandedChapters, setExpandedChapters] = useState(new Set());
 
+  // Video upload state
+  const [videoUpload, setVideoUpload] = useState({
+    isUploading: false,
+    progress: 0,
+    fileName: '',
+    fileSize: 0,
+    uploadedUrl: '',
+    error: null
+  });
+
   // --- Effects ---
   useEffect(() => {
     if (courseId) {
@@ -48,6 +64,149 @@ const AdminChapter = () => {
       dispatch(clearError());
     }
   }, [error, dispatch]);
+
+  // --- Helper Functions ---
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const validateVideoFile = (file) => {
+    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm'];
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Please select a valid video file (MP4, AVI, MOV, WMV, WebM)');
+    }
+    if (file.size > maxSize) {
+      throw new Error('File size must be less than 500MB');
+    }
+    return true;
+  };
+
+  // --- Upload to S3 with Progress & Auto-Save to Chapter ---
+  const uploadVideoWithProgress = async (file) => {
+    try {
+      validateVideoFile(file);
+
+      setVideoUpload(prev => ({
+        ...prev,
+        isUploading: true,
+        progress: 0,
+        error: null,
+        fileName: file.name,
+        fileSize: file.size
+      }));
+
+      // ✅ Use correct API route with /api prefix
+      const presignedResponse = await apiClient.post('/uploads/generate-upload-url', {
+        fileName: file.name,
+        fileType: file.type
+      });
+
+      const { uploadUrl, finalUrl } = presignedResponse.data;
+
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setVideoUpload(prev => ({ ...prev, progress }));
+          }
+        });
+
+        xhr.addEventListener('load', async () => {
+          if (xhr.status === 200) {
+            console.log('✅ Video uploaded to S3:', finalUrl);
+
+            // Update form with final URL
+            setFormData(prev => ({ ...prev, videoUrl: finalUrl }));
+            setVideoUpload(prev => ({
+              ...prev,
+              isUploading: false,
+              progress: 100,
+              uploadedUrl: finalUrl
+            }));
+
+            // ✅ Auto-save videoUrl to chapter (if editing)
+            if (editingChapter) {
+              try {
+                await dispatch(updateChapter({
+                  courseId,
+                  chapterId: editingChapter._id,
+                  updatedData: { ...formData, videoUrl: finalUrl }
+                })).unwrap();
+                toast.success('Video URL saved to chapter');
+              } catch (saveErr) {
+                console.warn('⚠️ Failed to auto-save video URL:', saveErr);
+                toast.error('Uploaded, but failed to save URL. Save chapter manually.');
+              }
+            }
+
+            toast.success('Video uploaded successfully!');
+            resolve(finalUrl);
+          } else {
+            const errorMsg = 'Failed to upload video to S3';
+            setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
+            toast.error(errorMsg);
+            reject(new Error(errorMsg));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          const errorMsg = 'Network error during upload';
+          setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
+          toast.error(errorMsg);
+          reject(new Error(errorMsg));
+        });
+
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Upload failed';
+      setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
+      toast.error(errorMsg);
+      throw error;
+    }
+  };
+
+  const handleVideoFileSelect = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      await uploadVideoWithProgress(file);
+    } catch (error) {
+      // Error already handled in uploadVideoWithProgress
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoUpload({
+      isUploading: false,
+      progress: 0,
+      fileName: '',
+      fileSize: 0,
+      uploadedUrl: '',
+      error: null
+    });
+    setFormData(prev => ({ ...prev, videoUrl: '' }));
+  };
+
+  const handleRetryUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   // --- Form Handlers ---
   const handleOpenForm = (chapter = null) => {
@@ -64,9 +223,28 @@ const AdminChapter = () => {
         mcqs: chapter.mcqs || [],
         tasks: chapter.tasks || [],
       });
+
+      if (chapter.videoUrl) {
+        setVideoUpload(prev => ({
+          ...prev,
+          uploadedUrl: chapter.videoUrl,
+          fileName: 'Uploaded video',
+          progress: 100,
+          isUploading: false,
+          error: null
+        }));
+      }
     } else {
       setEditingChapter(null);
       setFormData(initialFormState);
+      setVideoUpload({
+        isUploading: false,
+        progress: 0,
+        fileName: '',
+        fileSize: 0,
+        uploadedUrl: '',
+        error: null
+      });
     }
     setActiveTab('details');
     setIsFormOpen(true);
@@ -75,6 +253,14 @@ const AdminChapter = () => {
   const handleCloseForm = () => {
     setEditingChapter(null);
     setFormData(initialFormState);
+    setVideoUpload({
+      isUploading: false,
+      progress: 0,
+      fileName: '',
+      fileSize: 0,
+      uploadedUrl: '',
+      error: null
+    });
     setIsFormOpen(false);
   };
 
@@ -96,14 +282,14 @@ const AdminChapter = () => {
     setFormData(prev => ({ ...prev, mcqs: newMcqs }));
   };
 
-  const addMcq = () => setFormData(prev => ({ 
-    ...prev, 
-    mcqs: [...prev.mcqs, { question: '', options: ['', '', '', ''], correctAnswerIndex: 0, explanation: '' }] 
+  const addMcq = () => setFormData(prev => ({
+    ...prev,
+    mcqs: [...prev.mcqs, { question: '', options: ['', '', '', ''], correctAnswerIndex: 0, explanation: '' }]
   }));
 
-  const removeMcq = (mcqIndex) => setFormData(prev => ({ 
-    ...prev, 
-    mcqs: prev.mcqs.filter((_, i) => i !== mcqIndex) 
+  const removeMcq = (mcqIndex) => setFormData(prev => ({
+    ...prev,
+    mcqs: prev.mcqs.filter((_, i) => i !== mcqIndex)
   }));
 
   // Task Handlers
@@ -113,62 +299,61 @@ const AdminChapter = () => {
     setFormData(prev => ({ ...prev, tasks: newTasks }));
   };
 
-  const addTask = () => setFormData(prev => ({ 
-    ...prev, 
-    tasks: [...prev.tasks, { type: 'online', title: '', description: '', deadline: '' }] 
+  const addTask = () => setFormData(prev => ({
+    ...prev,
+    tasks: [...prev.tasks, { type: 'online', title: '', description: '', deadline: '' }]
   }));
 
-  const removeTask = (taskIndex) => setFormData(prev => ({ 
-    ...prev, 
-    tasks: prev.tasks.filter((_, i) => i !== taskIndex) 
+  const removeTask = (taskIndex) => setFormData(prev => ({
+    ...prev,
+    tasks: prev.tasks.filter((_, i) => i !== taskIndex)
   }));
 
-  // --- Main Action Handlers ---
+  // --- Submit Chapter ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (videoUpload.isUploading) {
+      toast.error('Please wait for video upload to complete');
+      return;
+    }
+
     if (!courseId) {
       toast.error('Course ID is missing.');
       return;
     }
+
     if (!formData.title.trim()) {
       toast.error('Chapter title is required.');
       return;
     }
 
-    const chapterData = {
-      ...formData,
-      duration: Number(formData.duration) || 0,
-      mcqs: formData.mcqs.map(mcq => ({ ...mcq, correctAnswerIndex: Number(mcq.correctAnswerIndex) }))
-    };
-
-    try {
-      if (editingChapter) {
-        await dispatch(updateChapter({ courseId, chapterId: editingChapter._id, updatedData: chapterData })).unwrap();
-        toast.success('Chapter updated successfully!');
-      } else {
-        await dispatch(createChapter({ courseId, chapterData })).unwrap();
-        toast.success('Chapter created successfully!');
-      }
-      handleCloseForm();
-    } catch (err) {
-      toast.error(err.message || 'Failed to save chapter');
-    }
+   const chapterData = {
+    ...formData,
+    duration: Number(formData.duration) || 0,
+    mcqs: formData.mcqs.map(mcq => ({ 
+      ...mcq, 
+      correctAnswerIndex: Number(mcq.correctAnswerIndex) 
+    }))
   };
 
-  const handleDelete = async (chapterId, chapterTitle) => {
-    if (!courseId) {
-      toast.error('Course ID is missing.');
-      return;
+  try {
+    if (editingChapter) {
+      await dispatch(updateChapter({ 
+        courseId, 
+        chapterId: editingChapter._id, 
+        updatedData: chapterData 
+      })).unwrap();
+      toast.success('Chapter updated successfully!');
+    } else {
+      await dispatch(createChapter({ courseId, chapterData })).unwrap();
+      toast.success('Chapter created successfully!');
     }
-    if (window.confirm(`Are you sure you want to delete "${chapterTitle}"? This action cannot be undone.`)) {
-      try {
-        await dispatch(deleteChapter({ courseId, chapterId })).unwrap();
-        toast.success('Chapter deleted successfully!');
-      } catch (err) {
-        toast.error(err.message || 'Failed to delete chapter');
-      }
-    }
-  };
+    handleCloseForm();
+  } catch (err) {
+    toast.error(err.message || 'Failed to save chapter');
+  }
+};
 
   const toggleChapterExpansion = (chapterId) => {
     const newExpanded = new Set(expandedChapters);
@@ -185,8 +370,8 @@ const AdminChapter = () => {
       type="button"
       onClick={() => setActiveTab(tabName)}
       className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-        activeTab === tabName 
-          ? 'bg-blue-600 text-white shadow-sm' 
+        activeTab === tabName
+          ? 'bg-teal-600 text-white shadow-sm'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
       }`}
     >
@@ -194,7 +379,105 @@ const AdminChapter = () => {
     </button>
   );
 
-  
+  const VideoUploadSection = () => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-3">Chapter Video</label>
+      {!videoUpload.uploadedUrl && !videoUpload.isUploading && !videoUpload.error && (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors duration-200">
+          <div className="flex flex-col items-center">
+            <Upload className="h-10 w-10 text-gray-400 mb-3" />
+            <p className="text-sm text-gray-600 mb-2">Upload your video file</p>
+            <p className="text-xs text-gray-500 mb-4">MP4, AVI, MOV, WMV, WebM (Max: 500MB)</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors duration-200"
+            >
+              <Upload size={16} />
+              Choose Video File
+            </button>
+          </div>
+        </div>
+      )}
+      {videoUpload.isUploading && (
+        <div className="border border-gray-300 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <RefreshCw className="h-5 w-5 text-teal-600 animate-spin" />
+            <span className="font-medium text-gray-900">Uploading video...</span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600 truncate">{videoUpload.fileName}</span>
+              <span className="text-gray-500">{formatFileSize(videoUpload.fileSize)}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-teal-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${videoUpload.progress}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Progress: {videoUpload.progress}%</span>
+              <span>{videoUpload.progress === 100 ? 'Processing...' : 'Uploading...'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {videoUpload.error && (
+        <div className="border border-red-200 bg-red-50 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">Upload failed</p>
+              <p className="text-sm text-red-700 mt-1">{videoUpload.error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRetryUpload}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+      {videoUpload.uploadedUrl && !videoUpload.isUploading && (
+        <div className="border border-green-200 bg-green-50 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-green-800">Video uploaded successfully</p>
+              <p className="text-sm text-green-700 mt-1 truncate">{videoUpload.fileName}</p>
+              <p className="text-xs text-green-600 mt-1">{formatFileSize(videoUpload.fileSize)}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-green-600 hover:text-green-800 text-sm font-medium"
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveVideo}
+                className="text-red-600 hover:text-red-800 text-sm font-medium ml-2"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/*"
+        onChange={handleVideoFileSelect}
+        className="hidden"
+      />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -206,8 +489,8 @@ const AdminChapter = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Chapter Management</h1>
               <p className="text-gray-600">Create and organize course chapters with content, quizzes, and tasks</p>
             </div>
-            <button 
-              onClick={() => handleOpenForm()} 
+            <button
+              onClick={() => handleOpenForm()}
               className="bg-gradient-to-r from-teal-600 to-green-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
             >
               <Plus size={20} />
@@ -216,12 +499,12 @@ const AdminChapter = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-lg bg-blue-100 mr-4">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-3 rounded-lg bg-teal-100 mr-4">
+                <FileText className="h-6 w-6 text-teal-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{chapters.length}</p>
@@ -269,7 +552,7 @@ const AdminChapter = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Form Modal */}
         {isFormOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -279,7 +562,7 @@ const AdminChapter = () => {
                   <h2 className="text-2xl font-bold text-gray-900">
                     {editingChapter ? 'Edit Chapter' : 'Create New Chapter'}
                   </h2>
-                  <button 
+                  <button
                     onClick={handleCloseForm}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                   >
@@ -292,90 +575,74 @@ const AdminChapter = () => {
                   <TabButton tabName="tasks" label="Tasks" count={formData.tasks.length} />
                 </div>
               </div>
-
               <div className="p-6 overflow-y-auto flex-1">
+                {/* Details Tab */}
                 {activeTab === 'details' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Chapter Title *</label>
-                        <input 
-                          type="text" 
-                          name="title" 
-                          value={formData.title} 
-                          onChange={handleInputChange} 
-                          placeholder="Enter chapter title" 
-                          required 
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                        <input
+                          type="text"
+                          name="title"
+                          value={formData.title}
+                          onChange={handleInputChange}
+                          placeholder="Enter chapter title"
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
-                        <input 
-                          type="number" 
-                          name="duration" 
-                          value={formData.duration} 
-                          onChange={handleInputChange} 
-                          placeholder="0" 
+                        <input
+                          type="number"
+                          name="duration"
+                          value={formData.duration}
+                          onChange={handleInputChange}
+                          placeholder="0"
                           min="0"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         />
                       </div>
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Chapter Description</label>
-                      <textarea 
-                        name="description" 
-                        value={formData.description} 
-                        onChange={handleInputChange} 
-                        placeholder="Enter chapter description" 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 resize-none" 
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        placeholder="Enter chapter description"
                         rows="4"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                       />
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Video URL</label>
-                        <div className="relative">
-                          <Video className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                          <input 
-                            type="url" 
-                            name="videoUrl" 
-                            value={formData.videoUrl} 
-                            onChange={handleInputChange} 
-                            placeholder="https://example.com/video" 
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
-                          />
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 gap-6">
+                      <VideoUploadSection />
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Document URL</label>
                         <div className="relative">
                           <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                          <input 
-                            type="url" 
-                            name="documentUrl" 
-                            value={formData.documentUrl} 
-                            onChange={handleInputChange} 
-                            placeholder="https://example.com/document" 
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                          <input
+                            type="url"
+                            name="documentUrl"
+                            value={formData.documentUrl}
+                            onChange={handleInputChange}
+                            placeholder="https://example.com/document"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                           />
                         </div>
                       </div>
                     </div>
-
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-3">Chapter Settings</h4>
+                      <h4 className="font-medium text-gray-900 mb-3">Settings</h4>
                       <div className="flex flex-col sm:flex-row gap-4">
                         <label className="flex items-center gap-3 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            name="isUnlocked" 
-                            checked={formData.isUnlocked} 
+                          <input
+                            type="checkbox"
+                            name="isUnlocked"
+                            checked={formData.isUnlocked}
                             onChange={handleInputChange}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500 focus:ring-2"
                           />
                           <div className="flex items-center gap-2">
                             <CheckCircle size={16} className={formData.isUnlocked ? 'text-green-600' : 'text-gray-400'} />
@@ -383,12 +650,12 @@ const AdminChapter = () => {
                           </div>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            name="timerEnabled" 
-                            checked={formData.timerEnabled} 
+                          <input
+                            type="checkbox"
+                            name="timerEnabled"
+                            checked={formData.timerEnabled}
                             onChange={handleInputChange}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500 focus:ring-2"
                           />
                           <div className="flex items-center gap-2">
                             <Timer size={16} className={formData.timerEnabled ? 'text-orange-600' : 'text-gray-400'} />
@@ -400,32 +667,32 @@ const AdminChapter = () => {
                   </div>
                 )}
 
+                {/* MCQs Tab */}
                 {activeTab === 'mcqs' && (
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium text-gray-900">Multiple Choice Questions</h3>
-                      <button 
-                        type="button" 
-                        onClick={addMcq} 
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200"
+                      <button
+                        type="button"
+                        onClick={addMcq}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                       >
                         <Plus size={16} />
                         Add MCQ
                       </button>
                     </div>
-                    
                     {formData.mcqs.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No MCQs yet</h3>
-                        <p className="text-gray-600 mb-4">Add multiple choice questions to test student knowledge</p>
-                        <button 
-                          type="button" 
-                          onClick={addMcq} 
+                        <p className="text-gray-600 mb-4">Add questions to test student knowledge</p>
+                        <button
+                          type="button"
+                          onClick={addMcq}
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
                         >
                           <Plus size={16} />
-                          Add Your First MCQ
+                          Add First MCQ
                         </button>
                       </div>
                     ) : (
@@ -434,42 +701,38 @@ const AdminChapter = () => {
                           <div key={mcqIndex} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                             <div className="flex justify-between items-start mb-4">
                               <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                  MCQ {mcqIndex + 1}
-                                </span>
+                                <span className="bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded-full">MCQ {mcqIndex + 1}</span>
                               </h4>
-                              <button 
-                                type="button" 
-                                onClick={() => removeMcq(mcqIndex)} 
+                              <button
+                                type="button"
+                                onClick={() => removeMcq(mcqIndex)}
                                 className="p-1 text-red-500 hover:bg-red-50 rounded"
                               >
                                 <Trash2 size={16} />
                               </button>
                             </div>
-                            
                             <div className="space-y-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Question</label>
-                                <textarea 
-                                  value={mcq.question} 
-                                  onChange={(e) => handleMcqChange(mcqIndex, 'question', e.target.value)} 
-                                  placeholder="Enter your question here" 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" 
+                                <textarea
+                                  value={mcq.question}
+                                  onChange={(e) => handleMcqChange(mcqIndex, 'question', e.target.value)}
+                                  placeholder="Enter your question here"
                                   rows="2"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                                 />
                               </div>
-                              
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-3">Answer Options</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {mcq.options.map((opt, optIndex) => (
                                     <div key={optIndex} className="relative">
-                                      <input 
-                                        type="text" 
-                                        value={opt} 
-                                        onChange={(e) => handleMcqOptionChange(mcqIndex, optIndex, e.target.value)} 
-                                        placeholder={`Option ${optIndex + 1}`} 
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      <input
+                                        type="text"
+                                        value={opt}
+                                        onChange={(e) => handleMcqOptionChange(mcqIndex, optIndex, e.target.value)}
+                                        placeholder={`Option ${optIndex + 1}`}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                       />
                                       <span className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-white px-1 text-xs text-gray-500">
                                         {String.fromCharCode(65 + optIndex)}
@@ -478,13 +741,12 @@ const AdminChapter = () => {
                                   ))}
                                 </div>
                               </div>
-                              
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Correct Answer</label>
-                                <select 
-                                  value={mcq.correctAnswerIndex} 
-                                  onChange={(e) => handleMcqChange(mcqIndex, 'correctAnswerIndex', e.target.value)} 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                <select
+                                  value={mcq.correctAnswerIndex}
+                                  onChange={(e) => handleMcqChange(mcqIndex, 'correctAnswerIndex', parseInt(e.target.value, 10))}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 >
                                   {mcq.options.map((_, optIndex) => (
                                     <option key={optIndex} value={optIndex}>
@@ -501,32 +763,32 @@ const AdminChapter = () => {
                   </div>
                 )}
 
+                {/* Tasks Tab */}
                 {activeTab === 'tasks' && (
                   <div className="space-y-6">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-medium text-gray-900">Chapter Tasks</h3>
-                      <button 
-                        type="button" 
-                        onClick={addTask} 
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200"
+                      <button
+                        type="button"
+                        onClick={addTask}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                       >
                         <Plus size={16} />
                         Add Task
                       </button>
                     </div>
-
                     {formData.tasks.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks yet</h3>
                         <p className="text-gray-600 mb-4">Add tasks for students to complete</p>
-                        <button 
-                          type="button" 
-                          onClick={addTask} 
+                        <button
+                          type="button"
+                          onClick={addTask}
                           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
                         >
                           <Plus size={16} />
-                          Add Your First Task
+                          Add First Task
                         </button>
                       </div>
                     ) : (
@@ -535,62 +797,56 @@ const AdminChapter = () => {
                           <div key={taskIndex} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                             <div className="flex justify-between items-start mb-4">
                               <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                                  Task {taskIndex + 1}
-                                </span>
+                                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">Task {taskIndex + 1}</span>
                               </h4>
-                              <button 
-                                type="button" 
-                                onClick={() => removeTask(taskIndex)} 
+                              <button
+                                type="button"
+                                onClick={() => removeTask(taskIndex)}
                                 className="p-1 text-red-500 hover:bg-red-50 rounded"
                               >
                                 <Trash2 size={16} />
                               </button>
                             </div>
-                            
                             <div className="space-y-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
-                                <input 
-                                  type="text" 
-                                  value={task.title} 
-                                  onChange={(e) => handleTaskChange(taskIndex, 'title', e.target.value)} 
-                                  placeholder="Enter task title" 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                <input
+                                  type="text"
+                                  value={task.title}
+                                  onChange={(e) => handleTaskChange(taskIndex, 'title', e.target.value)}
+                                  placeholder="Enter task title"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 />
                               </div>
-                              
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Task Description</label>
-                                <textarea 
-                                  value={task.description} 
-                                  onChange={(e) => handleTaskChange(taskIndex, 'description', e.target.value)} 
-                                  placeholder="Describe what students need to do" 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" 
+                                <textarea
+                                  value={task.description}
+                                  onChange={(e) => handleTaskChange(taskIndex, 'description', e.target.value)}
+                                  placeholder="Describe what students need to do"
                                   rows="3"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                                 />
                               </div>
-                              
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-2">Task Type</label>
-                                  <select 
-                                    value={task.type} 
-                                    onChange={(e) => handleTaskChange(taskIndex, 'type', e.target.value)} 
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  <select
+                                    value={task.type}
+                                    onChange={(e) => handleTaskChange(taskIndex, 'type', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                   >
                                     <option value="online">Online Task</option>
                                     <option value="offline">Offline Task</option>
                                   </select>
                                 </div>
-                                
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
-                                  <input 
-                                    type="date" 
-                                    value={task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : ''} 
-                                    onChange={(e) => handleTaskChange(taskIndex, 'deadline', e.target.value)} 
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  <input
+                                    type="date"
+                                    value={task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : ''}
+                                    onChange={(e) => handleTaskChange(taskIndex, 'deadline', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                   />
                                 </div>
                               </div>
@@ -602,49 +858,48 @@ const AdminChapter = () => {
                   </div>
                 )}
               </div>
-
               <div className="sticky bottom-0 bg-white border-t p-6">
                 <div className="flex justify-end gap-4">
-                  <button 
-                    type="button" 
-                    onClick={handleCloseForm} 
+                  <button
+                    type="button"
+                    onClick={handleCloseForm}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleSubmit}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors duration-200 font-medium"
+                    disabled={videoUpload.isUploading}
+                    className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-colors duration-200 font-medium ${
+                      videoUpload.isUploading
+                        ? 'bg-gray-400 cursor-not-allowed text-white'
+                        : 'bg-teal-600 hover:bg-teal-700 text-white'
+                    }`}
                   >
                     <Save size={18} />
-                    {editingChapter ? 'Update Chapter' : 'Create Chapter'}
+                    {videoUpload.isUploading ? 'Uploading...' : (editingChapter ? 'Update Chapter' : 'Create Chapter')}
                   </button>
                 </div>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Chapters List */}
         <div className="bg-white rounded-xl shadow-sm">
           {chapters.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading chapters...</p>
-            </div>
-          ) : !chapters || chapters.length === 0 ? (
             <div className="p-12 text-center">
               <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <FileText className="h-12 w-12 text-gray-400" />
               </div>
               <h3 className="text-xl font-medium text-gray-900 mb-2">No chapters found</h3>
-              <p className="text-gray-600 mb-6">Create your first chapter to get started with your course content!</p>
-              <button 
-                onClick={() => handleOpenForm()} 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2 transition-colors duration-200"
+              <p className="text-gray-600 mb-6">Create your first chapter to get started!</p>
+              <button
+                onClick={() => handleOpenForm()}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2 transition-colors duration-200"
               >
                 <Plus size={20} />
-                Create Your First Chapter
+                Create First Chapter
               </button>
             </div>
           ) : (
@@ -654,7 +909,7 @@ const AdminChapter = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                        <span className="bg-teal-100 text-teal-800 text-sm font-medium px-3 py-1 rounded-full">
                           Chapter {index + 1}
                         </span>
                         <h3 className="text-xl font-semibold text-gray-900">{chapter.title}</h3>
@@ -669,7 +924,6 @@ const AdminChapter = () => {
                           )}
                         </div>
                       </div>
-                      
                       <div className="flex items-center gap-4 mb-3">
                         <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">
                           <CheckCircle size={14} />
@@ -683,8 +937,14 @@ const AdminChapter = () => {
                           <PlayCircle size={14} />
                           {chapter.duration || 0} min
                         </span>
-                        <button 
-                          onClick={() => toggleChapterExpansion(chapter._id)} 
+                        {chapter.videoUrl && (
+                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                            <Video size={14} />
+                            Video
+                          </span>
+                        )}
+                        <button
+                          onClick={() => toggleChapterExpansion(chapter._id)}
                           className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-sm px-2 py-1 rounded transition-colors duration-200"
                         >
                           {expandedChapters.has(chapter._id) ? (
@@ -700,40 +960,37 @@ const AdminChapter = () => {
                           )}
                         </button>
                       </div>
-                      
                       <p className="text-gray-600 leading-relaxed">{chapter.description}</p>
                     </div>
-                    
                     <div className="flex items-center gap-2 ml-6">
-                      <button 
-                        onClick={() => handleOpenForm(chapter)} 
+                      <button
+                        onClick={() => handleOpenForm(chapter)}
                         className="p-3 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors duration-200"
-                        title="Edit chapter"
+                        title="Edit"
                       >
                         <Edit2 size={18} />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(chapter._id, chapter.title)} 
+                      <button
+                        onClick={() => handleDelete(chapter._id, chapter.title)}
                         className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                        title="Delete chapter"
+                        title="Delete"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
-
                   {expandedChapters.has(chapter._id) && (
                     <div className="mt-6 bg-gray-50 rounded-lg p-4 space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {chapter.videoUrl && (
                           <div className="flex items-center gap-2">
-                            <Video size={16} className="text-blue-500" />
+                            <Video size={16} className="text-teal-500" />
                             <span className="text-sm font-medium text-gray-700">Video:</span>
-                            <a 
-                              href={chapter.videoUrl} 
-                              target="_blank" 
+                            <a
+                              href={chapter.videoUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm truncate flex-1"
+                              className="text-teal-600 hover:text-teal-800 text-sm truncate flex-1"
                             >
                               {chapter.videoUrl}
                             </a>
@@ -743,9 +1000,9 @@ const AdminChapter = () => {
                           <div className="flex items-center gap-2">
                             <LinkIcon size={16} className="text-green-500" />
                             <span className="text-sm font-medium text-gray-700">Document:</span>
-                            <a 
-                              href={chapter.documentUrl} 
-                              target="_blank" 
+                            <a
+                              href={chapter.documentUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-green-600 hover:text-green-800 text-sm truncate flex-1"
                             >

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../redux/features/auth/authSlice';
-import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings } from 'lucide-react';
+import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge } from 'lucide-react';
 import logo from '../assets/key-system-logo.png';
 
 const Layout = ({ children }) => {
@@ -24,7 +24,9 @@ const Layout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
     { path: '/admin/members', label: 'Members', icon: Users },
-    {path: '/settings', label: 'Settings', icon: Settings },
+     { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
+    { path: '/settings', label: 'Settings', icon: Settings },
+   
   ];
 
   const memberNavItems = [

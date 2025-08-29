@@ -4,6 +4,7 @@ import authReducer from "../features/auth/authSlice";
 import chapterReducer from "../features/chapters/chapterSlice";
 import courseReducer from "../features/coures/courseSlice";
 import memberReducer from "../features/members/memberSlice";
+import levelReducer from '../features/level/levelSlice';
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     chapters: chapterReducer,
     courses: courseReducer,
     members: memberReducer,
+    levels: levelReducer,
   },
 });
 

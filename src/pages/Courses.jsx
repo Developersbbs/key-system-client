@@ -20,7 +20,7 @@ const CourseCardImage = ({ course }) => {
           onError={handleImageError} 
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-green-600 flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-teal-600 flex items-center justify-center">
           <ImageIcon size={48} className="text-white opacity-50" />
         </div>
       )}
@@ -53,15 +53,7 @@ const Courses = () => {
     }
   }, [dispatch, isLoggedIn, user]);
 
-  // Handle the loading state while fetching
-  if (loading && courses.length === 0) {
-    return (
-      <div className="text-center p-10">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading Courses...</p>
-      </div>
-    );
-  }
+ 
 
   // Handle any errors during the fetch
   if (error) {
@@ -91,9 +83,9 @@ const Courses = () => {
               <CourseCardImage course={course} />
               <div className="p-6">
                 {course.category && (
-                  <p className="text-sm text-teal-600 font-semibold mb-2">{course.category}</p>
+                  <p className="text-sm text-blue-600 font-semibold mb-2">{course.category}</p>
                 )}
-                <h2 className="text-xl font-bold text-gray-900 mb-2 truncate group-hover:text-teal-600 transition-colors duration-300">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors duration-300">
                   {course.title}
                 </h2>
                 <p className="text-gray-600 text-sm line-clamp-3 h-16">
