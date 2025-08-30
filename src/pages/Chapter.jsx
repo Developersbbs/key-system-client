@@ -13,6 +13,7 @@ import {
   Play,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { isCourseUnlocked, initializeCourseUnlocks } from '../utils/courseUnlock'; // Import utility functions
 
 // --- VideoPlayer Component ---
 const VideoPlayer = ({ videoUrl, chapterId }) => {
@@ -168,7 +169,7 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
                 <line x1="9" y1="9" x2="15" y2="15"></line>
               </svg>
               <p class="text-red-600 font-medium">Video Error</p>
-              <p class="text-red-500 text-sm mt-1">${errorMsg}</p>
+              <p class="text-red-500 text-sm mt-1">${ errorMsg }</p>
               <p class="text-gray-500 text-xs mt-2 break-all">${cleanUrl}</p>
             </div>
           `;

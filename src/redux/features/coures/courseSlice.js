@@ -16,10 +16,20 @@ export const fetchAllCourses = createAsyncThunk('courses/fetchAll', async (_, { 
   }
 });
 
-// ✅ ADD THIS NEW THUNK for member-specific courses
+// ✅ Existing thunk for member-specific courses
 export const fetchMyCourses = createAsyncThunk('courses/fetchMy', async (_, { rejectWithValue }) => {
   try {
     const res = await apiClient.get('/courses/my-courses');
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(handleApiError(err));
+  }
+});
+
+// ✅ NEW THUNK for admin-approved courses (public viewing)
+export const fetchApprovedCourses = createAsyncThunk('courses/fetchApproved', async (_, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.get('/courses/approved');
     return res.data;
   } catch (err) {
     return rejectWithValue(handleApiError(err));
@@ -75,12 +85,14 @@ const courseSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // ✅ ADD fulfilled handler for the new thunk.
-      // It can share the same logic as fetchAllCourses.
+      // ✅ All course fetch actions share the same fulfilled logic
       .addCase(fetchAllCourses.fulfilled, (state, action) => {
         state.courses = action.payload;
       })
       .addCase(fetchMyCourses.fulfilled, (state, action) => {
+        state.courses = action.payload;
+      })
+      .addCase(fetchApprovedCourses.fulfilled, (state, action) => {
         state.courses = action.payload;
       })
       .addCase(fetchCourseById.fulfilled, (state, action) => {

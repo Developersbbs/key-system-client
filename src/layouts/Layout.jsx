@@ -32,6 +32,7 @@ const Layout = ({ children }) => {
   const memberNavItems = [
     { path: '/member', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
+    { path:'/events', label: 'Events', icon: Users }
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;

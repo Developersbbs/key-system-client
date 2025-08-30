@@ -10,39 +10,48 @@ const MemberDashboard = () => {
   // --- Data Fetching ---
   const { user } = useSelector((state) => state.auth);
   // The 'courses' state will hold member-specific courses
-  const { courses, loading, error } = useSelector((state) => state.courses);
+  const { courses, error } = useSelector((state) => state.courses);
 
   useEffect(() => {
     // This thunk fetches only the courses the logged-in member has access to
     dispatch(fetchMyCourses());
   }, [dispatch]);
   
-  // This logic finds the chapter titles for the quiz results
+  // This logic finds the chapter titles for the quiz results and filters out deleted chapters
   const quizResultsWithTitles = useMemo(() => {
-    if (!user?.mcqResults || !courses) return [];
+    if (!user?.mcqResults || !courses || courses.length === 0) return [];
     
-    // Create a quick lookup map of all chapters from the user's courses
+    // Create a quick lookup map of all chapters from the user's current courses
     const chapterMap = new Map();
     courses.forEach(course => {
-      course.chapters.forEach(chapter => {
-        chapterMap.set(chapter._id.toString(), { 
-          chapterTitle: chapter.title,
-          courseId: course._id
+      if (course.chapters && course.chapters.length > 0) {
+        course.chapters.forEach(chapter => {
+          chapterMap.set(chapter._id.toString(), { 
+            chapterTitle: chapter.title,
+            courseId: course._id,
+            courseTitle: course.title
+          });
         });
-      });
+      }
     });
 
-    // Add the chapter title to each result
-    return user.mcqResults.map(result => {
-      const chapterDetails = chapterMap.get(result.chapterId.toString());
-      return {
-        ...result,
-        title: chapterDetails ? chapterDetails.chapterTitle : 'Chapter',
-        courseId: chapterDetails ? chapterDetails.courseId : null
-      };
-    });
+    // Filter and map quiz results to only include existing chapters
+    return user.mcqResults
+      .filter(result => {
+        // Only include results for chapters that still exist
+        return chapterMap.has(result.chapterId.toString());
+      })
+      .map(result => {
+        const chapterDetails = chapterMap.get(result.chapterId.toString());
+        return {
+          ...result,
+          title: chapterDetails.chapterTitle,
+          courseId: chapterDetails.courseId,
+          courseTitle: chapterDetails.courseTitle
+        };
+      })
+      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt)); // Sort by most recent
   }, [user, courses]);
-
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -100,22 +109,42 @@ const MemberDashboard = () => {
               Quiz Results
             </h2>
             {quizResultsWithTitles && quizResultsWithTitles.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
+              <div className="space-y-3">
                 {quizResultsWithTitles.map(result => (
-                  <li key={result.chapterId} className="py-3">
-                    <div className="flex justify-between items-center">
-                      <Link to={`/courses/${result.courseId}/chapters/${result.chapterId}`} className="font-medium text-gray-700 hover:text-blue-600">
-                        {result.title}
-                      </Link>
-                      <span className={`font-bold text-lg ${result.score >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                        {result.score}%
-                      </span>
-                    </div>
-                  </li>
+                  <div key={result.chapterId} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <Link 
+                      to={`/courses/${result.courseId}/chapters/${result.chapterId}`} 
+                      className="block"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-gray-900 text-sm leading-tight">
+                          {result.title}
+                        </h4>
+                        <span className={`font-bold text-lg ml-2 flex-shrink-0 ${
+                          result.score >= 50 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {result.score}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 truncate">
+                        {result.courseTitle}
+                      </p>
+                      {result.completedAt && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(result.completedAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </Link>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className="text-gray-500 text-sm">You haven't completed any quizzes yet.</p>
+              <p className="text-gray-500 text-sm">
+                {courses.length === 0 
+                  ? "Enroll in courses to start taking quizzes!" 
+                  : "You haven't completed any quizzes yet."
+                }
+              </p>
             )}
           </div>
         </div>
