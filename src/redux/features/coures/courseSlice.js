@@ -16,7 +16,7 @@ export const fetchAllCourses = createAsyncThunk('courses/fetchAll', async (_, { 
   }
 });
 
-// ✅ Existing thunk for member-specific courses
+// ✅ UPDATED: Fetch member courses with sequential unlock status
 export const fetchMyCourses = createAsyncThunk('courses/fetchMy', async (_, { rejectWithValue }) => {
   try {
     const res = await apiClient.get('/courses/my-courses');
@@ -26,7 +26,36 @@ export const fetchMyCourses = createAsyncThunk('courses/fetchMy', async (_, { re
   }
 });
 
-// ✅ NEW THUNK for admin-approved courses (public viewing)
+// ✅ NEW: Check if user can access a specific course
+export const checkCourseAccess = createAsyncThunk('courses/checkAccess', async (courseId, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.get(`/courses/${courseId}/can-access`);
+    return { courseId, ...res.data };
+  } catch (err) {
+    return rejectWithValue(handleApiError(err));
+  }
+});
+
+// ✅ NEW: Get user's overall progress
+export const fetchUserProgress = createAsyncThunk('courses/fetchProgress', async (_, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.get('/courses/user-progress');
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(handleApiError(err));
+  }
+});
+
+// ✅ NEW: Get course-specific progress
+export const fetchCourseProgress = createAsyncThunk('courses/fetchCourseProgress', async (courseId, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.get(`/courses/progress/${courseId}`);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(handleApiError(err));
+  }
+});
+
 export const fetchApprovedCourses = createAsyncThunk('courses/fetchApproved', async (_, { rejectWithValue }) => {
   try {
     const res = await apiClient.get('/courses/approved');
@@ -77,47 +106,108 @@ const courseSlice = createSlice({
   initialState: {
     courses: [],
     selectedCourse: null,
+    userProgress: null,
+    courseAccess: {}, // Store access status for courses
     loading: false,
     error: null,
+    progressLoading: false,
+    progressError: null,
   },
   reducers: {
-    clearError: (state) => { state.error = null; },
+    clearError: (state) => { 
+      state.error = null; 
+      state.progressError = null;
+    },
+    // ✅ NEW: Update course completion status
+    updateCourseCompletion: (state, action) => {
+      const { courseId, isCompleted } = action.payload;
+      const courseIndex = state.courses.findIndex(c => c._id === courseId);
+      if (courseIndex !== -1) {
+        state.courses[courseIndex].isCompleted = isCompleted;
+      }
+    },
+    // ✅ NEW: Update course unlock status
+    updateCourseUnlock: (state, action) => {
+      const { courseId, isUnlocked } = action.payload;
+      const courseIndex = state.courses.findIndex(c => c._id === courseId);
+      if (courseIndex !== -1) {
+        state.courses[courseIndex].isUnlocked = isUnlocked;
+      }
+    }
   },
   extraReducers: (builder) => {
     builder
-      // ✅ All course fetch actions share the same fulfilled logic
+      // Course fetch actions
       .addCase(fetchAllCourses.fulfilled, (state, action) => {
         state.courses = action.payload;
+        state.loading = false;
       })
       .addCase(fetchMyCourses.fulfilled, (state, action) => {
+        // ✅ Courses now come with isCompleted and isUnlocked flags
         state.courses = action.payload;
+        state.loading = false;
       })
       .addCase(fetchApprovedCourses.fulfilled, (state, action) => {
         state.courses = action.payload;
+        state.loading = false;
       })
       .addCase(fetchCourseById.fulfilled, (state, action) => {
         state.selectedCourse = action.payload;
+        state.loading = false;
       })
+      
+      // ✅ NEW: Handle user progress
+      .addCase(fetchUserProgress.pending, (state) => {
+        state.progressLoading = true;
+        state.progressError = null;
+      })
+      .addCase(fetchUserProgress.fulfilled, (state, action) => {
+        state.userProgress = action.payload;
+        state.progressLoading = false;
+      })
+      .addCase(fetchUserProgress.rejected, (state, action) => {
+        state.progressLoading = false;
+        state.progressError = action.payload;
+      })
+      
+      // ✅ NEW: Handle course access check
+      .addCase(checkCourseAccess.fulfilled, (state, action) => {
+        const { courseId, canAccess, reason } = action.payload;
+        state.courseAccess[courseId] = { canAccess, reason };
+      })
+      
+      // Existing CRUD operations
       .addCase(addCourse.fulfilled, (state, action) => {
         state.courses.unshift(action.payload);
+        state.loading = false;
       })
       .addCase(editCourse.fulfilled, (state, action) => {
         const index = state.courses.findIndex(c => c._id === action.payload._id);
         if (index !== -1) state.courses[index] = action.payload;
+        state.loading = false;
       })
       .addCase(removeCourse.fulfilled, (state, action) => {
         state.courses = state.courses.filter(c => c._id !== action.payload);
-      })
-      .addMatcher((action) => action.type.endsWith('/pending'), (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addMatcher((action) => action.type.endsWith('/rejected'), (state, action) => {
         state.loading = false;
-        state.error = action.payload;
-      });
+      })
+      
+      // Generic matchers
+      .addMatcher(
+        (action) => action.type.endsWith('/pending') && !action.type.includes('Progress'),
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.endsWith('/rejected') && !action.type.includes('Progress'),
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      );
   },
 });
 
-export const { clearError } = courseSlice.actions;
+export const { clearError, updateCourseCompletion, updateCourseUnlock } = courseSlice.actions;
 export default courseSlice.reducer;

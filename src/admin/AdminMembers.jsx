@@ -1,19 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllMembers, fetchAllAdmins, updateUserRole, updateUserLevels } from '../redux/features/members/memberSlice';
+import { fetchAllMembers, fetchAllAdmins, updateUserRole, updateUserStatus } from '../redux/features/members/memberSlice';
 import { fetchAllBatches, createBatch, updateBatch, addMembersToBatch, removeMemberFromBatch, deleteBatch } from '../redux/features/batches/batchSlice';
-import { fetchAllLevels } from '../redux/features/level/levelSlice';
-import { Users, ShieldCheck, Phone, Key, X, Plus, Edit, Trash2, UserPlus, Package } from 'lucide-react';
+import { Users, ShieldCheck, Phone, X, Plus, Edit, Trash2, UserPlus, Package, ToggleLeft, ToggleRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Reusable Toggle Switch Component for Role
 const RoleToggle = ({ user, currentUser, onToggle }) => {
   const isCurrentUser = user._id === currentUser?._id;
+  const isSuperAdmin = currentUser?.isSuperadmin === true;
+  
+  // Only show role toggle if current user is super admin
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex items-center">
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          user.role === 'admin' 
+            ? 'bg-purple-100 text-purple-800' 
+            : 'bg-gray-100 text-gray-800'
+        }`}>
+          {user.role === 'admin' ? 'Admin' : 'Member'}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <label htmlFor={`toggle-${user._id}`} className="flex items-center cursor-pointer">
+    <label htmlFor={`role-toggle-${user._id}`} className="flex items-center cursor-pointer">
       <div className="relative">
         <input 
-          id={`toggle-${user._id}`} 
+          id={`role-toggle-${user._id}`} 
           type="checkbox" 
           className="sr-only" 
           checked={user.role === 'admin'}
@@ -30,85 +46,41 @@ const RoleToggle = ({ user, currentUser, onToggle }) => {
   );
 };
 
-// Modal for managing individual level access
-const LevelAccessModal = ({ user, levels, onClose, onSave }) => {
-  const [selectedLevels, setSelectedLevels] = useState(user.accessibleLevels || [1]);
-
-  const handleToggle = (levelNumber) => {
-    const newLevels = selectedLevels.includes(levelNumber)
-      ? selectedLevels.filter(l => l !== levelNumber)
-      : [...selectedLevels, levelNumber];
-    setSelectedLevels(newLevels);
-  };
-
-  const handleSaveChanges = () => {
-    onSave(user._id, selectedLevels);
-  };
-
+// Reusable Toggle Switch Component for Active Status
+const StatusToggle = ({ user, onToggle }) => {
+  const isActive = user.isActive !== false; // Default to true if undefined
+  
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold">Manage Individual Levels for {user.name}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
-        </div>
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {user.batch && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> This user is in batch "{user.batch.name}". Individual level settings will override batch settings.
-              </p>
-            </div>
-          )}
-          <div className="space-y-4">
-            {levels.map(level => (
-              <label key={level._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="w-5 h-5 accent-teal-600"
-                  checked={selectedLevels.includes(level.levelNumber)}
-                  onChange={() => handleToggle(level.levelNumber)}
-                />
-                <span className="font-medium text-gray-800">Level {level.levelNumber}: {level.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="p-4 bg-gray-50 border-t flex justify-end gap-2">
-          <button onClick={onClose} className="bg-gray-200 px-4 py-2 rounded-lg font-semibold">Cancel</button>
-          <button onClick={handleSaveChanges} className="bg-teal-600 text-white px-4 py-2 rounded-lg font-semibold">Save Changes</button>
-        </div>
+    <label htmlFor={`status-toggle-${user._id}`} className="flex items-center cursor-pointer">
+      <div className="relative">
+        <input 
+          id={`status-toggle-${user._id}`} 
+          type="checkbox" 
+          className="sr-only" 
+          checked={isActive}
+          onChange={() => onToggle(user, !isActive)}
+        />
+        <div className={`block w-14 h-8 rounded-full transition ${isActive ? 'bg-green-600' : 'bg-gray-200'}`}></div>
+        <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${isActive ? 'transform translate-x-6' : ''}`}></div>
       </div>
-    </div>
+      <div className={`ml-3 font-medium text-sm ${isActive ? 'text-green-700' : 'text-gray-500'}`}>
+        {isActive ? 'Active' : 'Inactive'}
+      </div>
+    </label>
   );
 };
 
 // Modal for creating/editing batch
-const BatchModal = ({ batch, levels, members, onClose, onSave }) => {
+const BatchModal = ({ batch, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: batch?.name || '',
     description: batch?.description || '',
-    accessibleLevels: batch?.accessibleLevels || [1],
     startDate: batch?.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
     endDate: batch?.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : ''
   });
 
-  const handleLevelToggle = (levelNumber) => {
-    const newLevels = formData.accessibleLevels.includes(levelNumber)
-      ? formData.accessibleLevels.filter(l => l !== levelNumber)
-      : [...formData.accessibleLevels, levelNumber];
-    setFormData({ ...formData, accessibleLevels: newLevels });
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Ensure at least one level is selected
-    if (formData.accessibleLevels.length === 0) {
-      toast.error('Please select at least one accessible level');
-      return;
-    }
-    
     onSave(formData);
   };
 
@@ -165,26 +137,10 @@ const BatchModal = ({ batch, levels, members, onClose, onSave }) => {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Accessible Levels {formData.accessibleLevels.length === 0 && <span className="text-red-500">*</span>}
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {levels.map(level => (
-                <label key={level._id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 accent-teal-600"
-                    checked={formData.accessibleLevels.includes(level.levelNumber)}
-                    onChange={() => handleLevelToggle(level.levelNumber)}
-                  />
-                  <span className="text-sm font-medium">Level {level.levelNumber}: {level.name}</span>
-                </label>
-              ))}
-            </div>
-            {formData.accessibleLevels.length === 0 && (
-              <p className="text-red-500 text-sm mt-1">Please select at least one accessible level</p>
-            )}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> All courses will be unlocked progressively for batch members. No level restrictions.
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -273,99 +229,132 @@ const AddMembersToBatchModal = ({ batch, availableMembers, onClose, onSave }) =>
 
 const AdminMembers = () => {
   const [activeTab, setActiveTab] = useState('members');
-  const [levelModalUser, setLevelModalUser] = useState(null);
   const [batchModal, setBatchModal] = useState({ show: false, batch: null });
   const [addMembersModal, setAddMembersModal] = useState({ show: false, batch: null });
   const dispatch = useDispatch();
   
   const { members, admins, error } = useSelector((state) => state.members);
   const { batches } = useSelector((state) => state.batches);
-  const { levels } = useSelector((state) => state.levels);
   const { user: currentUser } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchAllMembers());
     dispatch(fetchAllAdmins());
-    dispatch(fetchAllLevels());
     dispatch(fetchAllBatches());
   }, [dispatch]);
 
-  const handleRoleChange = (user, newRole) => {
+  const handleRoleChange = async (user, newRole) => {
+    // Only allow super admins to change roles
+    if (currentUser?.isSuperadmin !== true) {
+      toast.error("Only super admins can change user roles.");
+      return;
+    }
+
     if (window.confirm(`Change ${user.name}'s role to ${newRole}?`)) {
-      dispatch(updateUserRole({ userId: user._id, role: newRole }))
-        .unwrap()
-        .then(() => toast.success(`${user.name}'s role updated.`))
-        .catch((err) => toast.error(err));
+      try {
+        await dispatch(updateUserRole({ userId: user._id, role: newRole })).unwrap();
+        toast.success(`${user.name}'s role updated.`);
+        
+        // Refresh data immediately after successful update
+        await Promise.all([
+          dispatch(fetchAllMembers()),
+          dispatch(fetchAllAdmins())
+        ]);
+      } catch (err) {
+        toast.error(err || 'Failed to update user role');
+      }
     }
   };
 
-  const handleLevelSave = (userId, newLevels) => {
-    dispatch(updateUserLevels({ userId, levels: newLevels }))
-      .unwrap()
-      .then(() => {
-        toast.success("User's accessible levels updated.");
-        setLevelModalUser(null);
-      })
-      .catch((err) => toast.error(err));
+  const handleStatusChange = async (user, newStatus) => {
+    const statusText = newStatus ? 'activate' : 'deactivate';
+    if (window.confirm(`${statusText.charAt(0).toUpperCase() + statusText.slice(1)} ${user.name}?`)) {
+      try {
+        await dispatch(updateUserStatus({ userId: user._id, isActive: newStatus })).unwrap();
+        toast.success(`${user.name} has been ${statusText}d.`);
+        
+        // Refresh data immediately after successful update
+        await Promise.all([
+          dispatch(fetchAllMembers()),
+          dispatch(fetchAllAdmins())
+        ]);
+      } catch (err) {
+        toast.error(err || 'Failed to update user status');
+      }
+    }
   };
 
-  const handleBatchSave = (batchData) => {
-    const action = batchModal.batch 
-      ? updateBatch({ id: batchModal.batch._id, data: batchData })
-      : createBatch(batchData);
+  const handleBatchSave = async (batchData) => {
+    try {
+      const action = batchModal.batch 
+        ? updateBatch({ id: batchModal.batch._id, data: batchData })
+        : createBatch(batchData);
 
-    dispatch(action)
-      .unwrap()
-      .then(() => {
-        toast.success(`Batch ${batchModal.batch ? 'updated' : 'created'} successfully.`);
-        setBatchModal({ show: false, batch: null });
-        // Refresh data after batch operations
-        dispatch(fetchAllBatches());
-        dispatch(fetchAllMembers());
-      })
-      .catch((err) => toast.error(err));
+      await dispatch(action).unwrap();
+      toast.success(`Batch ${batchModal.batch ? 'updated' : 'created'} successfully.`);
+      setBatchModal({ show: false, batch: null });
+      
+      // Refresh data after batch operations
+      await Promise.all([
+        dispatch(fetchAllBatches()),
+        dispatch(fetchAllMembers())
+      ]);
+    } catch (err) {
+      toast.error(err || 'Failed to save batch');
+    }
   };
 
-  const handleAddMembers = (batchId, memberIds) => {
-    dispatch(addMembersToBatch({ batchId, memberIds }))
-      .unwrap()
-      .then(() => {
-        toast.success("Members added to batch successfully.");
-        setAddMembersModal({ show: false, batch: null });
-        // Refresh members and batches data
-        dispatch(fetchAllMembers());
-        dispatch(fetchAllBatches());
-      })
-      .catch((err) => toast.error(err));
+  const handleAddMembers = async (batchId, memberIds) => {
+    try {
+      await dispatch(addMembersToBatch({ batchId, memberIds })).unwrap();
+      toast.success("Members added to batch successfully.");
+      setAddMembersModal({ show: false, batch: null });
+      
+      // Refresh members and batches data
+      await Promise.all([
+        dispatch(fetchAllMembers()),
+        dispatch(fetchAllBatches())
+      ]);
+    } catch (err) {
+      toast.error(err || 'Failed to add members to batch');
+    }
   };
 
-  const handleRemoveMemberFromBatch = (batchId, memberId, memberName) => {
+  const handleRemoveMemberFromBatch = async (batchId, memberId, memberName) => {
     if (window.confirm(`Remove ${memberName} from this batch?`)) {
-      dispatch(removeMemberFromBatch({ batchId, memberId }))
-        .unwrap()
-        .then(() => {
-          toast.success("Member removed from batch.");
-          dispatch(fetchAllMembers());
-          dispatch(fetchAllBatches());
-        })
-        .catch((err) => toast.error(err));
+      try {
+        await dispatch(removeMemberFromBatch({ batchId, memberId })).unwrap();
+        toast.success("Member removed from batch.");
+        
+        // Refresh data immediately
+        await Promise.all([
+          dispatch(fetchAllMembers()),
+          dispatch(fetchAllBatches())
+        ]);
+      } catch (err) {
+        toast.error(err || 'Failed to remove member from batch');
+      }
     }
   };
 
-  const handleDeleteBatch = (batchId, batchName) => {
+  const handleDeleteBatch = async (batchId, batchName) => {
     if (window.confirm(`Delete batch "${batchName}"? All members will be removed from this batch.`)) {
-      dispatch(deleteBatch(batchId))
-        .unwrap()
-        .then(() => {
-          toast.success("Batch deleted successfully.");
-          dispatch(fetchAllMembers());
-          dispatch(fetchAllBatches());
-        })
-        .catch((err) => toast.error(err));
+      try {
+        await dispatch(deleteBatch(batchId)).unwrap();
+        toast.success("Batch deleted successfully.");
+        
+        // Refresh data immediately
+        await Promise.all([
+          dispatch(fetchAllMembers()),
+          dispatch(fetchAllBatches())
+        ]);
+      } catch (err) {
+        toast.error(err || 'Failed to delete batch');
+      }
     }
   };
 
-  // Fixed: Get members not in any batch for the add members modal
+  // Get members not in any batch for the add members modal
   const getAvailableMembers = (currentBatch) => {
     if (!currentBatch) {
       // For new batch creation, show all members without a batch
@@ -385,14 +374,29 @@ const AdminMembers = () => {
     </button>
   );
 
+  // Check if current user is super admin
+  const isSuperAdmin = currentUser?.isSuperadmin === true;
+
   return (
     <div className="w-full">
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+            {isSuperAdmin && (
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <ShieldCheck size={12} className="mr-1" />
+                  Super Admin Access
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-2 mt-4 border-t pt-4">
           <TabButton tabName="members" label="Members" count={members.length} icon={Users} />
           <TabButton tabName="admins" label="Admins" count={admins.length} icon={ShieldCheck} />
-          <TabButton tabName="batches" label="Batches" count={batches.length} icon={Package} />
+          {/* <TabButton tabName="batches" label="Batches" count={batches.length} icon={Package} /> */}
         </div>
       </div>
 
@@ -407,12 +411,12 @@ const AdminMembers = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Access Control</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {members.map((user) => (
-                <tr key={user._id}>
+                <tr key={user._id} className={user.isActive === false ? 'opacity-60 bg-gray-25' : ''}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{user.name}</div>
                     <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
@@ -432,9 +436,7 @@ const AdminMembers = () => {
                     <RoleToggle user={user} currentUser={currentUser} onToggle={handleRoleChange} />
                   </td>
                   <td className="px-6 py-4">
-                    <button onClick={() => setLevelModalUser(user)} className="flex items-center gap-2 text-sm text-teal-600 hover:text-teal-800 font-semibold">
-                      <Key size={16} /> Manage Levels
-                    </button>
+                    <StatusToggle user={user} onToggle={handleStatusChange} />
                   </td>
                 </tr>
               ))}
@@ -451,19 +453,30 @@ const AdminMembers = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {admins.map((user) => (
-                <tr key={user._id}>
+                <tr key={user._id} className={user.isActive === false ? 'opacity-60 bg-gray-25' : ''}>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{user.name}</div>
+                    <div className="font-medium text-gray-900 flex items-center gap-2">
+                      {user.name}
+                      {user.isSuperadmin && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                          Super
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                       <Phone size={14} />{user.phoneNumber}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <RoleToggle user={user} currentUser={currentUser} onToggle={handleRoleChange} />
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusToggle user={user} onToggle={handleStatusChange} />
                   </td>
                 </tr>
               ))}
@@ -497,9 +510,11 @@ const AdminMembers = () => {
                       )}
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                         <span>{batch.members?.length || 0} members</span>
-                        <span>Levels: {batch.accessibleLevels?.join(', ') || 'None'}</span>
                         {batch.startDate && (
                           <span>Started: {new Date(batch.startDate).toLocaleDateString()}</span>
+                        )}
+                        {batch.endDate && (
+                          <span>Ends: {new Date(batch.endDate).toLocaleDateString()}</span>
                         )}
                       </div>
                     </div>
@@ -573,20 +588,9 @@ const AdminMembers = () => {
       )}
 
       {/* Modals */}
-      {levelModalUser && (
-        <LevelAccessModal 
-          user={levelModalUser}
-          levels={levels}
-          onClose={() => setLevelModalUser(null)}
-          onSave={handleLevelSave}
-        />
-      )}
-
       {batchModal.show && (
         <BatchModal 
           batch={batchModal.batch}
-          levels={levels}
-          members={members}
           onClose={() => setBatchModal({ show: false, batch: null })}
           onSave={handleBatchSave}
         />

@@ -34,19 +34,18 @@ export const updateUserRole = createAsyncThunk('members/updateRole', async ({ us
   }
 });
 
-// ✅ NEW: This is the correct thunk for your new multi-level access system
-export const updateUserLevels = createAsyncThunk(
-  'members/updateLevels',
-  async ({ userId, levels }, { rejectWithValue }) => {
+// Update user active/inactive status
+export const updateUserStatus = createAsyncThunk(
+  'members/updateStatus',
+  async ({ userId, isActive }, { rejectWithValue }) => {
     try {
-      const res = await apiClient.put(`/admin/users/${userId}/levels`, { levels });
+      const res = await apiClient.put(`/admin/users/${userId}/status`, { isActive });
       return res.data;
     } catch (err) {
       return rejectWithValue(handleApiError(err));
     }
   }
 );
-
 
 const memberSlice = createSlice({
   name: 'members',
@@ -66,35 +65,80 @@ const memberSlice = createSlice({
       // --- FULFILLED HANDLERS ---
       .addCase(fetchAllMembers.fulfilled, (state, action) => {
         state.members = action.payload;
+        state.loading = false;
+        state.error = null;
       })
       .addCase(fetchAllAdmins.fulfilled, (state, action) => {
         state.admins = action.payload;
+        state.loading = false;
+        state.error = null;
       })
       .addCase(updateUserRole.fulfilled, (state, action) => {
         const updatedUser = action.payload;
+        // Remove user from both arrays first
         state.members = state.members.filter(m => m._id !== updatedUser._id);
         state.admins = state.admins.filter(a => a._id !== updatedUser._id);
+        
+        // Add to appropriate array based on new role
         if (updatedUser.role === 'admin') {
           state.admins.push(updatedUser);
         } else {
           state.members.push(updatedUser);
         }
+        state.loading = false;
+        state.error = null;
       })
-      // ✅ CORRECTED: Handler for updating user levels
-      .addCase(updateUserLevels.fulfilled, (state, action) => {
+      .addCase(updateUserStatus.fulfilled, (state, action) => {
         const updatedUser = action.payload;
-        const index = state.members.findIndex(m => m._id === updatedUser._id);
-        if (index !== -1) {
-          state.members[index] = updatedUser;
+        
+        // Update in members array
+        const memberIndex = state.members.findIndex(m => m._id === updatedUser._id);
+        if (memberIndex !== -1) {
+          state.members[memberIndex] = updatedUser;
         }
+        
+        // Update in admins array
+        const adminIndex = state.admins.findIndex(a => a._id === updatedUser._id);
+        if (adminIndex !== -1) {
+          state.admins[adminIndex] = updatedUser;
+        }
+        
+        state.loading = false;
+        state.error = null;
       })
       
-      // --- GENERIC MATCHERS (Must come last) ---
-      .addMatcher((action) => action.type.endsWith('/pending'), (state) => {
+      // --- PENDING HANDLERS ---
+      .addCase(fetchAllMembers.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addMatcher((action) => action.type.endsWith('/rejected'), (state, action) => {
+      .addCase(fetchAllAdmins.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserRole.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      
+      // --- REJECTED HANDLERS ---
+      .addCase(fetchAllMembers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(fetchAllAdmins.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateUserRole.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateUserStatus.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

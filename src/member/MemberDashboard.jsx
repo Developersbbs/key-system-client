@@ -1,98 +1,239 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { fetchMyCourses } from '../redux/features/coures/courseSlice';
-import { BookOpen, PlayCircle, ChevronRight, CheckCircle } from 'lucide-react';
+import { fetchMyCourses, fetchUserProgress } from '../redux/features/coures/courseSlice';
+import { BookOpen, PlayCircle, ChevronRight, CheckCircle, Award, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import apiClient from '../api/apiClient'; // Adjust path as needed
+
+// Inactive User Message Component
+const InactiveUserMessage = () => (
+  <div className="w-full max-w-4xl mx-auto px-4 py-12">
+    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+      <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
+      <h2 className="text-2xl font-bold text-red-900 mb-2">Account Inactive</h2>
+      <p className="text-red-700 mb-4">
+        Your account is currently inactive. You don't have access to the dashboard or courses at this time.
+      </p>
+      <p className="text-red-600 text-sm">
+        Please contact an administrator to reactivate your account.
+      </p>
+    </div>
+  </div>
+);
 
 const MemberDashboard = () => {
   const dispatch = useDispatch();
+  const [quizResults, setQuizResults] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // --- Data Fetching ---
   const { user } = useSelector((state) => state.auth);
-  // The 'courses' state will hold member-specific courses
-  const { courses, error } = useSelector((state) => state.courses);
+  const { courses, error, userProgress } = useSelector((state) => state.courses);
+
+  // Check if user is active
+  const isUserActive = user?.isActive !== false; // Default to true if not specified
+
+  // Fetch quiz results with chapter names
+  const fetchQuizResults = async () => {
+    try {
+      const response = await apiClient.get('/member/quiz-results');
+      setQuizResults(response.data);
+    } catch (error) {
+      console.error('Failed to fetch quiz results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // This thunk fetches only the courses the logged-in member has access to
-    dispatch(fetchMyCourses());
-  }, [dispatch]);
-  
-  // This logic finds the chapter titles for the quiz results and filters out deleted chapters
-  const quizResultsWithTitles = useMemo(() => {
-    if (!user?.mcqResults || !courses || courses.length === 0) return [];
-    
-    // Create a quick lookup map of all chapters from the user's current courses
-    const chapterMap = new Map();
-    courses.forEach(course => {
-      if (course.chapters && course.chapters.length > 0) {
-        course.chapters.forEach(chapter => {
-          chapterMap.set(chapter._id.toString(), { 
-            chapterTitle: chapter.title,
-            courseId: course._id,
-            courseTitle: course.title
-          });
-        });
-      }
-    });
+    // Only fetch data if user is active
+    if (isUserActive) {
+      // Fetch member-specific courses and user progress
+      dispatch(fetchMyCourses());
+      dispatch(fetchUserProgress());
+      
+      // Fetch quiz results with chapter names
+      fetchQuizResults();
+    } else {
+      setLoading(false);
+    }
+  }, [dispatch, isUserActive]);
 
-    // Filter and map quiz results to only include existing chapters
-    return user.mcqResults
-      .filter(result => {
-        // Only include results for chapters that still exist
-        return chapterMap.has(result.chapterId.toString());
-      })
-      .map(result => {
-        const chapterDetails = chapterMap.get(result.chapterId.toString());
-        return {
-          ...result,
-          title: chapterDetails.chapterTitle,
-          courseId: chapterDetails.courseId,
-          courseTitle: chapterDetails.courseTitle
-        };
-      })
-      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt)); // Sort by most recent
-  }, [user, courses]);
+  // If user is inactive, show inactive message
+  if (!isUserActive) {
+    return <InactiveUserMessage />;
+  }
+
+  // Calculate overall statistics
+  const stats = {
+    totalCourses: courses?.length || 0,
+    completedCourses: courses?.filter(course => course.isCompleted)?.length || 0,
+    totalQuizzes: quizResults.length,
+    averageScore: quizResults.length > 0 
+      ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length)
+      : 0
+  };
+
+  // Get next course to continue
+  const nextCourse = courses?.find(course => course.isUnlocked && !course.isCompleted);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6">
       {/* Welcome Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Welcome, {user?.name || 'Member'}!</h1>
-        <p className="text-gray-600 mt-2">Ready to continue your learning journey?</p>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Welcome back, {user?.name || 'Member'}!
+        </h1>
+        <p className="text-gray-600">Ready to continue your learning journey?</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm">Total Courses</p>
+              <p className="text-2xl font-bold">{stats.totalCourses}</p>
+            </div>
+            <BookOpen size={24} className="text-blue-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm">Completed</p>
+              <p className="text-2xl font-bold">{stats.completedCourses}</p>
+            </div>
+            <CheckCircle size={24} className="text-green-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">Quizzes Taken</p>
+              <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
+            </div>
+            <Award size={24} className="text-purple-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-orange-100 text-sm">Avg. Score</p>
+              <p className="text-2xl font-bold">{stats.averageScore}%</p>
+            </div>
+            <TrendingUp size={24} className="text-orange-200" />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content: Enrolled Courses */}
-        <div className="lg:col-span-2">
+        {/* Main Content: Continue Learning + Enrolled Courses */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Continue Learning Section */}
+          {nextCourse && (
+            <div className="bg-gradient-to-r from-teal-500 to-green-600 rounded-xl p-6 text-white">
+              <h2 className="text-2xl font-bold mb-2">Continue Learning</h2>
+              <p className="text-teal-100 mb-4">Pick up where you left off</p>
+              <div className="bg-white/20 rounded-lg p-4">
+                <h3 className="font-semibold text-lg mb-1">{nextCourse.title}</h3>
+                <p className="text-teal-100 text-sm mb-3">
+                  {nextCourse.chapters?.length || 0} chapters available
+                </p>
+                <Link 
+                  to={`/courses/${nextCourse._id}`}
+                  className="inline-flex items-center gap-2 bg-white text-teal-600 font-semibold py-2 px-4 rounded-lg hover:shadow-md transition"
+                >
+                  <PlayCircle size={18} />
+                  Continue Course
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* All Enrolled Courses */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
               <BookOpen className="text-blue-600" />
-              My Enrolled Courses
+              My Learning Path
             </h2>
 
             {error ? (
               <p className="text-red-500">{error}</p>
-            ) : courses.length > 0 ? (
+            ) : courses && courses.length > 0 ? (
               <div className="space-y-4">
-                {courses.map(course => (
-                  <div key={course._id} className="p-4 bg-gray-50 rounded-lg flex justify-between items-center transition hover:shadow-md">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{course.title}</h3>
-                      <p className="text-sm text-gray-500">{course.chapters?.length || 0} chapters</p>
+                {courses.map(course => {
+                  const progress = userProgress?.find(p => p.courseId === course._id);
+                  const isLocked = course.isUnlocked === false;
+                  
+                  return (
+                    <div key={course._id} className={`p-4 rounded-lg border transition ${
+                      isLocked 
+                        ? 'bg-gray-50 border-gray-200 opacity-60' 
+                        : 'bg-white border-gray-200 hover:shadow-md hover:border-teal-200'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-semibold text-gray-800">{course.title}</h3>
+                            {course.isCompleted && (
+                              <CheckCircle size={16} className="text-green-600" />
+                            )}
+                            {isLocked && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                Locked
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 mb-2">
+                            {course.chapters?.length || 0} chapters
+                          </p>
+                          
+                          {/* Progress Bar */}
+                          {progress && !isLocked && (
+                            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                              <div 
+                                className="bg-gradient-to-r from-teal-600 to-green-600 h-2 rounded-full transition-all duration-300" 
+                                style={{ width: `${progress.progressPercentage || 0}%` }}
+                              ></div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {!isLocked ? (
+                          <Link 
+                            to={`/courses/${course._id}`}
+                            className="bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:opacity-90 transition ml-4"
+                          >
+                            {course.isCompleted ? (
+                              <>
+                                <CheckCircle size={18} />
+                                Review
+                              </>
+                            ) : (
+                              <>
+                                <PlayCircle size={18} />
+                                {progress && progress.completedChapters > 0 ? 'Continue' : 'Start'}
+                              </>
+                            )}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-400 font-medium py-2 px-4 ml-4">
+                            Complete previous course
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <Link 
-                      to={`/courses/${course._id}`}
-                      className="bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:opacity-90 transition"
-                    >
-                      <PlayCircle size={18} />
-                      Start Learning
-                    </Link>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-10">
-                <p className="text-gray-500 mb-4">You are not enrolled in any courses yet.</p>
+                <BookOpen className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                <p className="text-gray-500 mb-4">You don't have access to any courses yet.</p>
                 <Link to="/courses" className="text-blue-600 font-semibold flex items-center justify-center gap-1 hover:underline">
                   Browse Available Courses <ChevronRight size={18} />
                 </Link>
@@ -101,50 +242,65 @@ const MemberDashboard = () => {
           </div>
         </div>
 
-        {/* Sidebar: Quiz Results */}
+        {/* Sidebar: Recent Quiz Results */}
         <div className="lg:col-span-1">
-           <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <CheckCircle className="text-green-600" />
-              Quiz Results
+              <Award className="text-yellow-600" />
+              Recent Quiz Results
             </h2>
-            {quizResultsWithTitles && quizResultsWithTitles.length > 0 ? (
+            
+            {loading ? (
               <div className="space-y-3">
-                {quizResultsWithTitles.map(result => (
-                  <div key={result.chapterId} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="p-3 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            ) : quizResults && quizResults.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {quizResults.slice(0, 10).map(result => (
+                  <div key={`${result.chapterId}-${result.completedAt}`} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                     <Link 
                       to={`/courses/${result.courseId}/chapters/${result.chapterId}`} 
                       className="block"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-gray-900 text-sm leading-tight">
-                          {result.title}
+                        <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 mr-2">
+                          {result.chapterTitle}
                         </h4>
-                        <span className={`font-bold text-lg ml-2 flex-shrink-0 ${
-                          result.score >= 50 ? 'text-green-600' : 'text-red-600'
+                        <span className={`font-bold text-lg flex-shrink-0 ${
+                          result.score >= 70 ? 'text-green-600' : 
+                          result.score >= 50 ? 'text-yellow-600' : 'text-red-600'
                         }`}>
                           {result.score}%
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-gray-500 truncate mb-1">
                         {result.courseTitle}
                       </p>
                       {result.completedAt && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <Clock size={12} />
                           {new Date(result.completedAt).toLocaleDateString()}
-                        </p>
+                        </div>
                       )}
                     </Link>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">
-                {courses.length === 0 
-                  ? "Enroll in courses to start taking quizzes!" 
-                  : "You haven't completed any quizzes yet."
-                }
-              </p>
+              <div className="text-center py-6">
+                <Award className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                <p className="text-gray-500 text-sm">
+                  {courses && courses.length === 0 
+                    ? "Start taking courses to see your quiz results here!" 
+                    : "Complete some quizzes to see your results here."
+                  }
+                </p>
+              </div>
             )}
           </div>
         </div>

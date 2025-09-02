@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchChapterById, submitMcqs } from '../redux/features/chapters/chapterSlice';
+import { fetchChapterById, submitMcqs, clearMcqResult } from '../redux/features/chapters/chapterSlice';
 import {
   Video,
   FileText,
@@ -13,7 +13,6 @@ import {
   Play,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { isCourseUnlocked, initializeCourseUnlocks } from '../utils/courseUnlock'; // Import utility functions
 
 // --- VideoPlayer Component ---
 const VideoPlayer = ({ videoUrl, chapterId }) => {
@@ -68,7 +67,6 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
         // Mark as completed when 90% watched
         if (newProgress >= 90 && !isCompleted) {
           setIsCompleted(true);
-          // dispatch(markChapterAsCompleted({ chapterId })); // Uncomment when implementing
         }
       }
     }
@@ -95,7 +93,6 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
       );
     }
 
-    // FIXED: Removed extra spaces in the embed URL
     const embedUrl = `https://www.youtube.com/embed/${videoId}`;
 
     return (
@@ -132,7 +129,6 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
         onEnded={() => {
           if (!isCompleted) {
             setIsCompleted(true);
-            // dispatch(markChapterAsCompleted({ chapterId })); // Uncomment when implementing
           }
         }}
         onError={(e) => {
@@ -186,16 +182,16 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
           style={{ width: `${progress}%` }}
         ></div>
       </div>
-    </div>
+    </div> 
   );
 };
 
 // --- McqSection Component ---
 const McqSection = ({ chapter, user }) => {
   const dispatch = useDispatch();
+  const { mcqSubmission } = useSelector((state) => state.chapters);
   const [answers, setAnswers] = useState({});
   const [results, setResults] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize with saved answers if already submitted
   useEffect(() => {
@@ -213,6 +209,27 @@ const McqSection = ({ chapter, user }) => {
     }
   }, [user, chapter]);
 
+  // Update results when submission is successful
+  useEffect(() => {
+    if (mcqSubmission.result) {
+      setResults({
+        result: mcqSubmission.result,
+        correctAnswers: chapter.mcqs.map((mcq) => ({
+          mcqId: mcq._id,
+          answer: mcq.correctAnswerIndex,
+          explanation: mcq.explanation,
+        })),
+      });
+      
+      // Show success message
+      toast.success('Quiz submitted successfully!');
+    }
+    
+    if (mcqSubmission.error) {
+      toast.error(mcqSubmission.error);
+    }
+  }, [mcqSubmission, chapter.mcqs]);
+
   const handleAnswerChange = (mcqId, optionIndex) => {
     setAnswers((prev) => ({ ...prev, [mcqId]: optionIndex }));
   };
@@ -222,39 +239,10 @@ const McqSection = ({ chapter, user }) => {
       if (!window.confirm("You haven't answered all questions. Submit anyway?")) return;
     }
 
-    setIsSubmitting(true);
     try {
-      const resultAction = await dispatch(submitMcqs({ chapterId: chapter._id, answers }));
-      
-      // Log the full result for debugging
-      console.log('MCQ Submission Result:', resultAction);
-      
-      // Check if the action was fulfilled and has payload
-      if (submitMcqs.fulfilled.match(resultAction)) {
-        const submissionResult = resultAction.payload;
-        
-        if (submissionResult && Object.keys(submissionResult).length > 0) {
-          setResults({
-            result: submissionResult,
-            correctAnswers: chapter.mcqs.map((mcq) => ({
-              mcqId: mcq._id,
-              answer: mcq.correctAnswerIndex,
-              explanation: mcq.explanation,
-            })),
-          });
-          toast.success('Quiz submitted successfully!');
-        } else {
-          toast.error('No result data received from server.');
-        }
-      } else {
-        // Handle rejected action
-        const errorMsg = resultAction.error?.message || 'Failed to submit answers.';
-        toast.error(errorMsg);
-      }
+      await dispatch(submitMcqs({ chapterId: chapter._id, answers })).unwrap();
     } catch (err) {
-      toast.error(err.message || 'Failed to submit answers.');
-    } finally {
-      setIsSubmitting(false);
+      console.error('MCQ submission error:', err);
     }
   };
 
@@ -270,7 +258,7 @@ const McqSection = ({ chapter, user }) => {
       <div className="space-y-6">
         {chapter.mcqs.map((mcq, index) => {
           const correctOptionIndex = Number(
-            results?.correctAnswers.find((a) => a.mcqId === mcq._id)?.answer
+            results?.correctAnswers?.find((a) => a.mcqId === mcq._id)?.answer
           );
           const selectedOptionIndex = answers[mcq._id] !== undefined ? Number(answers[mcq._id]) : null;
 
@@ -340,13 +328,13 @@ const McqSection = ({ chapter, user }) => {
       {!isSubmitted && (
         <button
           onClick={handleSubmit}
-          disabled={Object.keys(answers).length === 0 || isSubmitting}
+          disabled={Object.keys(answers).length === 0 || mcqSubmission.loading}
           className={`mt-8 w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-3 rounded-lg shadow hover:shadow-md transition text-lg flex items-center justify-center gap-2 ${
-            Object.keys(answers).length === 0 || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:from-teal-700 hover:to-green-700'
+            Object.keys(answers).length === 0 || mcqSubmission.loading ? 'opacity-50 cursor-not-allowed' : 'hover:from-teal-700 hover:to-green-700'
           }`}
         >
           <CheckCircle size={20} />
-          {isSubmitting ? 'Submitting...' : 'Submit Quiz'}
+          {mcqSubmission.loading ? 'Submitting...' : 'Submit Quiz'}
         </button>
       )}
 
@@ -367,15 +355,6 @@ const McqSection = ({ chapter, user }) => {
               ? 'Good job!'
               : 'Keep learning and try again!'}
           </p>
-          {results.result.passed !== undefined && (
-            <p
-              className={`text-lg font-semibold mt-2 ${
-                results.result.passed ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              {results.result.passed ? 'You Passed!' : 'You Did Not Pass'}
-            </p>
-          )}
         </div>
       )}
     </div>
@@ -386,14 +365,30 @@ const McqSection = ({ chapter, user }) => {
 const Chapter = () => {
   const { courseId, chapterId } = useParams();
   const dispatch = useDispatch();
-  const { selectedChapter: chapter, error } = useSelector((state) => state.chapters);
+  const { selectedChapter: chapter, loading, error } = useSelector((state) => state.chapters);
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (courseId && chapterId) {
       dispatch(fetchChapterById({ courseId, chapterId }));
     }
+    
+    // Clear MCQ result when component unmounts
+    return () => {
+      dispatch(clearMcqResult());
+    };
   }, [dispatch, courseId, chapterId]);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading chapter...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error || !chapter) {
     return (
@@ -416,9 +411,6 @@ const Chapter = () => {
       </div>
     );
   }
-
-  console.log('Chapter data:', chapter);
-  console.log('Video URL:', chapter.videoUrl);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -490,7 +482,7 @@ const Chapter = () => {
             <div className="space-y-4">
               {chapter.tasks.map((task, index) => (
                 <div
-                  key={task._id}
+                  key={task._id || index}
                   className="bg-gradient-to-r from-gray-50 to-gray-100 p-5 rounded-lg border border-gray-200 shadow-sm"
                 >
                   <div className="flex items-start">

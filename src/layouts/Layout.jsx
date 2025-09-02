@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../redux/features/auth/authSlice';
-import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge } from 'lucide-react';
+import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector } from 'lucide-react';
 import logo from '../assets/key-system-logo.png';
 
 const Layout = ({ children }) => {
@@ -24,6 +24,9 @@ const Layout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
     { path: '/admin/members', label: 'Members', icon: Users },
+    { path: '/admin/marketplace', label: 'Marketplace', icon: CircleDollarSign },
+    { path: '/admin/events', label: 'Events', icon: Calendar },
+    { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
      { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
     { path: '/settings', label: 'Settings', icon: Settings },
    
@@ -32,7 +35,10 @@ const Layout = ({ children }) => {
   const memberNavItems = [
     { path: '/member', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
-    { path:'/events', label: 'Events', icon: Users }
+    { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
+    { path: '/meetings', label: 'Meetings', icon: Projector },
+    { path: '/announcements', label: 'Announcements', icon: Megaphone },
+    { path: '/events', label: 'Events', icon: Calendar }
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
