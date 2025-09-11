@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../redux/features/auth/authSlice';
-import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector } from 'lucide-react';
+import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector, Video, VideoIcon, DollarSign } from 'lucide-react';
 import logo from '../assets/key-system-logo.png';
 
 const Layout = ({ children }) => {
@@ -24,11 +24,12 @@ const Layout = ({ children }) => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
     { path: '/admin/members', label: 'Members', icon: Users },
-    { path: '/admin/marketplace', label: 'Marketplace', icon: CircleDollarSign },
+     { path: '/admin/meetings', label: 'Meetings', icon: VideoIcon },
+    { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
+    {path:'/admin/transactions', label: 'Transactions', icon:DollarSign},
     { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
      { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
-    { path: '/settings', label: 'Settings', icon: Settings },
    
   ];
 
@@ -36,9 +37,10 @@ const Layout = ({ children }) => {
     { path: '/member', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
-    { path: '/meetings', label: 'Meetings', icon: Projector },
+    { path: '/meeting', label: 'Meetings', icon: Projector },
     { path: '/announcements', label: 'Announcements', icon: Megaphone },
-    { path: '/events', label: 'Events', icon: Calendar }
+    { path: '/events', label: 'Events', icon: Calendar },
+    { path: '/profile', label: 'Profile', icon: User },
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
@@ -48,13 +50,13 @@ const Layout = ({ children }) => {
       {/* --- SIDEBAR (for logged-in users) --- */}
       {isLoggedIn && (
         <aside className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-20' : 'w-64'} bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 flex flex-col`}>
-          <div className="flex items-center justify-center p-4 border-b dark:border-gray-700 h-20">
+          <div className="flex items-center justify-center p-4 border-b dark:border-teal-700 h-20">
             <Link to={user?.role === 'admin' ? "/admin" : "/member"}>
               <img src={logo} alt="Logo" className={`${sidebarMinimized ? 'h-10 w-30' : 'h-12 w-30'} transition-all`} />
             </Link>
-            <button onClick={() => setSidebarMinimized(!sidebarMinimized)} className="w-10 ml-10 hidden md:flex items-center justify-center p-2 mb-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            {/* <button onClick={() => setSidebarMinimized(!sidebarMinimized)} className="w-10 ml-10 hidden md:flex items-center justify-center p-2 mb-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                 {sidebarMinimized ? <ChevronRight size={20}/> : <ChevronLeft size={20} />}
-            </button>
+            </button> */}
           </div>
            
           <nav className="flex-1 p-4 space-y-2">

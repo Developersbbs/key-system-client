@@ -20,6 +20,13 @@ import AdminMembers from "./admin/AdminMembers";
 import { fetchUserProfile } from "./redux/features/auth/authSlice";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminLevels from "./admin/AdminLevels";
+import Events from "./pages/Events";
+import AdminMeetings from "./admin/AdminMeetings";
+import AdminEvents from "./admin/AdminEvents";
+import Marketplace from "./pages/Marcketplace";
+import AdminTransactions from "./admin/AdminTransactions";
+import Profile from "./pages/Profile";
+import MemberMeetings from "./pages/MemberMeetings";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -40,6 +47,10 @@ const App = () => {
           {/* --- Core & Public Routes --- */}
           <Route path="/" element={<Home />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/events" element={<Events />} />
+           <Route path="/marketplace" element={<Marketplace />} /> 
+           <Route path="/profile" element={<Profile/>}/>
+           <Route path="/meeting" element={<MemberMeetings/>}/>
           <Route path="/courses/:courseId" element={<Chapters />} />
           <Route path="/courses/:courseId/chapters/:chapterId" element={<Chapter />} />
 
@@ -53,6 +64,10 @@ const App = () => {
           {/* --- Admin-Specific Routes --- */}
           <Route path="/admin/courses" element={<AdminCourses />} />
           <Route path="/admin/members" element={<AdminMembers />} />
+          <Route path="/admin/meetings" element={<AdminMeetings />} />
+          <Route path="/admin/transactions" element={<AdminTransactions/>}/>
+          
+          <Route path="admin/events" element={<AdminEvents />} />
            <Route path="/admin/levels" element={<AdminLevels />} />
           <Route path="/admin/courses/:courseId/chapters" element={<AdminChapter />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />

@@ -6,6 +6,10 @@ import courseReducer from "../features/coures/courseSlice";
 import memberReducer from "../features/members/memberSlice";
 import levelReducer from '../features/level/levelSlice';
 import batchReducer from '../features/batches/batchSlice';
+import eventReducer from '../features/events/eventSlice';
+import meetingReducer from '../features/meetings/meetingSlice';
+import listingReducer from '../features/listings/listingSlice';
+import transactionReducer from '../features/transactions/transactionSlice'
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +19,10 @@ export const store = configureStore({
     members: memberReducer,
     levels: levelReducer,
     batches: batchReducer,
+    events: eventReducer,
+    meetings: meetingReducer,
+    listings: listingReducer,
+    transactions:transactionReducer
   },
 });
 
