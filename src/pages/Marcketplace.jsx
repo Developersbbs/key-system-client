@@ -65,15 +65,49 @@ const Marketplace = () => {
   };
 
   const handleBuyClick = (listing) => {
-    if (!isLoggedIn) {
+    console.log('Buy clicked for listing:', listing);
+    
+    if (!isLoggedIn || !user?._id) {
       toast.error("Please login to buy items");
       return;
     }
-    if (user._id === listing.postedBy._id) {
+
+    // Check if listing has postedBy populated
+    if (!listing?.postedBy) {
+      console.error('Listing postedBy is missing:', listing);
+      toast.error("Seller information not available");
+      return;
+    }
+
+    // Handle both populated and non-populated postedBy
+    const sellerId = typeof listing.postedBy === 'object' 
+      ? listing.postedBy._id 
+      : listing.postedBy;
+
+    if (!sellerId) {
+      console.error('Seller ID not found in listing:', listing);
+      toast.error("Seller ID not available");
+      return;
+    }
+
+    if (user._id === sellerId) {
       toast.error("You cannot buy your own item");
       return;
     }
-    setSelectedListing(listing);
+
+    // Create a normalized listing object for the modal
+    const normalizedListing = {
+      ...listing,
+      postedBy: {
+        _id: sellerId,
+        name: typeof listing.postedBy === 'object' 
+          ? listing.postedBy.name 
+          : 'Unknown Seller'
+      }
+    };
+
+    console.log('Normalized listing for buy modal:', normalizedListing);
+    setSelectedListing(normalizedListing);
     setBuyModalOpen(true);
   };
 
@@ -144,7 +178,7 @@ const Marketplace = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-green-600 text-sm font-medium">Average Price</p>
-                <h3 className="text-2xl font-bold text-green-800">${stats.averagePrice}</h3>
+                <h3 className="text-2xl font-bold text-green-800">₹{stats.averagePrice}</h3>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
                 <DollarSign className="text-green-600" size={24} />
@@ -191,10 +225,10 @@ const Marketplace = () => {
                 className="border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="all">All Conditions</option>
-                <option value="new">New</option>
-                <option value="like new">Like New</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
+                <option value="New">New</option>
+                <option value="Used - Like New">Like New</option>
+                <option value="Used - Good">Good</option>
+                <option value="Used - Fair">Fair</option>
               </select>
             </div>
             
@@ -241,77 +275,83 @@ const Marketplace = () => {
             <p className="text-green-700 text-lg">No listings found. Try adjusting your search criteria.</p>
           </div>
         ) : (
-          <div className={viewMode === 'grid' 
-            ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
-            : "flex flex-col gap-4"
-          }>
-            {filteredListings.map(item => {
-              const canDelete = isLoggedIn && (user?._id === item.postedBy?._id || user?.role === 'admin');
-              const canBuy = isLoggedIn && user?._id !== item.postedBy?._id;
-              
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                : "flex flex-col gap-4"
+            }
+          >
+            {filteredListings.map((listing) => {
+              const postedBy = listing.postedBy;
+              const isOwner = postedBy && user?._id ? 
+                (typeof postedBy === 'object' ? postedBy._id === user._id : postedBy === user._id) : 
+                false;
+              const canBuy = isLoggedIn && !isOwner && postedBy; // Can't buy if postedBy is null
+
               return (
-                <div 
-                  key={item._id} 
-                  className={viewMode === 'grid' 
-                    ? "bg-white rounded-xl shadow-sm border border-green-100 overflow-hidden relative group transition-transform hover:scale-[1.02]"
-                    : "bg-white rounded-xl shadow-sm border border-green-100 overflow-hidden relative group flex"
-                  }
-                >
-                  {canDelete && (
-                    <button 
-                      onClick={() => handleDelete(item._id, item.title)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                      title="Delete Listing"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                  
+                <div key={listing._id} className="bg-white rounded-xl shadow-md overflow-hidden">
                   <div className="h-2 bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                  
-                  <div className={viewMode === 'grid' ? "p-4 flex flex-col h-full" : "p-4 flex flex-col flex-grow"}>
-                    <div className={viewMode === 'grid' ? "" : "flex gap-4"}>
-                      {viewMode === 'list' && (
+
+                  <div className={viewMode === "grid" ? "p-4 flex flex-col h-full" : "p-4 flex flex-col flex-grow"}>
+                    <div className={viewMode === "grid" ? "" : "flex gap-4"}>
+                      {viewMode === "list" && (
                         <div className="w-24 h-24 bg-green-100 rounded-lg flex items-center justify-center">
                           <ShoppingCart className="text-green-400" size={32} />
                         </div>
                       )}
-                      
+
                       <div className="flex-grow">
-                        <h3 className="font-bold text-lg text-green-900">{item.title}</h3>
-                        <p className="text-sm text-green-700 mt-1">{item.description.substring(0, viewMode === 'grid' ? 60 : 120)}...</p>
-                        
+                        <h3 className="font-bold text-lg text-green-900">{listing.title}</h3>
+                        <p className="text-sm text-green-700 mt-1">
+                          {listing.description.substring(0, viewMode === "grid" ? 60 : 120)}...
+                        </p>
+
                         <div className="mt-4 flex justify-between items-center">
                           <span className="font-bold text-green-700 text-xl flex items-center">
-                            <DollarSign size={18}/>{item.price}
+                            <DollarSign size={18} /> {listing.price}
                           </span>
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            {item.condition}
+                            {listing.condition}
                           </span>
                         </div>
-                        
+
                         <div className="text-xs text-green-600 mt-2 pt-2 border-t border-green-100 flex items-center gap-2">
-                          <User size={12}/> {item.postedBy?.name || 'Member'}
+                          <User size={12} /> 
+                          {typeof postedBy === 'object' ? postedBy.name : 'Member'}
                         </div>
-                        
+
                         <div className="mt-3 flex gap-2">
                           {/* Buy Button */}
                           {canBuy && (
                             <button
-                              onClick={() => handleBuyClick(item)}
+                              onClick={() => handleBuyClick(listing)}
                               className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors flex-grow"
                             >
                               <ShoppingCart size={16} />
                               Buy Now
                             </button>
                           )}
-                          
+
+                          {/* Delete Button for owner */}
+                          {isOwner && (
+                            <button
+                              onClick={() => handleDelete(listing._id, listing.title)}
+                              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors flex-grow"
+                            >
+                              <Trash2 size={16} />
+                              Delete
+                            </button>
+                          )}
+
+                          {/* Not logged in */}
                           {!isLoggedIn && (
                             <div className="bg-gray-200 text-gray-500 py-2 px-4 rounded-lg text-center text-sm flex-grow">
                               Login to Buy
                             </div>
                           )}
-                          
+
+                          {/* Action buttons */}
                           <div className="flex gap-1">
                             <button className="p-2 text-green-600 hover:bg-green-100 rounded-lg">
                               <Eye size={16} />

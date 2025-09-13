@@ -3,8 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchPendingTransactions, 
   approveTransaction, 
+  rejectTransaction, // Added this import
   fetchAllTransactions 
-} from '../redux/features/transactions/transactionSlice';
+} from '../../src/redux/features/transactions/transactionSlice';
 import { Check, X, Eye, Filter, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -38,7 +39,6 @@ const AdminTransactions = () => {
     const rejectionReason = reason || prompt('Enter rejection reason (optional):');
     if (window.confirm('Are you sure you want to reject this transaction?')) {
       try {
-        // You'll need to create rejectTransaction action
         await dispatch(rejectTransaction({ id: txId, reason: rejectionReason })).unwrap();
         toast.success("Transaction rejected!");
       } catch (err) {
@@ -56,9 +56,9 @@ const AdminTransactions = () => {
   };
 
   const filteredTransactions = pending.filter(tx => 
-    tx.listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.buyer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.seller.name.toLowerCase().includes(searchTerm.toLowerCase())
+    tx.listing?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.seller?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -142,13 +142,15 @@ const AdminTransactions = () => {
                 <tr key={tx._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img 
-                        src={tx.listing.imageUrl} 
-                        alt={tx.listing.title}
-                        className="h-12 w-12 object-cover rounded-lg mr-3"
-                      />
+                      {tx.listing?.imageUrl && (
+                        <img 
+                          src={tx.listing.imageUrl} 
+                          alt={tx.listing?.title}
+                          className="h-12 w-12 object-cover rounded-lg mr-3"
+                        />
+                      )}
                       <div>
-                        <div className="font-medium text-gray-900">{tx.listing.title}</div>
+                        <div className="font-medium text-gray-900">{tx.listing?.title || 'N/A'}</div>
                         <div className="text-sm text-gray-500">${tx.amount}</div>
                       </div>
                     </div>
@@ -156,13 +158,13 @@ const AdminTransactions = () => {
                   <td className="px-6 py-4">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">
-                        <span className="text-green-600">Buyer:</span> {tx.buyer.name}
+                        <span className="text-green-600">Buyer:</span> {tx.buyer?.name || 'N/A'}
                       </div>
-                      <div className="text-gray-500">{tx.buyer.email}</div>
+                      <div className="text-gray-500">{tx.buyer?.email || 'N/A'}</div>
                       <div className="font-medium text-gray-900 mt-1">
-                        <span className="text-blue-600">Seller:</span> {tx.seller.name}
+                        <span className="text-blue-600">Seller:</span> {tx.seller?.name || 'N/A'}
                       </div>
-                      <div className="text-gray-500">{tx.seller.email}</div>
+                      <div className="text-gray-500">{tx.seller?.email || 'N/A'}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -208,9 +210,15 @@ const AdminTransactions = () => {
                       </div>
                     )}
                     {tx.status !== 'pending' && (
-                      <span className="text-sm text-gray-500">
-                        {tx.status === 'approved' ? 'Completed' : 'Rejected'}
-                      </span>
+                      <div className="text-sm text-gray-500">
+                        <span className="capitalize">{tx.status}</span>
+                        {tx.processedBy && (
+                          <div className="text-xs">by {tx.processedBy.name}</div>
+                        )}
+                        {tx.processedAt && (
+                          <div className="text-xs">{new Date(tx.processedAt).toLocaleDateString()}</div>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -241,12 +249,19 @@ const AdminTransactions = () => {
             </div>
             <div className="p-6">
               <div className="mb-4">
-                <h4 className="font-medium text-gray-900">{selectedTransaction.listing.title}</h4>
+                <h4 className="font-medium text-gray-900">{selectedTransaction.listing?.title}</h4>
                 <p className="text-sm text-gray-500">
                   Amount: ${selectedTransaction.amount} • 
-                  Buyer: {selectedTransaction.buyer.name} • 
+                  Buyer: {selectedTransaction.buyer?.name} • 
                   Date: {new Date(selectedTransaction.createdAt).toLocaleDateString()}
                 </p>
+                {selectedTransaction.rejectionReason && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                    <p className="text-sm text-red-700">
+                      <strong>Rejection Reason:</strong> {selectedTransaction.rejectionReason}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="text-center">
                 <img 

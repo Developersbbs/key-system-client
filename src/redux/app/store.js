@@ -10,7 +10,7 @@ import eventReducer from '../features/events/eventSlice';
 import meetingReducer from '../features/meetings/meetingSlice';
 import listingReducer from '../features/listings/listingSlice';
 import transactionReducer from '../features/transactions/transactionSlice'
-
+import userProfileReducer from "../features/userProfileSlice/userProfileSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -22,7 +22,8 @@ export const store = configureStore({
     events: eventReducer,
     meetings: meetingReducer,
     listings: listingReducer,
-    transactions:transactionReducer
+    transactions:transactionReducer,
+    userProfile: userProfileReducer, 
   },
 });
 
