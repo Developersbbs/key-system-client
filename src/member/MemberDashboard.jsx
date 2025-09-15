@@ -78,54 +78,54 @@ const MemberDashboard = () => {
   const nextCourse = courses?.find(course => course.isUnlocked && !course.isCompleted);
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 bg-gray-50 min-h-screen">
       {/* Welcome Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-4xl font-bold text-green-900 mb-2">
           Welcome back, {user?.name || 'Member'}!
         </h1>
-        <p className="text-gray-600">Ready to continue your learning journey?</p>
+        <p className="text-green-700">Ready to continue your learning journey?</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Total Courses</p>
+              <p className="text-green-100 text-sm">Total Courses</p>
               <p className="text-2xl font-bold">{stats.totalCourses}</p>
             </div>
-            <BookOpen size={24} className="text-blue-200" />
+            <BookOpen size={24} className="text-green-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Completed</p>
+              <p className="text-emerald-100 text-sm">Completed</p>
               <p className="text-2xl font-bold">{stats.completedCourses}</p>
             </div>
-            <CheckCircle size={24} className="text-green-200" />
+            <CheckCircle size={24} className="text-emerald-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+        <div className="bg-gradient-to-r from-lime-500 to-lime-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm">Quizzes Taken</p>
+              <p className="text-lime-100 text-sm">Quizzes Taken</p>
               <p className="text-2xl font-bold">{stats.totalQuizzes}</p>
             </div>
-            <Award size={24} className="text-purple-200" />
+            <Award size={24} className="text-lime-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
+        <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl p-4 text-white shadow-md hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm">Avg. Score</p>
+              <p className="text-teal-100 text-sm">Avg. Score</p>
               <p className="text-2xl font-bold">{stats.averageScore}%</p>
             </div>
-            <TrendingUp size={24} className="text-orange-200" />
+            <TrendingUp size={24} className="text-teal-200" />
           </div>
         </div>
       </div>
@@ -135,17 +135,17 @@ const MemberDashboard = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Continue Learning Section */}
           {nextCourse && (
-            <div className="bg-gradient-to-r from-teal-500 to-green-600 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-700 rounded-xl p-6 text-white shadow-md">
               <h2 className="text-2xl font-bold mb-2">Continue Learning</h2>
-              <p className="text-teal-100 mb-4">Pick up where you left off</p>
-              <div className="bg-white/20 rounded-lg p-4">
+              <p className="text-green-100 mb-4">Pick up where you left off</p>
+              <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
                 <h3 className="font-semibold text-lg mb-1">{nextCourse.title}</h3>
-                <p className="text-teal-100 text-sm mb-3">
+                <p className="text-green-100 text-sm mb-3">
                   {nextCourse.chapters?.length || 0} chapters available
                 </p>
                 <Link 
                   to={`/courses/${nextCourse._id}`}
-                  className="inline-flex items-center gap-2 bg-white text-teal-600 font-semibold py-2 px-4 rounded-lg hover:shadow-md transition"
+                  className="inline-flex items-center gap-2 bg-white text-green-700 font-semibold py-2 px-4 rounded-lg hover:shadow-md transition hover:bg-green-50"
                 >
                   <PlayCircle size={18} />
                   Continue Course
@@ -155,9 +155,9 @@ const MemberDashboard = () => {
           )}
 
           {/* All Enrolled Courses */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <BookOpen className="text-blue-600" />
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-green-100">
+            <h2 className="text-2xl font-bold text-green-900 mb-4 flex items-center gap-3">
+              <BookOpen className="text-green-600" />
               My Learning Path
             </h2>
 
@@ -173,7 +173,7 @@ const MemberDashboard = () => {
                     <div key={course._id} className={`p-4 rounded-lg border transition ${
                       isLocked 
                         ? 'bg-gray-50 border-gray-200 opacity-60' 
-                        : 'bg-white border-gray-200 hover:shadow-md hover:border-teal-200'
+                        : 'bg-white border-green-100 hover:shadow-md hover:border-green-300'
                     }`}>
                       <div className="flex justify-between items-center">
                         <div className="flex-1">
@@ -196,7 +196,7 @@ const MemberDashboard = () => {
                           {progress && !isLocked && (
                             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                               <div 
-                                className="bg-gradient-to-r from-teal-600 to-green-600 h-2 rounded-full transition-all duration-300" 
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300" 
                                 style={{ width: `${progress.progressPercentage || 0}%` }}
                               ></div>
                             </div>
@@ -206,7 +206,7 @@ const MemberDashboard = () => {
                         {!isLocked ? (
                           <Link 
                             to={`/courses/${course._id}`}
-                            className="bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:opacity-90 transition ml-4"
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:opacity-90 transition ml-4 shadow-md hover:shadow-lg"
                           >
                             {course.isCompleted ? (
                               <>
@@ -234,7 +234,7 @@ const MemberDashboard = () => {
               <div className="text-center py-10">
                 <BookOpen className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                 <p className="text-gray-500 mb-4">You don't have access to any courses yet.</p>
-                <Link to="/courses" className="text-blue-600 font-semibold flex items-center justify-center gap-1 hover:underline">
+                <Link to="/courses" className="text-green-600 font-semibold flex items-center justify-center gap-1 hover:underline">
                   Browse Available Courses <ChevronRight size={18} />
                 </Link>
               </div>
@@ -244,9 +244,9 @@ const MemberDashboard = () => {
 
         {/* Sidebar: Recent Quiz Results */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-              <Award className="text-yellow-600" />
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-green-100">
+            <h2 className="text-2xl font-bold text-green-900 mb-4 flex items-center gap-3">
+              <Award className="text-green-600" />
               Recent Quiz Results
             </h2>
             
@@ -262,13 +262,13 @@ const MemberDashboard = () => {
             ) : quizResults && quizResults.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {quizResults.slice(0, 10).map(result => (
-                  <div key={`${result.chapterId}-${result.completedAt}`} className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                  <div key={`${result.chapterId}-${result.completedAt}`} className="p-3 bg-green-50 rounded-lg hover:bg-green-100 transition border border-green-100">
                     <Link 
                       to={`/courses/${result.courseId}/chapters/${result.chapterId}`} 
                       className="block"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-gray-900 text-sm leading-tight flex-1 mr-2">
+                        <h4 className="font-medium text-green-900 text-sm leading-tight flex-1 mr-2">
                           {result.chapterTitle}
                         </h4>
                         <span className={`font-bold text-lg flex-shrink-0 ${
@@ -278,11 +278,11 @@ const MemberDashboard = () => {
                           {result.score}%
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 truncate mb-1">
+                      <p className="text-xs text-green-700 truncate mb-1">
                         {result.courseTitle}
                       </p>
                       {result.completedAt && (
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <div className="flex items-center gap-1 text-xs text-green-500">
                           <Clock size={12} />
                           {new Date(result.completedAt).toLocaleDateString()}
                         </div>

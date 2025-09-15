@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { X, Upload, Check, AlertCircle, CreditCard, QrCode } from 'lucide-react';
+import { X, Upload, Check, AlertCircle, CreditCard, QrCode, ImageIcon } from 'lucide-react';
 import { createTransaction } from '../redux/features/transactions/transactionSlice';
 import { fetchSellerPaymentDetails } from '../redux/features/userProfileSlice/userProfileSlice';
-import apiClient from '../api/apiClient'; // Use your existing API client
+import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 
 const BuyModal = ({ isOpen, onClose, listing }) => {
@@ -15,6 +15,8 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   const [proofFile, setProofFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState('details'); // 'details', 'upload', 'confirm'
+  const [qrImageError, setQrImageError] = useState(false);
+  const [qrImageLoading, setQrImageLoading] = useState(false);
 
   // Fetch seller payment details when modal opens
   useEffect(() => {
@@ -28,6 +30,23 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
         });
     }
   }, [isOpen, listing, dispatch, onClose]);
+
+  // Reset QR image error state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setQrImageError(false);
+      setQrImageLoading(false);
+    }
+  }, [isOpen]);
+
+  const handleQrImageError = () => {
+    setQrImageError(true);
+    setQrImageLoading(false);
+  };
+
+  const handleQrImageLoad = () => {
+    setQrImageLoading(false);
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -141,6 +160,8 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   const resetModal = () => {
     setStep('details');
     setProofFile(null);
+    setQrImageError(false);
+    setQrImageLoading(false);
   };
 
   const handleClose = () => {
@@ -166,7 +187,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
           <h3 className="text-lg font-semibold">
-            Buy: {listing?.title}
+            Buy: {listing?.title || 'Item'}
           </h3>
           <button type="button" onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">
             <X size={20} />
@@ -219,7 +240,10 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                       <h5 className="font-medium text-green-800">UPI Payment</h5>
                     </div>
                     <p className="text-sm text-green-700">
-                      <strong>UPI ID:</strong> {sellerPayment.paymentDetails.upiId}
+                      <strong>UPI ID:</strong> 
+                      <span className="ml-2 font-mono bg-white px-2 py-1 rounded border">
+                        {sellerPayment.paymentDetails.upiId}
+                      </span>
                     </p>
                   </div>
                 )}
@@ -232,11 +256,42 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                       <h5 className="font-medium text-purple-800">Scan QR Code</h5>
                     </div>
                     <div className="text-center">
-                      <img 
-                        src={sellerPayment.paymentDetails.qrCodeUrl} 
-                        alt="Payment QR Code" 
-                        className="w-32 h-32 object-contain mx-auto border rounded-lg"
-                      />
+                      {qrImageError ? (
+                        <div className="w-32 h-32 mx-auto bg-gray-100 border rounded-lg flex flex-col items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-xs text-gray-500">QR Code</span>
+                          <span className="text-xs text-gray-500">Unavailable</span>
+                          <button 
+                            onClick={() => {
+                              setQrImageError(false);
+                              setQrImageLoading(true);
+                            }}
+                            className="text-xs text-blue-600 hover:underline mt-1"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          {qrImageLoading && (
+                            <div className="absolute inset-0 w-32 h-32 mx-auto bg-gray-100 border rounded-lg flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                            </div>
+                          )}
+                          <img 
+                            src={sellerPayment.paymentDetails.qrCodeUrl} 
+                            alt="Payment QR Code" 
+                            className="w-32 h-32 object-contain mx-auto border rounded-lg"
+                            onError={handleQrImageError}
+                            onLoad={handleQrImageLoad}
+                            onLoadStart={() => setQrImageLoading(true)}
+                            style={{ display: qrImageLoading ? 'none' : 'block' }}
+                          />
+                        </div>
+                      )}
+                      <p className="text-xs text-purple-600 mt-2">
+                        Scan with any UPI app to pay
+                      </p>
                     </div>
                   </div>
                 )}
@@ -250,17 +305,51 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                     </div>
                     <div className="space-y-1 text-sm text-blue-700">
                       {sellerPayment.paymentDetails.accountHolderName && (
-                        <p><strong>Account Holder:</strong> {sellerPayment.paymentDetails.accountHolderName}</p>
+                        <p>
+                          <strong>Account Holder:</strong> 
+                          <span className="ml-2 font-mono bg-white px-2 py-1 rounded border">
+                            {sellerPayment.paymentDetails.accountHolderName}
+                          </span>
+                        </p>
                       )}
                       {sellerPayment.paymentDetails.accountNumber && (
-                        <p><strong>Account Number:</strong> {sellerPayment.paymentDetails.accountNumber}</p>
+                        <p>
+                          <strong>Account Number:</strong> 
+                          <span className="ml-2 font-mono bg-white px-2 py-1 rounded border">
+                            {sellerPayment.paymentDetails.accountNumber}
+                          </span>
+                        </p>
                       )}
                       {sellerPayment.paymentDetails.ifscCode && (
-                        <p><strong>IFSC Code:</strong> {sellerPayment.paymentDetails.ifscCode}</p>
+                        <p>
+                          <strong>IFSC Code:</strong> 
+                          <span className="ml-2 font-mono bg-white px-2 py-1 rounded border">
+                            {sellerPayment.paymentDetails.ifscCode}
+                          </span>
+                        </p>
                       )}
                       {sellerPayment.paymentDetails.bankName && (
-                        <p><strong>Bank:</strong> {sellerPayment.paymentDetails.bankName}</p>
+                        <p>
+                          <strong>Bank:</strong> 
+                          <span className="ml-2 bg-white px-2 py-1 rounded border">
+                            {sellerPayment.paymentDetails.bankName}
+                          </span>
+                        </p>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show message if no payment methods available */}
+                {!sellerPayment.paymentDetails?.upiId && 
+                 !sellerPayment.paymentDetails?.qrCodeUrl && 
+                 !sellerPayment.paymentDetails?.accountNumber && (
+                  <div className="p-3 border border-yellow-200 rounded-lg bg-yellow-50">
+                    <div className="flex items-center">
+                      <AlertCircle className="text-yellow-600 mr-2" size={16} />
+                      <p className="text-sm text-yellow-800">
+                        Seller has not set up payment details yet. Please contact the seller directly.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -283,7 +372,10 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
 
               <button 
                 onClick={() => setStep('upload')}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                disabled={!sellerPayment.paymentDetails?.upiId && 
+                         !sellerPayment.paymentDetails?.qrCodeUrl && 
+                         !sellerPayment.paymentDetails?.accountNumber}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 I've Made the Payment
               </button>

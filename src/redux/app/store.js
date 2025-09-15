@@ -11,6 +11,7 @@ import meetingReducer from '../features/meetings/meetingSlice';
 import listingReducer from '../features/listings/listingSlice';
 import transactionReducer from '../features/transactions/transactionSlice'
 import userProfileReducer from "../features/userProfileSlice/userProfileSlice";
+import announcementReducer from '../features/announcements/announcementSlice';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -24,6 +25,7 @@ export const store = configureStore({
     listings: listingReducer,
     transactions:transactionReducer,
     userProfile: userProfileReducer, 
+    announcements: announcementReducer,
   },
 });
 

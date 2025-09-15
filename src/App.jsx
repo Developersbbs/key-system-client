@@ -27,6 +27,9 @@ import Marketplace from "./pages/Marcketplace";
 import AdminTransactions from "./admin/AdminTransactions";
 import Profile from "./pages/Profile";
 import MemberMeetings from "./pages/MemberMeetings";
+import MemberTransactions from "./pages/MemberTransactions";
+import AdminAnnouncements from "./admin/AdminAnnouncements";
+import MemberAnnouncements from "./pages/MemberAnnouncement";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -51,6 +54,8 @@ const App = () => {
            <Route path="/marketplace" element={<Marketplace />} /> 
            <Route path="/profile" element={<Profile/>}/>
            <Route path="/meeting" element={<MemberMeetings/>}/>
+           <Route path="/transactions" element={<MemberTransactions/>}/>
+           <Route path="/announcements" element={<MemberAnnouncements/>}/>
           <Route path="/courses/:courseId" element={<Chapters />} />
           <Route path="/courses/:courseId/chapters/:chapterId" element={<Chapter />} />
 
@@ -66,7 +71,7 @@ const App = () => {
           <Route path="/admin/members" element={<AdminMembers />} />
           <Route path="/admin/meetings" element={<AdminMeetings />} />
           <Route path="/admin/transactions" element={<AdminTransactions/>}/>
-          
+          <Route path="/admin/announcements" element={<AdminAnnouncements />} /> 
           <Route path="admin/events" element={<AdminEvents />} />
            <Route path="/admin/levels" element={<AdminLevels />} />
           <Route path="/admin/courses/:courseId/chapters" element={<AdminChapter />} />
