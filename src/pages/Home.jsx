@@ -167,7 +167,7 @@ const Home = () => {
             <span className="text-xs md:text-sm font-medium text-emerald-200">India's #1 Crypto Education Platform</span>
           </div>
           
-          <h1 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4 md:mb-6 text-white">
+          <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4 md:mb-6 text-white">
             Master Crypto Trading from 
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-green-400 mt-2 md:mt-3 animate-pulse">
               Zero to Pro

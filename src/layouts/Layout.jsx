@@ -340,7 +340,8 @@ const Layout = ({ children }) => {
                   </>
                 ) : (
                   <Link to="">
-                    <img src={logo} alt="Logo" className="h-20 sm:h-14 md:h-14" />
+                   <img src={logo} alt="Logo" className="h-14 sm:h-16 md:h-20" />
+
                   </Link>
                 )}
               </div>
