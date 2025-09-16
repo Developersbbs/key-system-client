@@ -426,16 +426,12 @@ const Layout = ({ children }) => {
           Empowering financial knowledge for a prosperous future through comprehensive crypto education and trading strategies.
         </p>
         <div className="flex space-x-4">
-          <a href="#" aria-label="Twitter" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
-            <Twitter size={18} />
-          </a>
-          <a href="#" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+         
+          <a href="https://www.facebook.com/people/Key-System/61578967386229/?rdid=eF5OHaKZNdw5P7cC&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19Y9KPubDw%2F" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
             <Facebook size={18} />
           </a>
-          <a href="#" aria-label="LinkedIn" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
-            <Linkedin size={18} />
-          </a>
-          <a href="#" aria-label="Instagram" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+          
+          <a href="https://www.instagram.com/key_system2025/?igsh=cnFoNmdpdjJhcHN1#" aria-label="Instagram" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
             <Instagram size={18} />
           </a>
         </div>

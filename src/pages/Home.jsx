@@ -97,17 +97,17 @@ const Home = () => {
 
   return (
     <div className="w-full h-full bg-white">
-      {/* Hero Section with Enhanced Slider */}
+      {/* Hero Section with Mobile Height Adjustment */}
       <section
         id="home"
-        className="relative w-full h-screen flex items-center justify-center text-center px-4 sm:px-6 md:px-8 lg:px-16 xl:px-20 overflow-hidden"
+        className="relative w-full h-[70vh] md:h-screen flex items-center justify-center text-center px-4 sm:px-6 md:px-8 lg:px-16 xl:px-20 overflow-hidden"
       >
         {/* Enhanced Slider Background */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 h-full">
           {sliderImages.map((image, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+              className={`absolute inset-0 h-full transition-all duration-1000 ease-in-out ${
                 index === currentSlide ? 'opacity-150 scale-100' : 'opacity-0 scale-105'
               }`}
             >
@@ -160,27 +160,27 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Enhanced Content */}
+        {/* Enhanced Content with Mobile Optimization */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 w-full">
-          <div className="mb-4 md:mb-6 inline-flex items-center px-3 py-1 md:px-4 md:py-2 bg-emerald-500/20 backdrop-blur-md rounded-full border border-emerald-400/30">
+          <div className="mb-3 md:mb-6 inline-flex items-center px-2 py-1 md:px-4 md:py-2 bg-emerald-500/20 backdrop-blur-md rounded-full border border-emerald-400/30">
             <Zap className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-emerald-300" />
             <span className="text-xs md:text-sm font-medium text-emerald-200">India's #1 Crypto Education Platform</span>
           </div>
           
-          <h1 className="text-4xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4 md:mb-6 text-white">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-3 md:mb-6 text-white">
             Master Crypto Trading from 
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-green-400 mt-2 md:mt-3 animate-pulse">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-green-400 mt-1 md:mt-3 animate-pulse">
               Zero to Pro
             </span>
           </h1>
           
-          <p className="mt-4 md:mt-6 text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed text-gray-100">
+          <p className="mt-3 md:mt-6 text-sm sm:text-base md:text-xl max-w-2xl mx-auto leading-relaxed text-gray-100">
             Join <span className="font-bold text-emerald-300">10,000+</span> successful traders who transformed their financial future through our expert-led courses, live simulations, and proven strategies.
           </p>
 
           {/* Enhanced CTA Buttons */}
-          <div className="mt-8 md:mt-10 flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
-            <button className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-base md:text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl hover:shadow-emerald-500/25">
+          <div className="mt-6 md:mt-10 flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
+            <button className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl hover:shadow-emerald-500/25">
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative flex items-center justify-center">
                 Start Learning for Free
@@ -188,7 +188,7 @@ const Home = () => {
               </div>
             </button>
             
-            <button className="group relative overflow-hidden border-2 border-white/40 backdrop-blur-md text-white px-6 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-base md:text-lg hover:bg-white hover:text-emerald-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl">
+            <button className="group relative overflow-hidden border-2 border-white/40 backdrop-blur-md text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-white hover:text-emerald-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl">
               <div className="relative flex items-center justify-center">
                 <Play className="mr-2 md:mr-3 h-4 w-4 md:h-6 md:w-6 group-hover:scale-110 transition-transform duration-300" />
                 Watch Demo
@@ -197,17 +197,17 @@ const Home = () => {
           </div>
 
           {/* Enhanced Feature Pills */}
-          <div className="mt-6 md:mt-8 flex flex-wrap justify-center gap-2 md:gap-3">
-            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-2 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-              <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2 text-emerald-300" />
+          <div className="mt-4 md:mt-8 flex flex-wrap justify-center gap-2 md:gap-3">
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-2 py-1 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
+              <ShieldCheck className="h-3 w-3 md:h-5 md:w-5 mr-1 md:mr-2 text-emerald-300" />
               <span className="text-xs md:text-sm text-gray-300 font-medium">100% Safe & Secure</span>
             </div>
-            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-2 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-              <BookOpen className="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2 text-teal-300" />
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-2 py-1 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
+              <BookOpen className="h-3 w-3 md:h-5 md:w-5 mr-1 md:mr-2 text-teal-300" />
               <span className="text-xs md:text-sm font-medium text-gray-300">250+ Free Lessons</span>
             </div>
-            <div className="flex items-center bg-white/10 backdrop-blur-md px-3 py-2 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-              <Award className="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2 text-green-300" />
+            <div className="flex items-center bg-white/10 backdrop-blur-md px-2 py-1 md:px-4 md:py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
+              <Award className="h-3 w-3 md:h-5 md:w-5 mr-1 md:mr-2 text-green-300" />
               <span className="text-xs md:text-sm font-medium text-gray-300">Certified Courses</span>
             </div>
           </div>
@@ -578,7 +578,7 @@ const Home = () => {
           </div>
           <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Free Plan */}
-            <div className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 hover:-translate-y-2">
+            <div className="group relative bg-white rounded-3xl shadow-lg  transition-all duration-500 border border-gray-200 hover:-translate-y-2">
               <div className="p-8 text-center">
                 <div className="w-16 h-16 mx-auto bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-2xl shadow-md mb-6">
                   <BookOpen className="text-gray-600" size={32} />
