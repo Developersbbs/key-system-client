@@ -143,7 +143,7 @@ const AdminDashboard = () => {
               </Link>
               
               <Link 
-                to="/admin/courses/new" 
+                to="/admin/courses" 
                 className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-green-100 transition-all group"
               >
                 <div className="flex items-center">
@@ -156,7 +156,7 @@ const AdminDashboard = () => {
               </Link>
               
               <Link 
-                to="/admin/members/invite" 
+                to="/admin/members" 
                 className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-100 hover:from-emerald-100 hover:to-green-100 transition-all group"
               >
                 <div className="flex items-center">

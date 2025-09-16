@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllLevels, addLevel, editLevel, removeLevel } from '../redux/features/level/levelSlice';
 import { fetchAllCourses } from '../redux/features/coures/courseSlice';
-import { Plus, Edit, Trash, X, BookOpen, ChevronRight, Home } from 'lucide-react';
+import { Plus, Edit, Trash, X, BookOpen, ChevronRight, Home, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const LevelFormModal = ({ isOpen, onClose, onSubmit, courses, levelData }) => {
   const [formData, setFormData] = useState({ name: '', levelNumber: '', courses: [] });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (levelData) {
@@ -33,6 +34,11 @@ const LevelFormModal = ({ isOpen, onClose, onSubmit, courses, levelData }) => {
     e.preventDefault();
     onSubmit(formData);
   };
+
+  // Filter courses based on search term
+  const filteredCourses = courses.filter(course => 
+    course.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (!isOpen) return null;
 
@@ -72,19 +78,38 @@ const LevelFormModal = ({ isOpen, onClose, onSubmit, courses, levelData }) => {
             </div>
             <div>
               <h4 className="font-semibold mb-2 text-gray-700">Assign Courses:</h4>
+              
+              {/* Search input for courses */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search courses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              
               <div className="space-y-2 max-h-60 overflow-y-auto p-1">
-                {courses.map(course => (
-                  <label key={course._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-md hover:bg-green-50 transition-colors cursor-pointer border border-gray-200">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-green-600 focus:ring-green-500" 
-                      checked={formData.courses.includes(course._id)} 
-                      onChange={() => handleCourseToggle(course._id)} 
-                    />
-                    <BookOpen size={16} className="text-green-600" />
-                    <span className="flex-1">{course.title}</span>
-                  </label>
-                ))}
+                {filteredCourses.length > 0 ? (
+                  filteredCourses.map(course => (
+                    <label key={course._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-md hover:bg-green-50 transition-colors cursor-pointer border border-gray-200">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-green-600 focus:ring-green-500" 
+                        checked={formData.courses.includes(course._id)} 
+                        onChange={() => handleCourseToggle(course._id)} 
+                      />
+                      <BookOpen size={16} className="text-green-600" />
+                      <span className="flex-1">{course.title}</span>
+                    </label>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No courses found matching "{searchTerm}"
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -139,7 +164,11 @@ const AdminLevels = () => {
       : dispatch(addLevel(formData));
       
     action.unwrap()
-      .then(() => toast.success(`Level ${editingLevel ? 'updated' : 'created'}!`))
+      .then(() => {
+        toast.success(`Level ${editingLevel ? 'updated' : 'created'}!`);
+        // Force a refresh of the levels data to get the updated list
+        dispatch(fetchAllLevels());
+      })
       .catch((err) => toast.error(err.message || 'An error occurred'));
     
     handleCloseModal();
@@ -148,7 +177,11 @@ const AdminLevels = () => {
   const handleDelete = (levelId, levelName) => {
     if (window.confirm(`Are you sure you want to delete "${levelName}"? This action cannot be undone.`)) {
       dispatch(removeLevel(levelId)).unwrap()
-        .then(() => toast.success("Level deleted successfully"))
+        .then(() => {
+          toast.success("Level deleted successfully");
+          // Refresh the levels data after deletion
+          dispatch(fetchAllLevels());
+        })
         .catch(err => toast.error(err.message || 'Failed to delete level'));
     }
   };

@@ -232,6 +232,7 @@ const AdminMembers = () => {
   const [batchModal, setBatchModal] = useState({ show: false, batch: null });
   const [addMembersModal, setAddMembersModal] = useState({ show: false, batch: null });
   const [searchTerm, setSearchTerm] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false); // Add loading state
   const dispatch = useDispatch();
   
   const { members, admins, error } = useSelector((state) => state.members);
@@ -246,13 +247,13 @@ const AdminMembers = () => {
 
   // Filter members and admins based on search term
   const filteredMembers = members.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.phoneNumber.includes(searchTerm)
+    member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.phoneNumber?.includes(searchTerm)
   );
   
   const filteredAdmins = admins.filter(admin => 
-    admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.phoneNumber.includes(searchTerm)
+    admin.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    admin.phoneNumber?.includes(searchTerm)
   );
 
   const handleRoleChange = async (user, newRole) => {
@@ -263,6 +264,7 @@ const AdminMembers = () => {
     }
 
     if (window.confirm(`Change ${user.name}'s role to ${newRole}?`)) {
+      setIsUpdating(true);
       try {
         await dispatch(updateUserRole({ userId: user._id, role: newRole })).unwrap();
         toast.success(`${user.name}'s role updated.`);
@@ -273,7 +275,9 @@ const AdminMembers = () => {
           dispatch(fetchAllAdmins())
         ]);
       } catch (err) {
-        toast.error(err || 'Failed to update user role');
+        toast.error(err?.message || 'Failed to update user role');
+      } finally {
+        setIsUpdating(false);
       }
     }
   };
@@ -281,6 +285,7 @@ const AdminMembers = () => {
   const handleStatusChange = async (user, newStatus) => {
     const statusText = newStatus ? 'activate' : 'deactivate';
     if (window.confirm(`${statusText.charAt(0).toUpperCase() + statusText.slice(1)} ${user.name}?`)) {
+      setIsUpdating(true);
       try {
         await dispatch(updateUserStatus({ userId: user._id, isActive: newStatus })).unwrap();
         toast.success(`${user.name} has been ${statusText}d.`);
@@ -291,7 +296,9 @@ const AdminMembers = () => {
           dispatch(fetchAllAdmins())
         ]);
       } catch (err) {
-        toast.error(err || 'Failed to update user status');
+        toast.error(err?.message || 'Failed to update user status');
+      } finally {
+        setIsUpdating(false);
       }
     }
   };
@@ -312,7 +319,7 @@ const AdminMembers = () => {
         dispatch(fetchAllMembers())
       ]);
     } catch (err) {
-      toast.error(err || 'Failed to save batch');
+      toast.error(err?.message || 'Failed to save batch');
     }
   };
 
@@ -328,7 +335,7 @@ const AdminMembers = () => {
         dispatch(fetchAllBatches())
       ]);
     } catch (err) {
-      toast.error(err || 'Failed to add members to batch');
+      toast.error(err?.message || 'Failed to add members to batch');
     }
   };
 
@@ -344,7 +351,7 @@ const AdminMembers = () => {
           dispatch(fetchAllBatches())
         ]);
       } catch (err) {
-        toast.error(err || 'Failed to remove member from batch');
+        toast.error(err?.message || 'Failed to remove member from batch');
       }
     }
   };
@@ -361,7 +368,7 @@ const AdminMembers = () => {
           dispatch(fetchAllBatches())
         ]);
       } catch (err) {
-        toast.error(err || 'Failed to delete batch');
+        toast.error(err?.message || 'Failed to delete batch');
       }
     }
   };
@@ -445,7 +452,7 @@ const AdminMembers = () => {
           <div className="flex items-center gap-2">
             <TabButton tabName="members" label="Members" count={members.length} icon={Users} />
             <TabButton tabName="admins" label="Admins" count={admins.length} icon={ShieldCheck} />
-            <TabButton tabName="batches" label="Batches" count={batches.length} icon={Package} />
+            {/* <TabButton tabName="batches" label="Batches" count={batches.length} icon={Package} /> */}
           </div>
           
           <div className="flex items-center gap-3">
@@ -466,6 +473,13 @@ const AdminMembers = () => {
         </div>
 
         {error && <div className="p-4 mb-4 text-red-700 bg-red-100 rounded-lg">Error: {error}</div>}
+
+        {isUpdating && (
+          <div className="p-4 mb-4 bg-blue-100 text-blue-700 rounded-lg flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
+            Updating...
+          </div>
+        )}
 
         {/* Members Tab */}
         {activeTab === 'members' && (

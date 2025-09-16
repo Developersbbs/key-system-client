@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../redux/features/auth/authSlice';
-import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector, Video, VideoIcon, DollarSign, Bell, X, Info, Palette } from 'lucide-react';
+import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector, Video, VideoIcon, DollarSign, Bell, X, Info, Palette, Instagram, MapPin, Mail, Phone } from 'lucide-react';
 import logo from '../assets/key-system-logo.png';
 import { fetchAllAnnouncements } from '../redux/features/announcements/announcementSlice';
 
@@ -221,6 +221,7 @@ const Layout = ({ children }) => {
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+     { path: '/profile', label: 'Profile', icon: User },
    
   ];
 
@@ -404,50 +405,104 @@ const Layout = ({ children }) => {
           </div>
         </header>
         
-        <main className="flex-grow p-6">
+        <main className="flex-grow p-0">
           {children}
         </main>
         
         {/* --- FOOTER --- */}
-        <footer className="w-full bg-white shadow-inner mt-auto border-t border-gray-200">
-          <div className="container mx-auto px-6 lg:pl-52 py-2">
-            {!isLoggedIn && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-center md:text-left">
-                <div className="space-y-4 flex flex-col items-center md:items-start">
-                  <Link to="">
-                    <img src={logo} alt="Key System Logo" className="h-14" />
-                  </Link>
-                  <p className="text-gray-600 text-sm max-w-xs mx-auto md:mx-0">
-                    Empowering financial knowledge for a prosperous future.
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center md:items-start">
-                  <h4 className="font-semibold text-gray-800 mb-4">Quick Links</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li><a href="/#home" className="hover:text-gray-900">Home</a></li>
-                    <li><a href="/#about" className="hover:text-gray-900">About Us</a></li>
-                  </ul>
-                </div>
-
-                <div className="flex flex-col items-center md:items-start">
-                  <h4 className="font-semibold text-gray-800 mb-4">Follow Us</h4>
-                  <div className="flex space-x-4 text-gray-600">
-                    <a href="#" aria-label="Twitter" className="hover:text-gray-900"><Twitter size={20} /></a>
-                    <a href="#" aria-label="Facebook" className="hover:text-gray-900"><Facebook size={20} /></a>
-                    <a href="#" aria-label="LinkedIn" className="hover:text-gray-900"><Linkedin size={20} /></a>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={`text-center ${!isLoggedIn ? 'border-t border-gray-200 pt-8' : ''}`}>
-              <p className="text-sm text-gray-600">
-                &copy; {new Date().getFullYear()} <span className="font-semibold">Key System</span>. All rights reserved.
-              </p>
-            </div>
+       <footer className="w-full bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 mt-auto">
+  <div className="container mx-auto px-6 py-12">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+      {/* Brand Section */}
+      <div className="space-y-6">
+        <Link to="/">
+          <div className="flex items-center">
+            <img src={logo} alt="Key System Logo" className="h-12" />
+            
           </div>
-        </footer>
+        </Link>
+        <p className="text-gray-600 text-sm leading-relaxed max-w-xs ">
+          Empowering financial knowledge for a prosperous future through comprehensive crypto education and trading strategies.
+        </p>
+        <div className="flex space-x-4">
+          <a href="#" aria-label="Twitter" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+            <Twitter size={18} />
+          </a>
+          <a href="#" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+            <Facebook size={18} />
+          </a>
+          <a href="#" aria-label="LinkedIn" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+            <Linkedin size={18} />
+          </a>
+          <a href="#" aria-label="Instagram" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+            <Instagram size={18} />
+          </a>
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div>
+        <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+          Quick Links
+        </h4>
+        <ul className="space-y-3">
+          <li><a href="/#home" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Home</a></li>
+          <li><a href="/#features" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Features</a></li>
+          <li><a href="/#courses" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Courses</a></li>
+          <li><a href="/#pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Pricing</a></li>
+          <li><a href="/#testimonials" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Testimonials</a></li>
+        </ul>
+      </div>
+
+      {/* Resources */}
+      <div>
+        <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+          Resources
+        </h4>
+        <ul className="space-y-3">
+          <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Blog</a></li>
+          <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Tutorials</a></li>
+          <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Webinars</a></li>
+          <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">FAQ</a></li>
+          <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Support Center</a></li>
+        </ul>
+      </div>
+
+      {/* Contact Info */}
+      <div>
+        <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+          Contact Us
+        </h4>
+        <ul className="space-y-4">
+          <li className="flex items-start">
+            <MapPin className="text-emerald-500 mt-1 mr-3 flex-shrink-0" size={16} />
+            <span className="text-gray-600 text-sm">No 6, Third Floor, Kumaran Colony Main Road, Vadapalani, Chennai, Tamil Nadu</span>
+          </li>
+          <li className="flex items-center">
+            <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+            <span className="text-gray-600 text-sm">admin@keysystem.in</span>
+          </li>
+          <li className="flex items-center">
+            <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+            <span className="text-gray-600 text-sm">+91 1234567890</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    {/* Bottom Bar */}
+    <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
+      <p className="text-sm text-gray-600 mb-4 md:mb-0">
+        &copy; {new Date().getFullYear()} <span className="font-semibold text-emerald-600">Key Kissan</span>. All rights reserved.
+      </p>
+      <div className="flex space-x-6">
+        <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Privacy Policy</a>
+        <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Terms of Service</a>
+        <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Cookie Policy</a>
+      </div>
+    </div>
+  </div>
+</footer>
       </div>
     </div>
   );
