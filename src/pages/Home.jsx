@@ -213,6 +213,162 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+     
+{/* Enhanced Courses Section */}
+<section id="courses" className="py-24 bg-gradient-to-br from-gray-50 via-white to-emerald-50">
+  <div className="container mx-auto px-6">
+    <div className="text-center mb-20">
+      <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-600 rounded-full font-medium text-sm mb-6">
+        <BookOpen className="w-4 h-4 mr-2" />
+        Our Courses
+      </div>
+      <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+        Explore Our
+        <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600">
+          Crypto Learning Paths
+        </span>
+      </h2>
+      <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+        Dive deep into the world of cryptocurrency with our expertly crafted courses, designed for all skill levels.
+      </p>
+    </div>
+
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Course Card 1 - Beginner */}
+      <div className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 overflow-hidden">
+        <div className="h-48 overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1620336655052-b57986f5a26a?auto=format&fit=crop&w=800&q=80"
+            alt="Crypto Fundamentals Course"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        </div>
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <span className="inline-block px-3 py-1 text-xs font-semibold text-emerald-600 bg-emerald-100 rounded-full">Beginner</span>
+            </div>
+            <div className="flex items-center text-amber-500">
+              <Star className="w-5 h-5 fill-current" />
+              <span className="ml-1 text-gray-600 text-sm">4.9</span>
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors duration-300">Crypto Fundamentals</h3>
+          <p className="text-gray-600 text-sm mb-6">Understand blockchain, wallets, and the core concepts of digital currencies.</p>
+          <div className="flex items-center text-sm text-gray-500 mb-6">
+            <Clock className="w-4 h-4 mr-2" />
+            <span>12 Lessons</span>
+            <Users className="w-4 h-4 ml-4 mr-2" />
+            <span>5.2K Students</span>
+          </div>
+          <div className="flex justify-center items-center">
+  <Link to="" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+    <span className="relative z-10 flex items-center">
+      Enroll Now
+      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+    </span>
+    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+  </Link>
+</div>
+        </div>
+      </div>
+
+      {/* Course Card 2 - Intermediate */}
+      <div className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 overflow-hidden">
+        <div className="h-48 overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80"
+            alt="Technical Analysis Course"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        </div>
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <span className="inline-block px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-full">Intermediate</span>
+            </div>
+            <div className="flex items-center text-amber-500">
+              <Star className="w-5 h-5 fill-current" />
+              <span className="ml-1 text-gray-600 text-sm">4.8</span>
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors duration-300">Technical Analysis Masterclass</h3>
+          <p className="text-gray-600 text-sm mb-6">Master chart patterns, indicators, and strategies for informed trading.</p>
+          <div className="flex items-center text-sm text-gray-500 mb-6">
+            <Clock className="w-4 h-4 mr-2" />
+            <span>20 Lessons</span>
+            <Users className="w-4 h-4 ml-4 mr-2" />
+            <span>3.8K Students</span>
+          </div>
+          <div className="flex justify-center items-center">
+  <Link to="" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+    <span className="relative z-10 flex items-center">
+      Enroll Now
+      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+    </span>
+    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+  </Link>
+</div>
+        </div>
+      </div>
+
+      {/* Course Card 3 - Advanced */}
+      <div className="group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 overflow-hidden">
+        <div className="h-48 overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1624555130581-1d9cca783bc0?auto=format&fit=crop&w=800&q=80"
+            alt="Advanced DeFi & NFTs Course"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        </div>
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <span className="inline-block px-3 py-1 text-xs font-semibold text-purple-600 bg-purple-100 rounded-full">Advanced</span>
+            </div>
+            <div className="flex items-center text-amber-500">
+              <Star className="w-5 h-5 fill-current" />
+              <span className="ml-1 text-gray-600 text-sm">4.9</span>
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors duration-300">DeFi, NFTs & Web3 Frontier</h3>
+          <p className="text-gray-600 text-sm mb-6">Explore decentralized finance, NFTs, and the future of the internet.</p>
+          <div className="flex items-center text-sm text-gray-500 mb-6">
+            <Clock className="w-4 h-4 mr-2" />
+            <span>18 Lessons</span>
+            <Users className="w-4 h-4 ml-4 mr-2" />
+            <span>1.5K Students</span>
+          </div>
+          <div className="flex justify-center items-center">
+  <Link to="" className="relative overflow-hidden bg-gradient-to-b w-full from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+    <span className="relative z-10 flex items-center">
+      Enroll Now
+      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+    </span>
+    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+  </Link>
+</div>
+        </div>
+      </div>
+    </div>
+
+    {/* Browse All Courses Button */}
+    <div className="text-center mt-16">
+      <Link
+        to=""
+        className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-emerald-500/25 inline-flex items-center"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative flex items-center">
+          <BookOpen className="mr-2 h-5 w-5" />
+          Browse All Courses
+          <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+        </div>
+      </Link>
+    </div>
+  </div>
+</section>
     
       {/* Enhanced Key Features Section */}
       <section id="features" className="py-24 bg-gradient-to-br from-gray-50 via-white to-emerald-50">

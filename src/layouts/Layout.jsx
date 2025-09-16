@@ -340,7 +340,7 @@ const Layout = ({ children }) => {
                   </>
                 ) : (
                   <Link to="">
-                    <img src={logo} alt="Logo" className="h-20" />
+                    <img src={logo} alt="Logo" className="h-20 sm:h-14 md:h-14" />
                   </Link>
                 )}
               </div>
@@ -417,7 +417,7 @@ const Layout = ({ children }) => {
       <div className="space-y-6">
         <Link to="/">
           <div className="flex items-center">
-            <img src={logo} alt="Key System Logo" className="h-24" />
+            <img src={logo} alt="Key System Logo" className="h-24 sm:h-14 md:h-14" />
             
           </div>
         </Link>
