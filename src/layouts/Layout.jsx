@@ -275,7 +275,7 @@ const Layout = ({ children }) => {
             <div className="flex items-center justify-between p-4 border-b border-gray-200 h-20">
               {!sidebarMinimized && (
                 <Link to={user?.role === 'admin' ? "/admin" : "/member"} className="flex items-center">
-                  <img src={logo} alt="Logo" className="h-14 transition-all" />
+                  <img src={logo} alt="Logo" className="h-14  transition-all" />
                 </Link>
               )}
               <button 
@@ -417,7 +417,7 @@ const Layout = ({ children }) => {
       <div className="space-y-6">
         <Link to="/">
           <div className="flex items-center">
-            <img src={logo} alt="Key System Logo" className="h-12" />
+            <img src={logo} alt="Key System Logo" className="h-16" />
             
           </div>
         </Link>
@@ -480,11 +480,17 @@ const Layout = ({ children }) => {
           </li>
           <li className="flex items-center">
             <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-            <span className="text-gray-600 text-sm">admin@keysystem.in</span>
+            <a href="mailto:godwin@digital.sbbs.co.in"
+  className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
+  godwin@digital.sbbs.co.in
+</a>
+
           </li>
           <li className="flex items-center">
             <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-            <span className="text-gray-600 text-sm">+91 1234567890</span>
+            <a href="tel:+919876543210" class="text-blue-600 hover:underline">
+  +91 98765 43210
+</a>
           </li>
         </ul>
       </div>
