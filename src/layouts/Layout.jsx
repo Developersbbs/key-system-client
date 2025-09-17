@@ -479,7 +479,7 @@ const Layout = ({ children }) => {
             <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
             <a href="mailto:godwin@digital.sbbs.co.in"
   className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
-  godwin@digital.sbbs.co.in
+  admin@keysystem.in
 </a>
 
           </li>
