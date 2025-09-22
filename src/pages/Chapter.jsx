@@ -370,7 +370,11 @@ const Chapter = () => {
 
   useEffect(() => {
     if (courseId && chapterId) {
-      dispatch(fetchChapterById({ courseId, chapterId }));
+      console.log('Fetching chapter:', chapterId);
+      dispatch(fetchChapterById({ courseId, chapterId }))
+        .unwrap()
+        .then(chapter => console.log('Fetched chapter:', chapter))
+        .catch(error => console.error('Error fetching chapter:', error));
     }
     
     // Clear MCQ result when component unmounts

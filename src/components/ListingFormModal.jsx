@@ -10,8 +10,6 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit }) => {
     description: '',
     price: '',
     category: '',
-    condition: 'Used - Good',
-    imageUrl: ''
   });
 
   const handleInputChange = (e) => {
@@ -20,9 +18,6 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.imageUrl) {
-        return toast.error("Please provide an image URL for the listing.");
-    }
     onSubmit(formData);
   };
 
@@ -37,34 +32,51 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit }) => {
             <button type="button" onClick={onClose}><X size={20} /></button>
           </div>
           <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            <input type="text" name="title" placeholder="Item Title" onChange={handleInputChange} className="w-full p-2 border rounded" required />
-            <textarea name="description" placeholder="Item Description" onChange={handleInputChange} className="w-full p-2 border rounded" rows="3" required />
+            <input 
+              type="text" 
+              name="title" 
+              placeholder="Item Title" 
+              onChange={handleInputChange} 
+              className="w-full p-2 border rounded" 
+              required 
+            />
+            
+            <textarea 
+              name="description" 
+              placeholder="Item Description" 
+              onChange={handleInputChange} 
+              className="w-full p-2 border rounded" 
+              rows="3" 
+              required 
+            />
+            
             <div className="grid grid-cols-2 gap-4">
-              <input type="number" name="price" placeholder="Price ($)" onChange={handleInputChange} className="w-full p-2 border rounded" required min="0" />
-              <input type="text" name="category" placeholder="Category" onChange={handleInputChange} className="w-full p-2 border rounded" required />
-            </div>
-            <select name="condition" onChange={handleInputChange} defaultValue="Used - Good" className="w-full p-2 border rounded bg-white">
-              <option>New</option>
-              <option>Used - Like New</option>
-              <option>Used - Good</option>
-              <option>Used - Fair</option>
-            </select>
-            <div>
-              <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">Image URL *</label>
               <input 
-                type="url" 
-                name="imageUrl" 
-                id="imageUrl" 
-                className="w-full p-2 border rounded" 
-                placeholder="https://example.com/image.png"
-                value={formData.imageUrl} 
+                type="number" 
+                name="price" 
+                placeholder="Price ($)" 
                 onChange={handleInputChange} 
+                className="w-full p-2 border rounded" 
+                required 
+                min="0" 
+              />
+              
+              <input 
+                type="text" 
+                name="category" 
+                placeholder="Category" 
+                onChange={handleInputChange} 
+                className="w-full p-2 border rounded" 
                 required 
               />
             </div>
           </div>
           <div className="p-4 bg-gray-50 flex justify-end">
-            <button type="submit"  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">
+            <button 
+              type="submit"  
+              className="bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+              disabled={loading}
+            >
               {loading ? 'Posting...' : 'Post Item'}
             </button>
           </div>

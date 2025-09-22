@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllEvents, addEvent } from '../redux/features/events/eventSlice';
-import { Plus, X, Calendar, User, DollarSign, Search, Filter, BarChart3, TrendingUp, Clock, MapPin, Users } from 'lucide-react';
+import { 
+  fetchAllEvents, 
+  addEvent, 
+  updateEvent, 
+  deleteEvent 
+} from '../redux/features/events/eventSlice';
+import { Plus, X, Calendar, User, DollarSign, Search, Filter, BarChart3, TrendingUp, Clock, MapPin, Users, Edit, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const EventFormModal = ({ isOpen, onClose, onSubmit }) => {
+// Update the EventFormModal to support both create and edit modes
+const EventFormModal = ({ isOpen, onClose, onSubmit, event, mode = 'create' }) => {
   const [formData, setFormData] = useState({ 
     description: '', 
     eventDate: '', 
@@ -13,6 +19,26 @@ const EventFormModal = ({ isOpen, onClose, onSubmit }) => {
     attendees: '' 
   });
   const { loading } = useSelector(state => state.events);
+
+  useEffect(() => {
+    if (mode === 'edit' && event) {
+      setFormData({
+        description: event.description || '',
+        eventDate: event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : '',
+        rate: event.rate || '',
+        location: event.location || '',
+        attendees: event.attendees || ''
+      });
+    } else {
+      setFormData({ 
+        description: '', 
+        eventDate: '', 
+        rate: '',
+        location: '',
+        attendees: '' 
+      });
+    }
+  }, [event, mode, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -26,7 +52,9 @@ const EventFormModal = ({ isOpen, onClose, onSubmit }) => {
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
         <form onSubmit={handleSubmit}>
           <div className="p-4 border-b border-green-100 flex justify-between items-center bg-green-50 rounded-t-xl">
-            <h3 className="text-lg font-semibold text-green-800">Post a New Event</h3>
+            <h3 className="text-lg font-semibold text-green-800">
+              {mode === 'edit' ? 'Edit Event' : 'Post a New Event'}
+            </h3>
             <button type="button" onClick={onClose} className="text-green-600 hover:text-green-800">
               <X size={20} />
             </button>
@@ -109,7 +137,7 @@ const EventFormModal = ({ isOpen, onClose, onSubmit }) => {
               disabled={loading} 
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors"
             >
-              {loading ? 'Posting...' : 'Post Event'}
+              {loading ? (mode === 'edit' ? 'Updating...' : 'Posting...') : (mode === 'edit' ? 'Update Event' : 'Post Event')}
             </button>
           </div>
         </form>
@@ -120,6 +148,8 @@ const EventFormModal = ({ isOpen, onClose, onSubmit }) => {
 
 const Events = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -163,6 +193,31 @@ const Events = () => {
         setIsModalOpen(false);
       })
       .catch((err) => toast.error(err));
+  };
+
+  const handleUpdateEvent = (eventData) => {
+    dispatch(updateEvent({ id: selectedEvent._id, eventData })).unwrap()
+      .then(() => {
+        toast.success("Event updated successfully!");
+        setIsEditModalOpen(false);
+        setSelectedEvent(null);
+      })
+      .catch((err) => toast.error(err));
+  };
+
+  const handleDeleteEvent = (id) => {
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      dispatch(deleteEvent(id)).unwrap()
+        .then(() => {
+          toast.success("Event deleted successfully!");
+        })
+        .catch((err) => toast.error(err));
+    }
+  };
+
+  const openEditModal = (event) => {
+    setSelectedEvent(event);
+    setIsEditModalOpen(true);
   };
 
   // Filter and sort events
@@ -357,7 +412,28 @@ const Events = () => {
                       </div>
                       
                       <div className="flex-grow">
-                        <h3 className="text-xl font-bold text-green-900 mb-2">{event.description}</h3>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-xl font-bold text-green-900">{event.description}</h3>
+                          
+                          {isLoggedIn && user?.role === 'admin' && (
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => openEditModal(event)}
+                                className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                                title="Edit event"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteEvent(event._id)}
+                                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors"
+                                title="Delete event"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                           <div className="flex items-center gap-2 text-green-700">
@@ -409,6 +485,18 @@ const Events = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleAddEvent}
+          mode="create"
+        />
+        
+        <EventFormModal 
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedEvent(null);
+          }}
+          onSubmit={handleUpdateEvent}
+          event={selectedEvent}
+          mode="edit"
         />
       </div>
     </div>

@@ -11,9 +11,9 @@ const Marketplace = () => {
   const [buyModalOpen, setBuyModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCondition, setFilterCondition] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
   const [stats, setStats] = useState({
     totalListings: 0,
     averagePrice: 0,
@@ -24,18 +24,18 @@ const Marketplace = () => {
   const { listings, loading, error } = useSelector(state => state.listings);
   const { user, isLoggedIn } = useSelector(state => state.auth);
 
+  // Extract unique categories from listings
+  const categories = ['all', ...new Set(listings.map(item => item.category).filter(Boolean))];
+
   useEffect(() => {
     dispatch(fetchAllListings());
   }, [dispatch]);
   
   useEffect(() => {
-    // Calculate dashboard statistics
     if (listings.length > 0) {
       const totalListings = listings.length;
       const totalPrice = listings.reduce((sum, item) => sum + parseFloat(item.price), 0);
       const averagePrice = totalPrice / totalListings;
-      
-      // Simple trending calculation (items with price below average considered trending)
       const trendingItems = listings.filter(item => parseFloat(item.price) < averagePrice).length;
       
       setStats({
@@ -65,27 +65,21 @@ const Marketplace = () => {
   };
 
   const handleBuyClick = (listing) => {
-    console.log('Buy clicked for listing:', listing);
-    
     if (!isLoggedIn || !user?._id) {
       toast.error("Please login to buy items");
       return;
     }
 
-    // Check if listing has postedBy populated
     if (!listing?.postedBy) {
-      console.error('Listing postedBy is missing:', listing);
       toast.error("Seller information not available");
       return;
     }
 
-    // Handle both populated and non-populated postedBy
     const sellerId = typeof listing.postedBy === 'object' 
       ? listing.postedBy._id 
       : listing.postedBy;
 
     if (!sellerId) {
-      console.error('Seller ID not found in listing:', listing);
       toast.error("Seller ID not available");
       return;
     }
@@ -95,7 +89,6 @@ const Marketplace = () => {
       return;
     }
 
-    // Create a normalized listing object for the modal
     const normalizedListing = {
       ...listing,
       postedBy: {
@@ -106,7 +99,6 @@ const Marketplace = () => {
       }
     };
 
-    console.log('Normalized listing for buy modal:', normalizedListing);
     setSelectedListing(normalizedListing);
     setBuyModalOpen(true);
   };
@@ -116,8 +108,8 @@ const Marketplace = () => {
     .filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            item.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCondition = filterCondition === 'all' || item.condition === filterCondition;
-      return matchesSearch && matchesCondition;
+      const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
@@ -220,15 +212,14 @@ const Marketplace = () => {
             <div className="flex items-center gap-2">
               <Filter size={18} className="text-green-600" />
               <select 
-                value={filterCondition}
-                onChange={(e) => setFilterCondition(e.target.value)}
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
                 className="border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="all">All Conditions</option>
-                <option value="New">New</option>
-                <option value="Used - Like New">Like New</option>
-                <option value="Used - Good">Good</option>
-                <option value="Used - Fair">Fair</option>
+                <option value="all">All Categories</option>
+                {categories.filter(cat => cat !== 'all').map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
               </select>
             </div>
             
@@ -287,7 +278,7 @@ const Marketplace = () => {
               const isOwner = postedBy && user?._id ? 
                 (typeof postedBy === 'object' ? postedBy._id === user._id : postedBy === user._id) : 
                 false;
-              const canBuy = isLoggedIn && !isOwner && postedBy; // Can't buy if postedBy is null
+              const canBuy = isLoggedIn && !isOwner && postedBy;
 
               return (
                 <div key={listing._id} className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -312,7 +303,7 @@ const Marketplace = () => {
                             <DollarSign size={18} /> {listing.price}
                           </span>
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            {listing.condition}
+                            {listing.category}
                           </span>
                         </div>
 

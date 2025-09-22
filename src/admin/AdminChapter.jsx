@@ -10,16 +10,16 @@ import {
   deleteChapter,
   clearError
 } from '../redux/features/chapters/chapterSlice';
-import apiClient from '../api/apiClient'; // Must have baseURL: '/api'
+import { uploadVideo, deleteVideo, validateVideoFile, formatFileSize } from '../../src/utils/videoUpload';
 import {
   Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Clock, FileText, Video, Link as LinkIcon,
-  CheckCircle, XCircle, Timer, PlayCircle, Upload, RefreshCw, AlertCircle
+  CheckCircle, XCircle, Timer, PlayCircle, Upload, RefreshCw, AlertCircle, Loader
 } from 'lucide-react';
 
 const AdminChapter = () => {
   const dispatch = useDispatch();
   const { courseId } = useParams();
-  const { chapters, error } = useSelector((state) => state.chapters);
+  const { chapters, loading, error } = useSelector((state) => state.chapters);
   const fileInputRef = useRef(null);
 
   // --- State Management ---
@@ -41,7 +41,7 @@ const AdminChapter = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [expandedChapters, setExpandedChapters] = useState(new Set());
 
-  // Video upload state
+  // Video upload state for Firebase
   const [videoUpload, setVideoUpload] = useState({
     isUploading: false,
     progress: 0,
@@ -65,31 +65,14 @@ const AdminChapter = () => {
     }
   }, [error, dispatch]);
 
-  // --- Helper Functions ---
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const validateVideoFile = (file) => {
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm'];
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Please select a valid video file (MP4, AVI, MOV, WMV, WebM)');
-    }
-    if (file.size > maxSize) {
-      throw new Error('File size must be less than 500MB');
-    }
-    return true;
-  };
-
-  // --- Upload to S3 with Progress & Auto-Save to Chapter ---
+  // --- Firebase Video Upload ---
   const uploadVideoWithProgress = async (file) => {
     try {
-      validateVideoFile(file);
+      // Validate file before upload
+      const validation = validateVideoFile(file);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join('. '));
+      }
 
       setVideoUpload(prev => ({
         ...prev,
@@ -100,76 +83,77 @@ const AdminChapter = () => {
         fileSize: file.size
       }));
 
-      // ✅ Use correct API route with /api prefix
-      const presignedResponse = await apiClient.post('/uploads/generate-upload-url', {
-        fileName: file.name,
-        fileType: file.type
-      });
-
-      const { uploadUrl, finalUrl } = presignedResponse.data;
-
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setVideoUpload(prev => ({ ...prev, progress }));
+      // Upload to Firebase Storage
+      const videoUrl = await uploadVideo(
+        file,
+        courseId,
+        editingChapter?._id || 'temp',
+        (progress) => {
+          setVideoUpload(prev => ({ ...prev, progress }));
+        },
+        (error) => {
+          console.error('Firebase upload error:', error);
+          let errorMsg = 'Failed to upload video';
+          if (error.code) {
+            errorMsg += ` (${error.code})`;
           }
-        });
-
-        xhr.addEventListener('load', async () => {
-          if (xhr.status === 200) {
-            console.log('✅ Video uploaded to S3:', finalUrl);
-
-            // Update form with final URL
-            setFormData(prev => ({ ...prev, videoUrl: finalUrl }));
-            setVideoUpload(prev => ({
-              ...prev,
-              isUploading: false,
-              progress: 100,
-              uploadedUrl: finalUrl
-            }));
-
-            // ✅ Auto-save videoUrl to chapter (if editing)
-            if (editingChapter) {
-              try {
-                await dispatch(updateChapter({
-                  courseId,
-                  chapterId: editingChapter._id,
-                  updatedData: { ...formData, videoUrl: finalUrl }
-                })).unwrap();
-                toast.success('Video URL saved to chapter');
-              } catch (saveErr) {
-                console.warn('⚠️ Failed to auto-save video URL:', saveErr);
-                toast.error('Uploaded, but failed to save URL. Save chapter manually.');
-              }
-            }
-
-            toast.success('Video uploaded successfully!');
-            resolve(finalUrl);
-          } else {
-            const errorMsg = 'Failed to upload video to S3';
-            setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
-            toast.error(errorMsg);
-            reject(new Error(errorMsg));
+          if (error.message) {
+            errorMsg += `: ${error.message}`;
           }
-        });
-
-        xhr.addEventListener('error', () => {
-          const errorMsg = 'Network error during upload';
-          setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
+          if (error.stack) {
+            console.error(error.stack);
+          }
+          setVideoUpload(prev => ({ 
+            ...prev, 
+            isUploading: false, 
+            error: errorMsg, 
+            progress: 0 
+          }));
           toast.error(errorMsg);
-          reject(new Error(errorMsg));
-        });
+          throw error;
+        }
+      );
 
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
-        xhr.send(file);
-      });
+      // Update form data and upload state
+      setFormData(prev => ({ ...prev, videoUrl }));
+      setVideoUpload(prev => ({
+        ...prev,
+        isUploading: false,
+        progress: 100,
+        uploadedUrl: videoUrl,
+        error: null
+      }));
+
+      // Auto-save if editing existing chapter
+      if (editingChapter) {
+        try {
+          await dispatch(updateChapter({
+            courseId,
+            chapterId: editingChapter._id,
+            updatedData: { ...formData, videoUrl }
+          })).unwrap();
+          toast.success('Video uploaded and chapter updated successfully!');
+        } catch (saveError) {
+          console.warn('Failed to auto-save video URL:', saveError);
+          toast.success('Video uploaded! Remember to save the chapter.');
+        }
+      } else {
+        toast.success('Video uploaded successfully! Save the chapter to complete.');
+      }
+
+      return videoUrl;
     } catch (error) {
-      console.error('Upload error:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Upload failed';
-      setVideoUpload(prev => ({ ...prev, isUploading: false, error: errorMsg, progress: 0 }));
+      console.error('Video upload failed:', error);
+      const errorMsg = error.message || 'Failed to upload video';
+      if (error.stack) {
+        console.error(error.stack);
+      }
+      setVideoUpload(prev => ({ 
+        ...prev, 
+        isUploading: false, 
+        error: errorMsg, 
+        progress: 0 
+      }));
       toast.error(errorMsg);
       throw error;
     }
@@ -183,14 +167,26 @@ const AdminChapter = () => {
       await uploadVideoWithProgress(file);
     } catch (error) {
       // Error already handled in uploadVideoWithProgress
+      console.error('Video upload failed:', error);
     }
 
+    // Clear file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleRemoveVideo = () => {
+  const handleRemoveVideo = async () => {
+    if (videoUpload.uploadedUrl) {
+      try {
+        await deleteVideo(videoUpload.uploadedUrl);
+        toast.success('Video removed successfully');
+      } catch (error) {
+        console.warn('Failed to delete video from Firebase:', error);
+        toast.warning('Video removed from form, but may still exist in storage');
+      }
+    }
+
     setVideoUpload({
       isUploading: false,
       progress: 0,
@@ -203,6 +199,7 @@ const AdminChapter = () => {
   };
 
   const handleRetryUpload = () => {
+    setVideoUpload(prev => ({ ...prev, error: null }));
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -224,11 +221,12 @@ const AdminChapter = () => {
         tasks: chapter.tasks || [],
       });
 
+      // Set video upload state if video exists
       if (chapter.videoUrl) {
         setVideoUpload(prev => ({
           ...prev,
           uploadedUrl: chapter.videoUrl,
-          fileName: 'Uploaded video',
+          fileName: 'Existing video',
           progress: 100,
           isUploading: false,
           error: null
@@ -266,7 +264,10 @@ const AdminChapter = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   // MCQ Handlers
@@ -284,7 +285,12 @@ const AdminChapter = () => {
 
   const addMcq = () => setFormData(prev => ({
     ...prev,
-    mcqs: [...prev.mcqs, { question: '', options: ['', '', '', ''], correctAnswerIndex: 0, explanation: '' }]
+    mcqs: [...prev.mcqs, { 
+      question: '', 
+      options: ['', '', '', ''], 
+      correctAnswerIndex: 0, 
+      explanation: '' 
+    }]
   }));
 
   const removeMcq = (mcqIndex) => setFormData(prev => ({
@@ -301,7 +307,12 @@ const AdminChapter = () => {
 
   const addTask = () => setFormData(prev => ({
     ...prev,
-    tasks: [...prev.tasks, { type: 'online', title: '', description: '', deadline: '' }]
+    tasks: [...prev.tasks, { 
+      type: 'online', 
+      title: '', 
+      description: '', 
+      deadline: '' 
+    }]
   }));
 
   const removeTask = (taskIndex) => setFormData(prev => ({
@@ -328,32 +339,51 @@ const AdminChapter = () => {
       return;
     }
 
-   const chapterData = {
-    ...formData,
-    duration: Number(formData.duration) || 0,
-    mcqs: formData.mcqs.map(mcq => ({ 
-      ...mcq, 
-      correctAnswerIndex: Number(mcq.correctAnswerIndex) 
-    }))
+    const chapterData = {
+      ...formData,
+      duration: Number(formData.duration) || 0,
+      mcqs: formData.mcqs.map(mcq => ({ 
+        ...mcq, 
+        correctAnswerIndex: Number(mcq.correctAnswerIndex) 
+      }))
+    };
+
+    try {
+      if (editingChapter) {
+        await dispatch(updateChapter({ 
+          courseId, 
+          chapterId: editingChapter._id, 
+          updatedData: chapterData 
+        })).unwrap();
+        toast.success('Chapter updated successfully!');
+      } else {
+        await dispatch(createChapter({ courseId, chapterData })).unwrap();
+        toast.success('Chapter created successfully!');
+        dispatch(getAllChapters(courseId)); // Refetch chapters to update the list
+      }
+      handleCloseForm();
+    } catch (err) {
+      console.error('Chapter save error:', err);
+      toast.error(err.message || 'Failed to save chapter');
+    }
   };
 
-  try {
-    if (editingChapter) {
-      await dispatch(updateChapter({ 
-        courseId, 
-        chapterId: editingChapter._id, 
-        updatedData: chapterData 
-      })).unwrap();
-      toast.success('Chapter updated successfully!');
-    } else {
-      await dispatch(createChapter({ courseId, chapterData })).unwrap();
-      toast.success('Chapter created successfully!');
+  // --- Delete Chapter ---
+  const handleDelete = async (chapterId, chapterTitle) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${chapterTitle}"? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      await dispatch(deleteChapter({ courseId, chapterId })).unwrap();
+      toast.success('Chapter deleted successfully!');
+    } catch (err) {
+      console.error('Delete error:', err);
+      toast.error(err.message || 'Failed to delete chapter');
     }
-    handleCloseForm();
-  } catch (err) {
-    toast.error(err.message || 'Failed to save chapter');
-  }
-};
+  };
 
   const toggleChapterExpansion = (chapterId) => {
     const newExpanded = new Set(expandedChapters);
@@ -365,6 +395,7 @@ const AdminChapter = () => {
     setExpandedChapters(newExpanded);
   };
 
+  // --- Components ---
   const TabButton = ({ tabName, label, count }) => (
     <button
       type="button"
@@ -382,6 +413,8 @@ const AdminChapter = () => {
   const VideoUploadSection = () => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-3">Chapter Video</label>
+      
+      {/* Upload Area */}
       {!videoUpload.uploadedUrl && !videoUpload.isUploading && !videoUpload.error && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors duration-200">
           <div className="flex flex-col items-center">
@@ -399,11 +432,13 @@ const AdminChapter = () => {
           </div>
         </div>
       )}
+
+      {/* Upload Progress */}
       {videoUpload.isUploading && (
         <div className="border border-gray-300 rounded-lg p-4">
           <div className="flex items-center gap-3 mb-3">
-            <RefreshCw className="h-5 w-5 text-teal-600 animate-spin" />
-            <span className="font-medium text-gray-900">Uploading video...</span>
+            <Loader className="h-5 w-5 text-teal-600 animate-spin" />
+            <span className="font-medium text-gray-900">Uploading to Firebase...</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -423,6 +458,8 @@ const AdminChapter = () => {
           </div>
         </div>
       )}
+
+      {/* Upload Error */}
       {videoUpload.error && (
         <div className="border border-red-200 bg-red-50 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -441,6 +478,8 @@ const AdminChapter = () => {
           </div>
         </div>
       )}
+
+      {/* Upload Success */}
       {videoUpload.uploadedUrl && !videoUpload.isUploading && (
         <div className="border border-green-200 bg-green-50 rounded-lg p-4">
           <div className="flex items-start gap-3">
@@ -448,7 +487,9 @@ const AdminChapter = () => {
             <div className="flex-1">
               <p className="text-sm font-medium text-green-800">Video uploaded successfully</p>
               <p className="text-sm text-green-700 mt-1 truncate">{videoUpload.fileName}</p>
-              <p className="text-xs text-green-600 mt-1">{formatFileSize(videoUpload.fileSize)}</p>
+              {videoUpload.fileSize > 0 && (
+                <p className="text-xs text-green-600 mt-1">{formatFileSize(videoUpload.fileSize)}</p>
+              )}
             </div>
             <div className="flex gap-2">
               <button
@@ -469,6 +510,8 @@ const AdminChapter = () => {
           </div>
         </div>
       )}
+
+      {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -478,6 +521,8 @@ const AdminChapter = () => {
       />
     </div>
   );
+
+ 
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -575,6 +620,7 @@ const AdminChapter = () => {
                   <TabButton tabName="tasks" label="Tasks" count={formData.tasks.length} />
                 </div>
               </div>
+
               <div className="p-6 overflow-y-auto flex-1">
                 {/* Details Tab */}
                 {activeTab === 'details' && (
@@ -605,6 +651,7 @@ const AdminChapter = () => {
                         />
                       </div>
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                       <textarea
@@ -616,8 +663,11 @@ const AdminChapter = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                       />
                     </div>
+
                     <div className="grid grid-cols-1 gap-6">
+                      {/* Firebase Video Upload Section */}
                       <VideoUploadSection />
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Document URL</label>
                         <div className="relative">
@@ -633,6 +683,7 @@ const AdminChapter = () => {
                         </div>
                       </div>
                     </div>
+
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-medium text-gray-900 mb-3">Settings</h4>
                       <div className="flex flex-col sm:flex-row gap-4">
@@ -681,6 +732,7 @@ const AdminChapter = () => {
                         Add MCQ
                       </button>
                     </div>
+
                     {formData.mcqs.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -731,10 +783,10 @@ const AdminChapter = () => {
                                         type="text"
                                         value={opt}
                                         onChange={(e) => handleMcqOptionChange(mcqIndex, optIndex, e.target.value)}
-                                        placeholder={`Option ${optIndex + 1}`}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                        placeholder={`Option ${String.fromCharCode(65 + optIndex)}`}
+                                        className="w-full px-3 py-2 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                       />
-                                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-white px-1 text-xs text-gray-500">
+                                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 font-medium">
                                         {String.fromCharCode(65 + optIndex)}
                                       </span>
                                     </div>
@@ -748,12 +800,22 @@ const AdminChapter = () => {
                                   onChange={(e) => handleMcqChange(mcqIndex, 'correctAnswerIndex', parseInt(e.target.value, 10))}
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                 >
-                                  {mcq.options.map((_, optIndex) => (
+                                  {mcq.options.map((option, optIndex) => (
                                     <option key={optIndex} value={optIndex}>
-                                      Option {String.fromCharCode(65 + optIndex)} - {mcq.options[optIndex] || `Option ${optIndex + 1}`}
+                                      Option {String.fromCharCode(65 + optIndex)} - {option || `Option ${optIndex + 1}`}
                                     </option>
                                   ))}
                                 </select>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Explanation (Optional)</label>
+                                <textarea
+                                  value={mcq.explanation || ''}
+                                  onChange={(e) => handleMcqChange(mcqIndex, 'explanation', e.target.value)}
+                                  placeholder="Explain why this is the correct answer"
+                                  rows="2"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                                />
                               </div>
                             </div>
                           </div>
@@ -777,6 +839,7 @@ const AdminChapter = () => {
                         Add Task
                       </button>
                     </div>
+
                     {formData.tasks.length === 0 ? (
                       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -858,6 +921,8 @@ const AdminChapter = () => {
                   </div>
                 )}
               </div>
+
+              {/* Form Footer */}
               <div className="sticky bottom-0 bg-white border-t p-6">
                 <div className="flex justify-end gap-4">
                   <button
@@ -992,7 +1057,7 @@ const AdminChapter = () => {
                               rel="noopener noreferrer"
                               className="text-teal-600 hover:text-teal-800 text-sm truncate flex-1"
                             >
-                              {chapter.videoUrl}
+                              View Video
                             </a>
                           </div>
                         )}
@@ -1006,7 +1071,7 @@ const AdminChapter = () => {
                               rel="noopener noreferrer"
                               className="text-green-600 hover:text-green-800 text-sm truncate flex-1"
                             >
-                              {chapter.documentUrl}
+                              Download Document
                             </a>
                           </div>
                         )}

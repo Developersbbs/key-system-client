@@ -5,6 +5,7 @@ import { createTransaction } from '../redux/features/transactions/transactionSli
 import { fetchSellerPaymentDetails } from '../redux/features/userProfileSlice/userProfileSlice';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
+import { uploadFile } from '../utils/fileUpload';
 
 const BuyModal = ({ isOpen, onClose, listing }) => {
   const dispatch = useDispatch();
@@ -17,6 +18,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   const [step, setStep] = useState('details'); // 'details', 'upload', 'confirm'
   const [qrImageError, setQrImageError] = useState(false);
   const [qrImageLoading, setQrImageLoading] = useState(false);
+  const [proofUrl, setProofUrl] = useState(null);
 
   // Fetch seller payment details when modal opens
   useEffect(() => {
@@ -64,68 +66,31 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     setProofFile(file);
   };
 
-  const uploadToS3 = async (file) => {
+  const handleProofUpload = async (file) => {
+    if (!file) return;
+    
     try {
-      console.log('Starting S3 upload for file:', file.name);
+      setUploading(true);
       
-      // Step 1: Get presigned URL from your backend using apiClient
-      const presignedResponse = await apiClient.post('/uploads/payment-proof', {
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      });
-
-      console.log('Presigned response received:', presignedResponse.data);
+      // Upload to Firebase
+      const downloadURL = await uploadFile(
+        file,
+        `transactions/${listing._id}/proofs`
+      );
       
-      const { uploadUrl, finalUrl } = presignedResponse.data;
-
-      if (!uploadUrl || !finalUrl) {
-        throw new Error('Invalid response from server: missing upload URL or final URL');
-      }
-
-      console.log('Uploading to S3 URL:', uploadUrl);
-
-      // Step 2: Upload file directly to S3 using presigned URL
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-      });
-
-      console.log('S3 upload response status:', uploadResponse.status);
-
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('S3 upload failed:', errorText);
-        throw new Error(`S3 upload failed with status ${uploadResponse.status}: ${errorText}`);
-      }
-
-      console.log('File uploaded successfully to:', finalUrl);
-      return finalUrl;
+      setProofUrl(downloadURL);
+      toast.success('Proof uploaded successfully!');
     } catch (error) {
-      console.error('S3 Upload Error Details:', error);
-      
-      // More specific error messages based on the error type
-      if (error.response) {
-        // API client error (axios)
-        const status = error.response.status;
-        const message = error.response.data?.message || error.response.data?.error || 'Unknown server error';
-        throw new Error(`Server error (${status}): ${message}`);
-      } else if (error.request) {
-        // Network error
-        throw new Error('Network error: Please check your internet connection');
-      } else {
-        // Other errors
-        throw new Error(error.message || 'Unknown error occurred during upload');
-      }
+      console.error('Proof upload error:', error);
+      toast.error('Failed to upload proof: ' + error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
   const handleSubmitTransaction = async () => {
-    if (!proofFile) {
-      toast.error('Please upload payment proof');
+    if (!proofUrl) {
+      toast.error('Please upload a payment proof');
       return;
     }
 
@@ -137,10 +102,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     try {
       setUploading(true);
       
-      console.log('Starting transaction submission...');
-      const proofUrl = await uploadToS3(proofFile);
-      console.log('Upload successful, creating transaction...');
-      
+      // Create transaction
       await dispatch(createTransaction({
         listingId: listing._id,
         proofOfPaymentUrl: proofUrl
@@ -162,6 +124,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     setProofFile(null);
     setQrImageError(false);
     setQrImageLoading(false);
+    setProofUrl(null);
   };
 
   const handleClose = () => {
@@ -436,7 +399,10 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                           id="proof-upload" 
                           type="file" 
                           accept="image/*" 
-                          onChange={handleFileSelect}
+                          onChange={(e) => {
+                            handleFileSelect(e);
+                            handleProofUpload(e.target.files[0]);
+                          }}
                           className="hidden"
                         />
                       </label>
@@ -455,7 +421,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                 </button>
                 <button 
                   onClick={handleSubmitTransaction}
-                  disabled={!proofFile || uploading || loading}
+                  disabled={!proofUrl || uploading || loading}
                   className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {uploading || loading ? (

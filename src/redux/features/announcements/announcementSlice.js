@@ -19,6 +19,19 @@ export const addAnnouncement = createAsyncThunk('announcements/add', async (anno
   }
 });
 
+// Add this async thunk for deleting an announcement
+export const deleteAnnouncement = createAsyncThunk(
+  'announcements/deleteAnnouncement',
+  async (announcementId, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.delete(`/announcements/${announcementId}`);
+      return announcementId; // Return the ID of the deleted announcement
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete announcement');
+    }
+  }
+);
+
 const announcementSlice = createSlice({
   name: 'announcements',
   initialState: {
@@ -26,7 +39,11 @@ const announcementSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearError: (state) => {
+      state.error = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAllAnnouncements.fulfilled, (state, action) => {
@@ -35,16 +52,32 @@ const announcementSlice = createSlice({
       .addCase(addAnnouncement.fulfilled, (state, action) => {
         state.announcements.unshift(action.payload);
       })
+      .addCase(deleteAnnouncement.fulfilled, (state, action) => {
+        // Remove the deleted announcement from the state
+        state.announcements = state.announcements.filter(
+          announcement => announcement._id !== action.payload
+        );
+      })
       // Add generic matchers for pending/rejected/fulfilled
-      .addMatcher((action) => action.type.startsWith('announcements/'), (state, action) => {
-        if (action.type.endsWith('/pending')) state.loading = true;
-        if (action.type.endsWith('/fulfilled')) state.loading = false;
-        if (action.type.endsWith('/rejected')) {
-          state.loading = false;
-          state.error = action.payload;
+      .addMatcher(
+        (action) => action.type.startsWith('announcements/') && 
+                   (action.type.endsWith('/pending') || 
+                    action.type.endsWith('/fulfilled') || 
+                    action.type.endsWith('/rejected')),
+        (state, action) => {
+          if (action.type.endsWith('/pending')) {
+            state.loading = true;
+            state.error = null;
+          } else if (action.type.endsWith('/fulfilled')) {
+            state.loading = false;
+          } else if (action.type.endsWith('/rejected')) {
+            state.loading = false;
+            state.error = action.payload;
+          }
         }
-      });
+      );
   },
 });
 
+export const { clearError } = announcementSlice.actions;
 export default announcementSlice.reducer;

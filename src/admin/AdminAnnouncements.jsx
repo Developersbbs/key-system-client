@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllAnnouncements, addAnnouncement } from '../redux/features/announcements/announcementSlice';
-import { Plus, Send, Calendar, Clock, Users, Bell, TrendingUp, BarChart3 } from 'lucide-react';
+import { 
+  fetchAllAnnouncements, 
+  addAnnouncement, 
+  deleteAnnouncement,
+  clearError 
+} from '../redux/features/announcements/announcementSlice';
+import { Plus, Send, Calendar, Clock, Users, Bell, TrendingUp, BarChart3, Info, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminAnnouncements = () => {
@@ -9,8 +14,10 @@ const AdminAnnouncements = () => {
   const [content, setContent] = useState('');
   const [type, setType] = useState('info');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, title: '' });
+  
   const dispatch = useDispatch();
-  const { announcements, loading } = useSelector(state => state.announcements);
+  const { announcements, loading, error } = useSelector(state => state.announcements);
 
   useEffect(() => {
     dispatch(fetchAllAnnouncements());
@@ -23,15 +30,46 @@ const AdminAnnouncements = () => {
     return () => clearInterval(timer);
   }, [dispatch]);
 
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!title.trim() || !content.trim()) {
+      toast.error("Title and content cannot be empty!");
+      return;
+    }
+    
     dispatch(addAnnouncement({ title, content, type })).unwrap()
       .then(() => {
         toast.success("Announcement posted successfully!");
         setTitle('');
         setContent('');
+        setType('info');
       })
-      .catch(err => toast.error(err));
+      .catch(err => {
+        console.error("Error adding announcement:", err);
+        toast.error(err || "Failed to post announcement");
+      });
+  };
+
+  const handleDelete = (id, title) => {
+    setDeleteConfirm({ show: true, id, title });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await dispatch(deleteAnnouncement(deleteConfirm.id)).unwrap();
+      toast.success("Announcement deleted successfully!");
+      setDeleteConfirm({ show: false, id: null, title: '' });
+    } catch (err) {
+      console.error("Error deleting announcement:", err);
+      toast.error(err || "Failed to delete announcement");
+    }
   };
 
   // Format date and time
@@ -83,16 +121,46 @@ const AdminAnnouncements = () => {
 
   // Stats for the dashboard
   const stats = [
-    { label: 'Total Announcements', value: announcements.length, icon: <Bell className="text-green-600" /> },
-    { label: 'Info Type', value: announcements.filter(a => a.type === 'info').length, icon: <BarChart3 className="text-green-600" /> },
-    { label: 'Success Type', value: announcements.filter(a => a.type === 'success').length, icon: <TrendingUp className="text-green-600" /> },
-    { label: 'Active Users', value: '1.2K', icon: <Users className="text-green-600" /> },
+    { label: 'Total Announcements', value: announcements?.length || 0, icon: <Bell className="text-green-600" /> },
+    { label: 'Info Type', value: announcements?.filter(a => a.type === 'info').length || 0, icon: <BarChart3 className="text-green-600" /> },
+    { label: 'Success Type', value: announcements?.filter(a => a.type === 'success').length || 0, icon: <TrendingUp className="text-green-600" /> },
+    { label: 'Warning Type', value: announcements?.filter(a => a.type === 'warning').length || 0, icon: <BarChart3 className="text-amber-600" /> },
+    { label: 'Urgent Type', value: announcements?.filter(a => a.type === 'urgent').length || 0, icon: <Bell className="text-red-600" /> },
   ];
+
+  // Sort announcements by date (newest first)
+  const sortedAnnouncements = [...(announcements || [])].sort((a, b) => 
+    new Date(b.createdAt) - new Date(a.createdAt)
+  );
 
   return (
     <div className="w-full space-y-6">
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
+            <p className="mb-4">Are you sure you want to delete "{deleteConfirm.title}"?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ show: false, id: null, title: '' })}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Date and Time */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 p-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Announcements Dashboard</h1>
           <p className="text-gray-600">Manage and create announcements for your community</p>
@@ -110,7 +178,7 @@ const AdminAnnouncements = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4">
         {stats.map((stat, index) => (
           <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-green-100 flex items-center justify-between">
             <div>
@@ -124,7 +192,7 @@ const AdminAnnouncements = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4">
         {/* Create Announcement Form */}
         <div className="lg:col-span-2">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-green-100">
@@ -188,14 +256,23 @@ const AdminAnnouncements = () => {
               Recent Announcements
             </h2>
             <div className="space-y-4 max-h-[500px] overflow-y-auto">
-              {announcements.length > 0 ? (
-                announcements.map(item => (
+              {sortedAnnouncements.length > 0 ? (
+                sortedAnnouncements.map(item => (
                   <div 
                     key={item._id} 
-                    className={`p-4 rounded-lg border ${getTypeStyle(item.type)}`}
+                    className={`p-4 rounded-lg border ${getTypeStyle(item.type)} relative group`}
                   >
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDelete(item._id, item.title)}
+                      className="absolute top-8 right-2 p-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 rounded-full"
+                      title="Delete announcement"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-bold text-lg">{item.title}</h3>
+                      <h3 className="font-bold text-lg pr-6">{item.title}</h3>
                       <div className="flex items-center gap-1">
                         {getTypeIcon(item.type)}
                         <span className="text-xs font-medium capitalize">{item.type}</span>
@@ -203,8 +280,13 @@ const AdminAnnouncements = () => {
                     </div>
                     <p className="text-gray-700 mb-2">{item.content}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(item.createdAt).toLocaleDateString()} • {new Date(item.createdAt).toLocaleTimeString()}
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Unknown date'} • {item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : 'Unknown time'}
                     </p>
+                    {item.createdBy && item.createdBy.name && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        By: {item.createdBy.name}
+                      </p>
+                    )}
                   </div>
                 ))
               ) : (

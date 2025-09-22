@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Upload, QrCode, Trash2, ImageIcon, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiClient from '../api/apiClient';
 import { updatePaymentDetails, fetchUserProfile } from '../redux/features/userProfileSlice/userProfileSlice';
+import { uploadQRCode, deleteFileFromFirebase } from '../utils/uploadUtils';
 
 const Profile = () => {
   const dispatch = useDispatch();
@@ -90,103 +90,110 @@ const Profile = () => {
   const handleQRFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File size should be less than 5MB');
       return;
     }
+    
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
+    
     setQrFile(file);
   };
 
-  // Test auth endpoints
-  const testAuth = async () => {
-    try {
-      console.log('Testing profile endpoint...');
-      const profileResponse = await apiClient.get('/users/profile');
-      console.log('Profile:', profileResponse.data);
-
-      console.log('Testing upload endpoint...');
-      const uploadResponse = await apiClient.get('/uploads/test');
-      console.log('Upload:', uploadResponse.data);
-
-      toast.success('Auth works for both profile & upload endpoints!');
-    } catch (err) {
-      console.error('Auth test failed:', err);
-      toast.error('Auth test failed – check console.');
-    }
-  };
-
-  // Upload QR Code
+  // Upload QR Code to Firebase
   const handleUploadQR = async () => {
     if (!qrFile) {
       toast.error('Please select a QR code image');
       return;
     }
 
+    if (!user?._id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
     try {
       setIsUploading(true);
 
-      // 1. Get presigned URL
-      const { data } = await apiClient.post('/uploads/qr-code', {
-        fileName: qrFile.name,
-        fileType: qrFile.type,
-        fileSize: qrFile.size,
-      });
-
-      const { uploadUrl, finalUrl } = data;
-
-      if (!uploadUrl || !finalUrl) {
-        throw new Error('Invalid response from server');
+      // Delete old QR code from Firebase if exists
+      if (paymentDetails.qrCodeUrl) {
+        try {
+          await deleteFileFromFirebase(paymentDetails.qrCodeUrl);
+        } catch (deleteError) {
+          console.warn('Could not delete old QR code:', deleteError.message);
+          // Continue with upload even if delete fails
+        }
       }
 
-      // 2. Upload directly to S3
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': qrFile.type },
-        body: qrFile,
-      });
+      // Upload new QR code to Firebase
+      const qrCodeUrl = await uploadQRCode(qrFile, user._id);
 
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload failed with status ${uploadResponse.status}`);
-      }
-
-      // 3. Update profile
-      await dispatch(updatePaymentDetails({ qrCodeUrl: finalUrl })).unwrap();
+      // Update profile with new QR code URL
+      await dispatch(updatePaymentDetails({ 
+        ...paymentDetails,
+        qrCodeUrl 
+      })).unwrap();
 
       toast.success('QR code uploaded successfully!');
       setQrFile(null);
-      setQrImageError(false); // Reset error state on successful upload
+      setQrImageError(false);
       qrImageRetryCount.current = 0;
 
+      // Clear file input
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
-    } catch (err) {
-      console.error('QR Upload Error:', err);
-      toast.error(err.message || 'Failed to upload QR code');
+
+    } catch (error) {
+      console.error('QR Upload Error:', error);
+      toast.error(error.message || 'Failed to upload QR code');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Delete QR Code
+  // Delete QR Code from Firebase
   const handleDeleteQR = async () => {
     if (!paymentDetails.qrCodeUrl) return;
 
-    if (!window.confirm("Remove this QR code?")) return;
+    if (!window.confirm("Remove this QR code? This will permanently delete the image.")) {
+      return;
+    }
 
     try {
       setIsDeleting(true);
-      await dispatch(updatePaymentDetails({ qrCodeUrl: "" })).unwrap();
+
+      // Delete from Firebase Storage
+      await deleteFileFromFirebase(paymentDetails.qrCodeUrl);
+
+      // Update profile to remove QR code URL
+      await dispatch(updatePaymentDetails({ 
+        ...paymentDetails,
+        qrCodeUrl: "" 
+      })).unwrap();
+
       toast.success('QR code removed successfully!');
-      setQrImageError(false); // Reset error state
+      setQrImageError(false);
       qrImageRetryCount.current = 0;
-    } catch (err) {
-      toast.error(err || 'Failed to remove QR code');
+
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'Failed to remove QR code');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Save other payment details
+  const handleSavePaymentDetails = async () => {
+    try {
+      await dispatch(updatePaymentDetails(paymentDetails)).unwrap();
+      toast.success('Payment details saved successfully!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to save payment details');
     }
   };
 
@@ -197,17 +204,13 @@ const Profile = () => {
         <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info</h3>
         <div className="space-y-1 text-xs text-yellow-700">
           <p>User logged in: {user ? 'Yes' : 'No'}</p>
+          <p>User ID: {user?._id || 'Not available'}</p>
           <p>QR in profile: {paymentDetails.qrCodeUrl ? 'Yes' : 'No'}</p>
           <p>QR image error: {qrImageError ? 'Yes' : 'No'}</p>
           <p>QR retry count: {qrImageRetryCount.current}</p>
+          <p>Storage: Firebase</p>
         </div>
         <div className="mt-3 space-x-2">
-          <button 
-            onClick={testAuth}
-            className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700"
-          >
-            Test Auth
-          </button>
           <button 
             onClick={retryQrImage}
             className="bg-green-600 text-white px-3 py-1 text-sm rounded hover:bg-green-700"
@@ -225,7 +228,7 @@ const Profile = () => {
             Payment QR Code
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            Upload a QR code that buyers can scan to pay you directly
+            Upload a QR code that buyers can scan to pay you directly (stored in Firebase)
           </p>
         </div>
         <div className="p-6">
@@ -273,7 +276,7 @@ const Profile = () => {
                   <strong>QR Code Active:</strong> Buyers can scan this to pay you directly
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  Make sure your QR code is linked to your UPI account
+                  Stored securely in Firebase Storage
                 </p>
               </div>
 
@@ -323,6 +326,7 @@ const Profile = () => {
                   <li>• No need to share UPI ID manually</li>
                   <li>• Faster and more convenient transactions</li>
                   <li>• Works with all UPI apps (PhonePe, Paytm, GPay, etc.)</li>
+                  <li>• Securely stored in Firebase Storage</li>
                 </ul>
               </div>
 
@@ -371,7 +375,7 @@ const Profile = () => {
                   {isUploading ? (
                     <>
                       <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                      Uploading...
+                      Uploading to Firebase...
                     </>
                   ) : (
                     <>
@@ -384,7 +388,7 @@ const Profile = () => {
               
               {!qrFile && (
                 <div className="text-sm text-gray-500 space-y-2">
-                  <p>Select an image (max 5MB) to upload your QR code.</p>
+                  <p>Select an image (max 5MB) to upload your QR code to Firebase.</p>
                   <p className="text-xs">
                     <strong>Tip:</strong> Generate your QR code from your UPI app (PhonePe, GPay, etc.) 
                     and take a screenshot to upload here.
@@ -469,7 +473,7 @@ const Profile = () => {
           </div>
           
           <button
-            onClick={() => dispatch(updatePaymentDetails(paymentDetails))}
+            onClick={handleSavePaymentDetails}
             disabled={loading}
             className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
           >
