@@ -90,7 +90,7 @@ const MemberAnnouncements = () => {
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 pl-6 pt-6 pr-6">
       {/* Header with Date and Time */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>

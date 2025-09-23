@@ -204,6 +204,12 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check if current page is login page
+  const isLoginPage = location.pathname === '/login';
+  
+  // Show sidebar only when logged in AND not on login page
+  const showSidebar = isLoggedIn && !isLoginPage;
+
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/");
@@ -256,8 +262,8 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* --- SIDEBAR (for logged-in users) --- */}
-      {isLoggedIn && (
+      {/* --- SIDEBAR (only for logged-in users and not on login page) --- */}
+      {showSidebar && (
         <>
           {/* Mobile overlay */}
           {sidebarOpen && (
@@ -266,11 +272,7 @@ const Layout = ({ children }) => {
           
           <aside 
             ref={sidebarRef}
-            className={`fixed inset-y-0 left-0 transform ${
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } md:translate-x-0 z-50 ${
-              sidebarMinimized ? 'w-20' : 'w-64'
-            } bg-white shadow-lg transition-all duration-300 flex flex-col border-r border-gray-200`}
+            className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 flex flex-col border-r border-gray-200`}
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-200 h-20">
               {!sidebarMinimized && (
@@ -314,16 +316,13 @@ const Layout = ({ children }) => {
         </>
       )}
       
-      {/* --- MAIN CONTENT WRAPPER (pushes content based on sidebar width) --- */}
-      <div className={`min-h-screen flex flex-col transition-all duration-300 ${
-          isLoggedIn ? (sidebarMinimized ? 'md:pl-20' : 'md:pl-64') : 'pl-0'
-        }`}
-      >
+      {/* --- MAIN CONTENT WRAPPER (always visible) --- */}
+      <div className={`min-h-screen flex flex-col transition-all duration-300 ${showSidebar ? (sidebarMinimized ? 'md:pl-20' : 'md:pl-64') : 'pl-0'}`}>
         <header className="sticky top-0 h-20 flex-shrink-0 flex items-center bg-white backdrop-blur-lg shadow-sm z-30 border-b border-gray-200">
           <div className="container mx-auto px-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
-                {isLoggedIn ? (
+                {isLoggedIn && !isLoginPage ? (
                   <>
                     <button 
                       onClick={() => setSidebarOpen(true)} 
@@ -346,7 +345,7 @@ const Layout = ({ children }) => {
                 )}
               </div>
               <div className="flex items-center gap-4">
-                {isLoggedIn && (
+                {isLoggedIn && !isLoginPage && (
                   <div className="relative">
                     {/* <button 
                       onClick={() => setShowThemeSelector(!showThemeSelector)}
@@ -381,7 +380,7 @@ const Layout = ({ children }) => {
                   </div>
                 )}
                 
-                {isLoggedIn ? (
+                {isLoggedIn && !isLoginPage ? (
                   <div className="flex items-center gap-4">
                     {/* Add Notification Bell to the header */}
                     <NotificationBell />
@@ -410,138 +409,137 @@ const Layout = ({ children }) => {
           {children}
         </main>
         
-        
-{/* --- FOOTER --- */}
-<footer className="w-full bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 mt-auto">
-  {(() => {
-    const isUserLoggedIn = Boolean(isLoggedIn && user && user.role);
-    
-    if (isUserLoggedIn) {
-      // Logged in user - show only simple copyright
-      return (
-        <div className="container mx-auto px-6 py-8">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              &copy; {new Date().getFullYear()} Education Dashboard. All rights reserved.
-            </p>
-          </div>
-        </div>
-      );
-    } else {
-      // Not logged in - show complete footer
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-            {/* Brand Section */}
-            <div className="space-y-6">
-              <Link to="/">
-                <div className="flex items-center">
-                  <img src={logo} alt="Key System Logo" className="h-24 sm:h-14 md:h-14" />
+        {/* --- FOOTER (always visible) --- */}
+        <footer className="w-full bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 mt-auto">
+          {(() => {
+            const isUserLoggedIn = Boolean(isLoggedIn && user && user.role);
+            
+            if (isUserLoggedIn) {
+              // Logged in user - show only simple copyright
+              return (
+                <div className="container mx-auto px-6 py-8">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">
+                      &copy; {new Date().getFullYear()} Education Dashboard. All rights reserved.
+                    </p>
+                  </div>
                 </div>
-              </Link>
-              <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
-                Empowering financial knowledge for a prosperous future through comprehensive crypto education and trading strategies.
-              </p>
-              <div className="flex space-x-4">
-                <a href="https://www.facebook.com/people/Key-System/61578967386229/?rdid=eF5OHaKZNdw5P7cC&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19Y9KPubDw%2F" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
-                  <Facebook size={18} />
-                </a>
-                <a href="https://www.instagram.com/key_system2025/?igsh=cnFoNmdpdjJhcHN1#" aria-label="Instagram" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
-                  <Instagram size={18} />
-                </a>
-              </div>
-            </div>
+              );
+            } else {
+              // Not logged in - show complete footer
+              return (
+                <div className="container mx-auto px-6 py-12">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+                    {/* Brand Section */}
+                    <div className="space-y-6">
+                      <Link to="/">
+                        <div className="flex items-center">
+                          <img src={logo} alt="Key System Logo" className="h-24 sm:h-14 md:h-14" />
+                        </div>
+                      </Link>
+                      <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
+                        Empowering financial knowledge for a prosperous future through comprehensive crypto education and trading strategies.
+                      </p>
+                      <div className="flex space-x-4">
+                        <a href="https://www.facebook.com/people/Key-System/61578967386229/?rdid=eF5OHaKZNdw5P7cC&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19Y9KPubDw%2F" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+                          <Facebook size={18} />
+                        </a>
+                        <a href="https://www.instagram.com/key_system2025/?igsh=cnFoNmdpdjJhcHN1#" aria-label="Instagram" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
+                          <Instagram size={18} />
+                        </a>
+                      </div>
+                    </div>
 
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                Quick Links
-              </h4>
-              <ul className="space-y-3">
-                <li>
-                  <a href="/#home" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                    Home
-                  </a>
-                </li>
-                <li>
-                  <a href="/#features" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a href="/#courses" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                    Courses
-                  </a>
-                </li>
-                <li>
-                  <a href="/#pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a href="/#testimonials" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                    Testimonials
-                  </a>
-                </li>
-              </ul>
-            </div>
+                    {/* Quick Links */}
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+                        Quick Links
+                      </h4>
+                      <ul className="space-y-3">
+                        <li>
+                          <a href="/#home" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
+                            Home
+                          </a>
+                        </li>
+                        <li>
+                          <a href="/#features" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
+                            Features
+                          </a>
+                        </li>
+                        <li>
+                          <a href="/#courses" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
+                            Courses
+                          </a>
+                        </li>
+                        <li>
+                          <a href="/#pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
+                            Pricing
+                          </a>
+                        </li>
+                        <li>
+                          <a href="/#testimonials" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
+                            Testimonials
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
 
-            {/* Resources */}
-            <div>
-              <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                Resources
-              </h4>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Blog</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Tutorials</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Webinars</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">FAQ</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Support Center</a></li>
-              </ul>
-            </div>
+                    {/* Resources */}
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+                        Resources
+                      </h4>
+                      <ul className="space-y-3">
+                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Blog</a></li>
+                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Tutorials</a></li>
+                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Webinars</a></li>
+                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">FAQ</a></li>
+                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Support Center</a></li>
+                      </ul>
+                    </div>
 
-            {/* Contact Info */}
-            <div>
-              <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                Contact Us
-              </h4>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <MapPin className="text-emerald-500 mt-1 mr-3 flex-shrink-0" size={16} />
-                  <span className="text-gray-600 text-sm">No 6, Third Floor, Kumaran Colony Main Road, Vadapalani, Chennai, Tamil Nadu</span>
-                </li>
-                <li className="flex items-center">
-                  <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-                  <a href="mailto:admin@keysystem.in" className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
-                    admin@keysystem.in
-                  </a>
-                </li>
-                <li className="flex items-center">
-                  <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-                  <a href="tel:+919876543210" className="text-blue-600 hover:underline">
-                    +91 98765 43210
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
+                    {/* Contact Info */}
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+                        Contact Us
+                      </h4>
+                      <ul className="space-y-4">
+                        <li className="flex items-start">
+                          <MapPin className="text-emerald-500 mt-1 mr-3 flex-shrink-0" size={16} />
+                          <span className="text-gray-600 text-sm">No 6, Third Floor, Kumaran Colony Main Road, Vadapalani, Chennai, Tamil Nadu</span>
+                        </li>
+                        <li className="flex items-center">
+                          <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+                          <a href="mailto:admin@keysystem.in" className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
+                            admin@keysystem.in
+                          </a>
+                        </li>
+                        <li className="flex items-center">
+                          <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+                          <a href="tel:+919876543210" className="text-blue-600 hover:underline">
+                            +91 98765 43210
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
 
-          {/* Bottom Bar for non-logged in users */}
-          <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-gray-600 mb-4 md:mb-0">
-              &copy; {new Date().getFullYear()} <span className="font-semibold text-emerald-600">Key Kissan</span>. All rights reserved.
-            </p>
-            <div className="flex space-x-6">
-              <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Privacy Policy</a>
-              <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Terms of Service</a>
-              <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Cookie Policy</a>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  })()}
-</footer>
+                  {/* Bottom Bar for non-logged in users */}
+                  <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
+                    <p className="text-sm text-gray-600 mb-4 md:mb-0">
+                      &copy; {new Date().getFullYear()} <span className="font-semibold text-emerald-600">Key Kissan</span>. All rights reserved.
+                    </p>
+                    <div className="flex space-x-6">
+                      <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Privacy Policy</a>
+                      <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Terms of Service</a>
+                      <a href="#" className="text-gray-500 hover:text-emerald-600 text-sm transition-colors duration-300">Cookie Policy</a>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          })()}
+        </footer>
       </div>
     </div>
   );

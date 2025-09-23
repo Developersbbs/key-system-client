@@ -23,7 +23,7 @@ import {
 
 const MemberTransactions = () => {
   const dispatch = useDispatch();
-  const { userTransactions, loading } = useSelector(state => state.transactions);
+  const { userTransactions, loading, error } = useSelector(state => state.transactions);
   const { user } = useSelector(state => state.auth);
   
   // Filter and search states
@@ -35,8 +35,14 @@ const MemberTransactions = () => {
   const [imageErrors, setImageErrors] = useState({});
 
   useEffect(() => {
-    dispatch(fetchUserTransactions());
-  }, [dispatch]);
+    if (user && user._id) {
+      dispatch(fetchUserTransactions());
+    }
+  }, [dispatch, user]);
+
+  // Safety checks
+  const safeUserTransactions = Array.isArray(userTransactions) ? userTransactions : [];
+  const safeUser = user || {};
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -72,8 +78,10 @@ const MemberTransactions = () => {
   };
 
   // Filter transactions based on selected filters
-  const filteredTransactions = userTransactions.filter(transaction => {
-    const isBuyer = transaction.buyer._id === user._id;
+  const filteredTransactions = safeUserTransactions.filter(transaction => {
+    if (!transaction || !safeUser._id) return false;
+    
+    const isBuyer = transaction.buyer?._id === safeUser._id;
     
     // Status filter
     if (statusFilter !== 'all' && transaction.status !== statusFilter) {
@@ -85,12 +93,12 @@ const MemberTransactions = () => {
     if (typeFilter === 'sold' && isBuyer) return false;
     
     // Search filter
-    if (searchTerm && !transaction.listing.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+    if (searchTerm && transaction.listing?.title && !transaction.listing.title.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
     // Date range filter
-    if (dateRange !== 'all') {
+    if (dateRange !== 'all' && transaction.createdAt) {
       const transactionDate = new Date(transaction.createdAt);
       const now = new Date();
       const daysDiff = Math.floor((now - transactionDate) / (1000 * 60 * 60 * 24));
@@ -115,13 +123,13 @@ const MemberTransactions = () => {
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       case 'oldest':
-        return new Date(a.createdAt) - new Date(b.createdAt);
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
       case 'amount_high':
-        return b.amount - a.amount;
+        return (b.amount || 0) - (a.amount || 0);
       case 'amount_low':
-        return a.amount - b.amount;
+        return (a.amount || 0) - (b.amount || 0);
       default:
         return 0;
     }
@@ -129,21 +137,54 @@ const MemberTransactions = () => {
 
   // Get statistics
   const stats = {
-    total: userTransactions.length,
-    pending: userTransactions.filter(t => t.status === 'pending').length,
-    approved: userTransactions.filter(t => t.status === 'approved').length,
-    rejected: userTransactions.filter(t => t.status === 'rejected').length,
-    bought: userTransactions.filter(t => t.buyer._id === user._id).length,
-    sold: userTransactions.filter(t => t.seller._id === user._id).length,
-    totalAmount: userTransactions.reduce((sum, t) => sum + t.amount, 0)
+    total: safeUserTransactions.length,
+    pending: safeUserTransactions.filter(t => t?.status === 'pending').length,
+    approved: safeUserTransactions.filter(t => t?.status === 'approved').length,
+    rejected: safeUserTransactions.filter(t => t?.status === 'rejected').length,
+    bought: safeUserTransactions.filter(t => t?.buyer?._id === safeUser._id).length,
+    sold: safeUserTransactions.filter(t => t?.seller?._id === safeUser._id).length,
+    totalAmount: safeUserTransactions.reduce((sum, t) => sum + (t?.amount || 0), 0)
   };
 
+  // Handle loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-emerald-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
           <p className="text-emerald-800">Loading your transactions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
+        <div className="text-center">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-red-900 mb-2">Error Loading Transactions</h2>
+          <p className="text-red-700 mb-4">{error || 'Something went wrong while loading your transactions.'}</p>
+          <button
+            onClick={() => dispatch(fetchUserTransactions())}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle no user state
+  if (!safeUser._id) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
+        <div className="text-center">
+          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-700">Please log in to view your transactions.</p>
         </div>
       </div>
     );
@@ -304,7 +345,9 @@ const MemberTransactions = () => {
             ) : (
               <div className="space-y-4">
                 {sortedTransactions.map((transaction) => {
-                  const isBuyer = transaction.buyer._id === user._id;
+                  if (!transaction || !transaction._id) return null;
+                  
+                  const isBuyer = transaction.buyer?._id === safeUser._id;
                   const hasImageError = imageErrors[transaction._id];
                   const imageUrl = transaction.listing?.imageUrl || transaction.listing?.images?.[0];
                   
@@ -339,9 +382,9 @@ const MemberTransactions = () => {
                               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${isBuyer ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-purple-100 text-purple-800 border-purple-200'}`}>
                                 {isBuyer ? 'Purchase' : 'Sale'}
                               </span>
-                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(transaction.status)}`}>
-                                {getStatusIcon(transaction.status)}
-                                {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(transaction.status || 'pending')}`}>
+                                {getStatusIcon(transaction.status || 'pending')}
+                                {transaction.status ? transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1) : 'Pending'}
                               </span>
                             </div>
                             
@@ -349,7 +392,7 @@ const MemberTransactions = () => {
                               <div>
                                 <p className="font-medium text-emerald-900">Amount</p>
                                 <p className="text-lg font-semibold text-emerald-600">
-                                  ${typeof transaction.amount === 'number' ? transaction.amount.toFixed(2) : transaction.amount}
+                                  ${typeof transaction.amount === 'number' ? transaction.amount.toFixed(2) : (transaction.amount || '0.00')}
                                 </p>
                               </div>
                               <div>

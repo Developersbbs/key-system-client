@@ -199,7 +199,7 @@ const Profile = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 p-4">
-      {/* Debug Section */}
+      {/* Debug Section
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
         <h3 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info</h3>
         <div className="space-y-1 text-xs text-yellow-700">
@@ -218,7 +218,7 @@ const Profile = () => {
             Retry QR Load
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Payment QR Code Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -400,7 +400,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Additional Payment Methods Section */}
+      {/* Additional Payment Methods Section
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold">Other Payment Details</h2>
@@ -480,7 +480,7 @@ const Profile = () => {
             {loading ? 'Saving...' : 'Save Payment Details'}
           </button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

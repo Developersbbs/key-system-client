@@ -22,11 +22,57 @@ const Register = () => {
 
   // Initialize reCAPTCHA on component mount
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-      });
-    }
+    const initializeRecaptcha = async () => {
+      try {
+        // Clean up any existing verifier
+        if (window.recaptchaVerifier) {
+          try {
+            await window.recaptchaVerifier.clear();
+          } catch (error) {
+            console.log("Error clearing existing verifier:", error);
+          }
+          window.recaptchaVerifier = null;
+        }
+
+        // Clear the container element to ensure it's empty
+        const container = document.getElementById("recaptcha-container-register");
+        if (container) {
+          container.innerHTML = '';
+        }
+
+        // Create new verifier with unique container for register
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container-register", {
+          size: "invisible",
+        });
+        
+        // Only render if not already rendered
+        try {
+          await window.recaptchaVerifier.render();
+        } catch (error) {
+          if (error.code === 'auth/argument-error' && error.message.includes('already been rendered')) {
+            console.log("reCAPTCHA already rendered, skipping render");
+          } else {
+            throw error;
+          }
+        }
+      } catch (error) {
+        console.error("Error initializing reCAPTCHA:", error);
+      }
+    };
+
+    initializeRecaptcha();
+
+    // Cleanup on unmount
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (error) {
+          console.log("Error during cleanup:", error);
+        }
+        window.recaptchaVerifier = null;
+      }
+    };
   }, []);
 
   // Display Redux errors as toasts
@@ -81,9 +127,9 @@ const handleSubmit = async (e) => {
 
     await dispatch(registerWithOTP(registrationData)).unwrap();
     
-    // ✅ CHANGED: Show a new message and redirect to the login page.
+    // Registration successful, redirect to login page
     toast.success("Registration successful! Please log in to continue.");
-    navigate("/member");
+    navigate("/login");
 
   } catch (err) {
     toast.error(err || "Registration failed. This phone number may already be in use.");
@@ -91,7 +137,7 @@ const handleSubmit = async (e) => {
 };
   return (
     <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg items-center justify-center mx-auto">
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container-register"></div>
       
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Create an Account</h1>
@@ -140,7 +186,7 @@ const handleSubmit = async (e) => {
           </button>
         </div>
         
-        {/* ✅ IMPROVEMENT: Only show OTP field after it has been sent */}
+        {/* IMPROVEMENT: Only show OTP field after it has been sent */}
         {otpSent && (
           <div>
             <input

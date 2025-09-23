@@ -25,12 +25,106 @@ const Login = () => {
 
   // Initialize reCAPTCHA on component mount
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-      });
-      window.recaptchaVerifier.render().catch(console.error);
-    }
+    const initializeRecaptcha = async () => {
+      try {
+        // Force clear any existing verifier
+        if (window.recaptchaVerifier) {
+          try {
+            await window.recaptchaVerifier.clear();
+          } catch (error) {
+            console.log("Error clearing existing verifier:", error);
+          }
+          window.recaptchaVerifier = null;
+        }
+
+        // Clear all possible container IDs
+        const containerIds = ['recaptcha-container', 'recaptcha-container-login', 'recaptcha-container-register'];
+        containerIds.forEach(id => {
+          const container = document.getElementById(id);
+          if (container) {
+            container.innerHTML = '';
+            container.removeAttribute('data-sitekey');
+            container.removeAttribute('data-type');
+            container.removeAttribute('data-size');
+            container.removeAttribute('data-callback');
+            container.removeAttribute('data-expired-callback');
+          }
+        });
+
+        // Clear any global reCAPTCHA state
+        if (window.grecaptcha) {
+          try {
+            window.grecaptcha.reset();
+          } catch (e) {
+            console.log("Error resetting grecaptcha:", e);
+          }
+        }
+
+        // Wait longer to ensure complete cleanup
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Create new verifier with unique container for login
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container-login", {
+          size: "invisible",
+        });
+        
+        // Render the new verifier
+        await window.recaptchaVerifier.render();
+        console.log("reCAPTCHA initialized successfully for Login");
+        
+      } catch (error) {
+        console.error("Error initializing reCAPTCHA:", error);
+        
+        // Force complete reset if still failing
+        try {
+          // Clear everything
+          window.recaptchaVerifier = null;
+          
+          // Remove all reCAPTCHA related elements
+          const allContainers = document.querySelectorAll('[id*="recaptcha"]');
+          allContainers.forEach(container => {
+            container.innerHTML = '';
+            container.remove();
+          });
+          
+          // Recreate the container
+          const newContainer = document.createElement('div');
+          newContainer.id = 'recaptcha-container-login';
+          document.body.appendChild(newContainer);
+          
+          // Wait and retry
+          setTimeout(async () => {
+            try {
+              window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container-login", {
+                size: "invisible",
+              });
+              await window.recaptchaVerifier.render();
+              console.log("reCAPTCHA force retry successful");
+            } catch (retryError) {
+              console.error("reCAPTCHA force retry failed:", retryError);
+              toast.error("reCAPTCHA initialization failed. Please refresh the page.");
+            }
+          }, 1000);
+          
+        } catch (cleanupError) {
+          console.error("Error during force cleanup:", cleanupError);
+        }
+      }
+    };
+
+    initializeRecaptcha();
+
+    // Cleanup on unmount
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (error) {
+          console.log("Error during cleanup:", error);
+        }
+        window.recaptchaVerifier = null;
+      }
+    };
   }, []);
 
   const handleSendOtp = async () => {
@@ -84,7 +178,7 @@ const Login = () => {
   return (
     <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg justify-center items-center mx-auto">
       {/* This div is required for Firebase reCAPTCHA */}
-      <div id="recaptcha-container"></div>
+      <div id="recaptcha-container-login"></div>
       
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
