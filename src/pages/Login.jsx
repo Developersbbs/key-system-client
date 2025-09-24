@@ -19,7 +19,7 @@ const Login = () => {
   // Display Redux errors as toasts
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      // toast.error(error);
     }
   }, [error]);
 
@@ -148,6 +148,26 @@ const Login = () => {
     }
   };
 
+  const handleResendOtp = async () => {
+    if (!phone || phone.length !== 10) {
+      return toast.error("Please enter a valid phone number first.");
+    }
+    
+    try {
+      const appVerifier = window.recaptchaVerifier;
+      const formattedPhoneNumber = `+91${phone}`;
+      
+      const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
+      
+      setConfirmationResult(result);
+      toast.success("New OTP sent successfully!");
+      
+    } catch (err) {
+      console.error("Error resending OTP:", err);
+      toast.error("Failed to resend OTP. Please try again.");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!confirmationResult) return toast.error("Please request an OTP first.");
@@ -176,7 +196,7 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg justify-center items-center mx-auto">
+    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg justify-center items-center mx-auto mt-10">
       {/* This div is required for Firebase reCAPTCHA */}
       <div id="recaptcha-container-login"></div>
       
@@ -187,20 +207,24 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex gap-2">
+          <div className="flex items-center px-3 border border-gray-300 rounded-l-lg bg-gray-100">
+            +91
+          </div>
           <input
-            type="tel"
-            placeholder="10-Digit Mobile Number"
+            type="number"
+            placeholder="Enter 10-digit number"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+            className="w-full px-4 py-3 border border-gray-300 rounded-r-lg"
             required
             disabled={otpSent}
+            maxLength={10}
           />
           <button
             type="button"
             onClick={handleSendOtp}
             disabled={loading || otpSent}
-            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-gray-800 rounded-lg font-semibold disabled:opacity-50 shrink-0"
+            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg font-semibold disabled:opacity-50 shrink-0"
           >
             {loading ? '...' : otpSent ? 'Sent' : 'Send OTP'}
           </button>
@@ -208,14 +232,31 @@ const Login = () => {
         
         {otpSent && (
           <div>
-            <input
-              type="number"
-              placeholder="Enter 6-Digit OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              required
-            />
+            <div className="flex items-center justify-between">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Enter 6-digit OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                required
+                maxLength={6}
+                autoFocus={otpSent}
+              />
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-sm text-teal-600 hover:text-teal-800"
+              >
+                Resend OTP
+              </button>
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className="text-sm text-gray-500">
+                {otp.length}/6
+              </span>
+            </div>
             <button
               type="submit"
               disabled={loading}

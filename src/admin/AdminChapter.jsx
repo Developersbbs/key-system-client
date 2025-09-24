@@ -600,7 +600,7 @@ const AdminChapter = () => {
 
         {/* Form Modal */}
         {isFormOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
               <div className="sticky top-0 bg-white border-b p-6 z-10 rounded-t-xl">
                 <div className="flex justify-between items-center mb-4">
@@ -833,7 +833,7 @@ const AdminChapter = () => {
                       <button
                         type="button"
                         onClick={addTask}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                        className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                       >
                         <Plus size={16} />
                         Add Task
@@ -848,7 +848,7 @@ const AdminChapter = () => {
                         <button
                           type="button"
                           onClick={addTask}
-                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
+                          className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
                         >
                           <Plus size={16} />
                           Add First Task

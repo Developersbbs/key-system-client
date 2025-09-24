@@ -160,12 +160,12 @@ const AdminAnnouncements = () => {
       )}
 
       {/* Header with Date and Time */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 p-4">
+      <div className="flex flex-col sm:flex-row md:flex-row lg:flex-row xl:flex-row justify-between items-start sm:items-center md:items-center lg:items-center xl:items-center mb-6 p-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Announcements Dashboard</h1>
           <p className="text-gray-600">Manage and create announcements for your community</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm mt-4 md:mt-0 flex items-center gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm mt-4 sm:mt-0 md:mt-0 lg:mt-0 xl:mt-0 flex items-center gap-4">
           <div className="flex items-center gap-2 text-green-700">
             <Calendar size={20} />
             <span className="font-medium">{formatDate(currentTime)}</span>
@@ -178,7 +178,7 @@ const AdminAnnouncements = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4 p-4">
         {stats.map((stat, index) => (
           <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-green-100 flex items-center justify-between">
             <div>
@@ -192,9 +192,9 @@ const AdminAnnouncements = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-4">
         {/* Create Announcement Form */}
-        <div className="lg:col-span-2">
+        <div className="sm:col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-green-100">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Plus size={20} className="text-green-600" />
@@ -249,7 +249,7 @@ const AdminAnnouncements = () => {
         </div>
 
         {/* Sent Announcements */}
-        <div className="lg:col-span-1">
+        <div className="sm:col-span-1 md:col-span-1 lg:col-span-1 xl:col-span-1">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-green-100 h-full">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Bell size={20} className="text-green-600" />

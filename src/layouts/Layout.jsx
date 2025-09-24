@@ -272,12 +272,12 @@ const Layout = ({ children }) => {
           
           <aside 
             ref={sidebarRef}
-            className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 flex flex-col border-r border-gray-200`}
+            className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-16 md:w-20' : 'w-full md:w-64'} bg-white shadow-lg transition-all duration-300 flex flex-col border-r border-gray-200`}
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 h-20">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 h-16 md:h-20">
               {!sidebarMinimized && (
                 <Link to={user?.role === 'admin' ? "/admin" : "/member"} className="flex items-center">
-                  <img src={logo} alt="Logo" className="h-14  transition-all" />
+                  <img src={logo} alt="Logo" className="h-16  transition-all" />
                 </Link>
               )}
               <button 
@@ -288,7 +288,7 @@ const Layout = ({ children }) => {
               </button>
             </div>
              
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
               {navItems.map((item) => (
                 <Link 
                   key={item.path} 
@@ -318,7 +318,7 @@ const Layout = ({ children }) => {
       
       {/* --- MAIN CONTENT WRAPPER (always visible) --- */}
       <div className={`min-h-screen flex flex-col transition-all duration-300 ${showSidebar ? (sidebarMinimized ? 'md:pl-20' : 'md:pl-64') : 'pl-0'}`}>
-        <header className="sticky top-0 h-20 flex-shrink-0 flex items-center bg-white backdrop-blur-lg shadow-sm z-30 border-b border-gray-200">
+        <header className="sticky top-0 h-16 md:h-20 flex-shrink-0 flex items-center bg-white backdrop-blur-lg shadow-sm z-30 border-b border-gray-200">
           <div className="container mx-auto px-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
@@ -326,14 +326,14 @@ const Layout = ({ children }) => {
                   <>
                     <button 
                       onClick={() => setSidebarOpen(true)} 
-                      className="p-2 md:hidden text-gray-700"
+                      className="p-1 md:p-2 md:hidden text-gray-700"
                     >
                       <Menu size={24} />
                     </button>
                     {/* Show logo in navbar when sidebar is minimized */}
                     {sidebarMinimized && (
                       <Link to={user?.role === 'admin' ? "/admin" : "/member"} className="hidden md:block">
-                        <img src={logo} alt="Logo" className="h-14" />
+                        <img src={logo} alt="Logo" className="h-16 " />
                       </Link>
                     )}
                   </>
@@ -387,7 +387,7 @@ const Layout = ({ children }) => {
                     <span className="text-gray-800 font-medium hidden sm:block">
                       {user?.name || 'User'}
                     </span>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme.bgGradient} text-white`}>
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${theme.bgGradient} text-white`}>
                       <User size={20} />
                     </div>
                   </div>
@@ -429,7 +429,7 @@ const Layout = ({ children }) => {
               // Not logged in - show complete footer
               return (
                 <div className="container mx-auto px-6 py-12">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-10 mb-8 md:mb-12">
                     {/* Brand Section */}
                     <div className="space-y-6">
                       <Link to="/">
@@ -525,7 +525,7 @@ const Layout = ({ children }) => {
                   </div>
 
                   {/* Bottom Bar for non-logged in users */}
-                  <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
+                  <div className="border-t border-gray-200 pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center">
                     <p className="text-sm text-gray-600 mb-4 md:mb-0">
                       &copy; {new Date().getFullYear()} <span className="font-semibold text-emerald-600">Key Kissan</span>. All rights reserved.
                     </p>

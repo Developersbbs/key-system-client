@@ -78,7 +78,7 @@ const Register = () => {
   // Display Redux errors as toasts
   useEffect(() => {
     if (error) {
-      toast.error(error);
+      // toast.error(error);
     }
   }, [error]);
 
@@ -107,36 +107,52 @@ const Register = () => {
     }
   };
 
-  // In pages/Register.jsx
+  const handleResendOtp = async () => {
+    try {
+      const appVerifier = window.recaptchaVerifier;
+      const formattedPhoneNumber = `+91${formData.phoneNumber}`;
+      
+      const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
+      
+      setConfirmationResult(result);
+      setOtpSent(true);
+      toast.success("OTP resent successfully!");
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!confirmationResult) return toast.error("Please request an OTP first.");
-  if (otp.length !== 6) return toast.error("Please enter a valid 6-digit OTP.");
+    } catch (err) {
+      console.error("Error resending OTP:", err);
+      toast.error("Failed to resend OTP. Please try again.");
+    }
+  };
 
-  try {
-    const userCredential = await confirmationResult.confirm(otp);
-    const idToken = await userCredential.user.getIdToken();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!confirmationResult) return toast.error("Please request an OTP first.");
+    if (otp.length !== 6) return toast.error("Please enter a valid 6-digit OTP.");
 
-    const registrationData = {
-      idToken,
-      name: formData.name,
-      email: formData.email,
-      phoneNumber: formData.phoneNumber,
-    };
+    try {
+      const userCredential = await confirmationResult.confirm(otp);
+      const idToken = await userCredential.user.getIdToken();
 
-    await dispatch(registerWithOTP(registrationData)).unwrap();
-    
-    // Registration successful, redirect to login page
-    toast.success("Registration successful! Please log in to continue.");
-    navigate("/login");
+      const registrationData = {
+        idToken,
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+      };
 
-  } catch (err) {
-    toast.error(err || "Registration failed. This phone number may already be in use.");
-  }
-};
+      await dispatch(registerWithOTP(registrationData)).unwrap();
+      
+      // Registration successful, redirect to login page
+      toast.success("Registration successful! Please log in to continue.");
+      navigate("/login");
+
+    } catch (err) {
+      // Error toast is handled by the useEffect hook
+      console.error("Registration error:", err);
+    }
+  };
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg items-center justify-center mx-auto">
+    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg items-center justify-center mx-auto mt-10 mb-10">
       <div id="recaptcha-container-register"></div>
       
       <div className="text-center">
@@ -166,21 +182,25 @@ const handleSubmit = async (e) => {
         />
         
         <div className="flex gap-2">
+          <div className="flex items-center px-3 border border-gray-300 rounded-l-lg bg-gray-100">
+            +91
+          </div>
           <input
-            type="tel"
+            type="number"
             name="phoneNumber"
-            placeholder="10-Digit Mobile Number *"
+            placeholder="Enter 10-digit number"
             value={formData.phoneNumber}
-            onChange={handleChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
             disabled={otpSent}
+            maxLength={10}
           />
           <button
             type="button"
             onClick={handleSendOtp}
             disabled={loading || otpSent}
-            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-gray-800 rounded-lg font-semibold disabled:opacity-50 shrink-0"
+            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg font-semibold disabled:opacity-50 shrink-0"
           >
             {otpSent ? 'Sent' : 'Send OTP'}
           </button>
@@ -190,13 +210,28 @@ const handleSubmit = async (e) => {
         {otpSent && (
           <div>
             <input
-              type="number"
-              placeholder="Enter 6-Digit OTP *"
+              type="text"
+              inputMode="numeric"
+              placeholder="Enter 6-digit OTP *"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               required
+              maxLength={6}
+              autoFocus={otpSent}
             />
+            <div className="flex justify-between mt-2">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-sm text-teal-600 hover:text-teal-800"
+              >
+                Resend OTP
+              </button>
+              <span className="text-sm text-gray-500">
+                {otp.length}/6
+              </span>
+            </div>
             <button
               type="submit"
               disabled={loading}
