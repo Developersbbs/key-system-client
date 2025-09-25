@@ -5,9 +5,11 @@ import {
   approveTransaction, 
   rejectTransaction,
   fetchAllTransactions 
-} from '../../src/redux/features/transactions/transactionSlice';
+} from '../redux/features/transactions/transactionSlice';
+import { updateListingQuantityAPI, fetchAllListings } from '../redux/features/listings/listingSlice';
 import { Check, X, Eye, Filter, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import apiClient from '../api/apiClient';
 
 const AdminTransactions = () => {
   const dispatch = useDispatch();
@@ -24,14 +26,36 @@ const AdminTransactions = () => {
     }
   }, [dispatch, filter]);
 
-  const handleApprove = async (txId) => {
-    if (window.confirm('Are you sure you want to approve this transaction?')) {
-      try {
-        await dispatch(approveTransaction(txId)).unwrap();
-        toast.success("Transaction approved successfully!");
-      } catch (err) {
-        toast.error(err || 'Failed to approve transaction');
+  const handleApprove = async (transactionId) => {
+    try {
+      // Approve the transaction using Redux action
+      const resultAction = await dispatch(approveTransaction(transactionId));
+      
+      if (approveTransaction.rejected.match(resultAction)) {
+        throw new Error(resultAction.payload || 'Failed to approve transaction');
       }
+      
+      const response = resultAction.payload;
+      
+      // Update the listing quantity if transaction was approved successfully
+      if (response && (response.listingId && response.quantity)) {
+        await dispatch(updateListingQuantityAPI({
+          listingId: response.listingId,
+          purchasedQuantity: response.quantity
+        })).unwrap();
+      }
+      
+      toast.success('Transaction approved and listing quantity updated!');
+      
+      // Refresh the transactions list
+      if (filter === 'pending') {
+        dispatch(fetchPendingTransactions());
+      } else {
+        dispatch(fetchAllTransactions({ status: filter }));
+      }
+    } catch (err) {
+      console.error('Error approving transaction:', err);
+      toast.error(err.message || 'Failed to approve transaction');
     }
   };
 
@@ -145,6 +169,11 @@ const AdminTransactions = () => {
                       <div>
                         <div className="font-medium text-emerald-900">{tx.listing?.title || 'N/A'}</div>
                         <div className="text-sm text-emerald-600">${tx.amount}</div>
+                        {tx.quantity && tx.cryptoType && (
+                          <div className="text-xs text-emerald-500">
+                            Quantity: {tx.quantity} {tx.cryptoType}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -245,6 +274,9 @@ const AdminTransactions = () => {
                 <h4 className="font-medium text-emerald-900">{selectedTransaction.listing?.title}</h4>
                 <p className="text-sm text-emerald-600">
                   Amount: ${selectedTransaction.amount} • 
+                  {selectedTransaction.quantity && selectedTransaction.cryptoType && (
+                    <>Quantity: {selectedTransaction.quantity} {selectedTransaction.cryptoType} • </>
+                  )}
                   Buyer: {selectedTransaction.buyer?.name} • 
                   Date: {new Date(selectedTransaction.createdAt).toLocaleDateString()}
                 </p>
@@ -266,9 +298,14 @@ const AdminTransactions = () => {
               {selectedTransaction.status === 'pending' && (
                 <div className="flex justify-center space-x-4 mt-6">
                   <button
-                    onClick={() => {
-                      handleApprove(selectedTransaction._id);
-                      closeProofModal();
+                    onClick={async () => {
+                      try {
+                        await handleApprove(selectedTransaction._id);
+                        closeProofModal();
+                      } catch (error) {
+                        // Error is already handled in handleApprove
+                        closeProofModal();
+                      }
                     }}
                     className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 flex items-center gap-2"
                   >

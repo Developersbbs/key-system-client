@@ -18,10 +18,23 @@ export const addListing = createAsyncThunk('listings/add', async (listingData, {
     return rejectWithValue(err.response?.data?.message);
   }
 });
+
 export const removeListing = createAsyncThunk('listings/remove', async (id, { rejectWithValue }) => {
   try {
     await apiClient.delete(`/listings/${id}`);
     return id; // Return the ID of the deleted listing
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message);
+  }
+});
+
+export const updateListingQuantityAPI = createAsyncThunk('listings/updateQuantity', async ({ listingId, purchasedQuantity }, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.patch('/listings/update-quantity', {
+      listingId,
+      purchasedQuantity
+    });
+    return { listingId, purchasedQuantity };
   } catch (err) {
     return rejectWithValue(err.response?.data?.message);
   }
@@ -34,7 +47,15 @@ const listingSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    updateListingQuantity(state, action) {
+      const { listingId, purchasedQuantity } = action.payload;
+      const listingIndex = state.listings.findIndex(listing => listing._id === listingId);
+      if (listingIndex !== -1) {
+        state.listings[listingIndex].availableQuantity -= purchasedQuantity;
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAllListings.fulfilled, (state, action) => {
@@ -45,6 +66,16 @@ const listingSlice = createSlice({
       })
       .addCase(removeListing.fulfilled, (state, action) => {
         state.listings = state.listings.filter(item => item._id !== action.payload);
+      })
+      .addCase(updateListingQuantityAPI.fulfilled, (state, action) => {
+        const { listingId, purchasedQuantity } = action.payload;
+        const listingIndex = state.listings.findIndex(listing => listing._id === listingId);
+        if (listingIndex !== -1) {
+          state.listings[listingIndex].availableQuantity -= purchasedQuantity;
+          if (state.listings[listingIndex].availableQuantity <= 0) {
+            state.listings[listingIndex].isSold = true;
+          }
+        }
       })
       .addMatcher((action) => action.type.startsWith('listings/'), (state, action) => {
         if (action.type.endsWith('/pending')) {
@@ -59,5 +90,7 @@ const listingSlice = createSlice({
       });
   },
 });
+
+export const { updateListingQuantity } = listingSlice.actions;
 
 export default listingSlice.reducer;

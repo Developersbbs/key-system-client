@@ -345,7 +345,7 @@ const McqSection = ({ chapter, user }) => {
             Quiz Complete!
           </h3>
           <p className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 my-4">
-            {Math.round(results.result.score)}%
+            {Math.round(Number(results.result.score) || 0)}%
             <span className="text-lg font-normal text-gray-500 block">Score</span>
           </p>
           <p className="text-gray-600">

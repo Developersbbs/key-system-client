@@ -1,13 +1,16 @@
+// components/CryptoBuyModal.jsx - Complete with proof upload
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { X, Upload, Check, AlertCircle, CreditCard, QrCode, ImageIcon } from 'lucide-react';
+import { X, Upload, Check, AlertCircle, CreditCard, QrCode, Calculator, ImageIcon } from 'lucide-react';
 import { createTransaction } from '../redux/features/transactions/transactionSlice';
 import { fetchSellerPaymentDetails } from '../redux/features/userProfileSlice/userProfileSlice';
+import { updateListingQuantity } from '../redux/features/listings/listingSlice'; 
+import CryptoQuantitySelector from './CryptoQuantitySelector';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 import { uploadFile } from '../utils/fileUpload';
 
-const BuyModal = ({ isOpen, onClose, listing }) => {
+const CryptoBuyModal = ({ isOpen, onClose, listing }) => {
   const dispatch = useDispatch();
   const { user } = useSelector(state => state.auth);
   const { loading } = useSelector(state => state.transactions);
@@ -15,23 +18,39 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   
   const [proofFile, setProofFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [step, setStep] = useState('details'); // 'details', 'upload', 'confirm'
+  const [step, setStep] = useState('quantity'); // 'quantity', 'details', 'upload', 'confirm'
+  const [selectedQuantity, setSelectedQuantity] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [currentPrice, setCurrentPrice] = useState(listing?.price || 0);
+  const [proofUrl, setProofUrl] = useState(null);
   const [qrImageError, setQrImageError] = useState(false);
   const [qrImageLoading, setQrImageLoading] = useState(false);
-  const [proofUrl, setProofUrl] = useState(null);
 
-  // Fetch seller payment details when modal opens
+  // Fetch current crypto price
   useEffect(() => {
-    if (isOpen && listing?.postedBy?._id) {
+    const fetchCurrentPrice = async () => {
+      const mockPrice = listing?.price * (0.95 + Math.random() * 0.1);
+      setCurrentPrice(parseFloat(mockPrice.toFixed(2)));
+    };
+
+    if (listing) {
+      fetchCurrentPrice();
+      const interval = setInterval(fetchCurrentPrice, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [listing]);
+
+  // Fetch seller payment details
+  useEffect(() => {
+    if (isOpen && listing?.postedBy?._id && step === 'details') {
       dispatch(fetchSellerPaymentDetails(listing.postedBy._id))
         .unwrap()
         .catch((error) => {
           console.error('Error fetching seller payment details:', error);
           toast.error(`Could not load seller payment details: ${error}`);
-          onClose();
         });
     }
-  }, [isOpen, listing, dispatch, onClose]);
+  }, [isOpen, listing, dispatch, step]);
 
   // Reset QR image error state when modal opens
   useEffect(() => {
@@ -50,10 +69,15 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     setQrImageLoading(false);
   };
 
+  const handleQuantityChange = (quantity, amount) => {
+    setSelectedQuantity(quantity);
+    setTotalAmount(amount);
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     
-    if (file && file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file && file.size > 5 * 1024 * 1024) {
       toast.error('File size should be less than 5MB');
       return;
     }
@@ -64,6 +88,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     }
     
     setProofFile(file);
+    handleProofUpload(file);
   };
 
   const handleProofUpload = async (file) => {
@@ -71,13 +96,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
     
     try {
       setUploading(true);
-      
-      // Upload to Firebase
-      const downloadURL = await uploadFile(
-        file,
-        `transactions/${listing._id}/proofs`
-      );
-      
+      const downloadURL = await uploadFile(file, `transactions/${listing._id}/proofs`);
       setProofUrl(downloadURL);
       toast.success('Proof uploaded successfully!');
     } catch (error) {
@@ -94,21 +113,30 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
       return;
     }
 
-    if (!listing?._id) {
-      toast.error('Invalid listing information');
+    if (selectedQuantity <= 0) {
+      toast.error('Please select a valid quantity');
       return;
     }
 
     try {
       setUploading(true);
       
-      // Create transaction
-      await dispatch(createTransaction({
+      const resultAction = await dispatch(createTransaction({
         listingId: listing._id,
-        proofOfPaymentUrl: proofUrl
-      })).unwrap();
+        quantity: selectedQuantity,
+        totalAmount: totalAmount,
+        proofOfPaymentUrl: proofUrl,
+        cryptoType: listing.cryptoType
+      }));
 
-      toast.success('Transaction submitted for approval!');
+      if (createTransaction.rejected.match(resultAction)) {
+        throw new Error(resultAction.payload || 'Failed to submit transaction');
+      }
+
+      // Note: Quantity will be updated when admin approves the transaction
+      // No immediate quantity update here
+
+      toast.success(`Transaction submitted for ${selectedQuantity} ${listing.cryptoType}!`);
       onClose();
       resetModal();
     } catch (error) {
@@ -120,11 +148,13 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   };
 
   const resetModal = () => {
-    setStep('details');
+    setStep('quantity');
+    setSelectedQuantity(0);
+    setTotalAmount(0);
     setProofFile(null);
+    setProofUrl(null);
     setQrImageError(false);
     setQrImageLoading(false);
-    setProofUrl(null);
   };
 
   const handleClose = () => {
@@ -134,11 +164,11 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
 
   if (!isOpen) return null;
 
-  if (paymentLoading) {
+  if (paymentLoading && step === 'details') {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p>Loading payment details...</p>
         </div>
       </div>
@@ -147,10 +177,10 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
           <h3 className="text-lg font-semibold">
-            Buy: {listing?.title || 'Item'}
+            Buy {listing?.cryptoType}: {listing?.title}
           </h3>
           <button type="button" onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">
             <X size={20} />
@@ -159,35 +189,60 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
 
         <div className="p-6 space-y-6">
           {/* Step Progress */}
-          <div className="flex items-center justify-center space-x-4">
-            <div className={`flex items-center ${step === 'details' ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                step === 'details' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-              }`}>
-                1
+          <div className="flex items-center justify-between">
+            {['quantity', 'details', 'upload'].map((stepName, index) => (
+              <div key={stepName} className="flex items-center">
+                <div className={`flex items-center ${step === stepName ? 'text-green-600' : 
+                  index < ['quantity', 'details', 'upload'].indexOf(step) ? 'text-green-700' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                    step === stepName ? 'border-green-600 bg-green-50' : 
+                    index < ['quantity', 'details', 'upload'].indexOf(step) ? 'border-green-700 bg-green-100' : 'border-gray-300'
+                  }`}>
+                    {index < ['quantity', 'details', 'upload'].indexOf(step) ? <Check size={16} /> : index + 1}
+                  </div>
+                  <span className="ml-2 text-sm capitalize">{stepName}</span>
+                </div>
+                {index < 2 && <div className="w-8 h-0.5 bg-green-300 mx-2"></div>}
               </div>
-              <span className="ml-2 text-sm">Payment Details</span>
-            </div>
-            <div className="w-8 h-0.5 bg-gray-300"></div>
-            <div className={`flex items-center ${step === 'upload' ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                step === 'upload' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-              }`}>
-                2
-              </div>
-              <span className="ml-2 text-sm">Upload Proof</span>
-            </div>
+            ))}
           </div>
 
-          {/* Step 1: Payment Details */}
+          {/* Step 1: Quantity Selection */}
+          {step === 'quantity' && listing && (
+            <div className="space-y-4">
+              <CryptoQuantitySelector 
+                listing={listing}
+                onQuantityChange={handleQuantityChange}
+                currentPrice={currentPrice}
+              />
+              
+              <div className="flex justify-between">
+                <button
+                  onClick={handleClose}
+                  className="bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => setStep('details')}
+                  disabled={selectedQuantity <= 0 || selectedQuantity > listing.availableQuantity}
+                  className="bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue to Payment
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Payment Details */}
           {step === 'details' && sellerPayment && (
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Item Details</h4>
-                <div className="text-sm text-blue-800">
-                  <p>
-                    <strong>Price:</strong> ₹{listing?.price || "N/A"}
-                  </p>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-green-900 mb-2">Order Summary</h4>
+                <div className="text-sm text-green-800 space-y-1">
+                  <p><strong>Quantity:</strong> {selectedQuantity} {listing.cryptoType}</p>
+                  <p><strong>Unit Price:</strong> ${currentPrice.toFixed(2)}</p>
+                  <p><strong>Total Amount:</strong> ${totalAmount.toFixed(2)}</p>
                   <p><strong>Seller:</strong> {sellerPayment.sellerName || "Unknown"}</p>
                 </div>
               </div>
@@ -208,15 +263,18 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                         {sellerPayment.paymentDetails.upiId}
                       </span>
                     </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Send exactly ${totalAmount.toFixed(2)} to this UPI ID
+                    </p>
                   </div>
                 )}
 
                 {/* QR Code Payment Option */}
                 {sellerPayment.paymentDetails?.qrCodeUrl && (
-                  <div className="mb-4 p-3 border border-purple-200 rounded-lg bg-purple-50">
+                  <div className="mb-4 p-3 border border-green-200 rounded-lg bg-green-50">
                     <div className="flex items-center mb-2">
-                      <QrCode className="text-purple-600 mr-2" size={16} />
-                      <h5 className="font-medium text-purple-800">Scan QR Code</h5>
+                      <QrCode className="text-green-600 mr-2" size={16} />
+                      <h5 className="font-medium text-green-800">Scan QR Code</h5>
                     </div>
                     <div className="text-center">
                       {qrImageError ? (
@@ -229,7 +287,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                               setQrImageError(false);
                               setQrImageLoading(true);
                             }}
-                            className="text-xs text-blue-600 hover:underline mt-1"
+                            className="text-xs text-green-600 hover:underline mt-1"
                           >
                             Retry
                           </button>
@@ -238,7 +296,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                         <div className="relative">
                           {qrImageLoading && (
                             <div className="absolute inset-0 w-32 h-32 mx-auto bg-gray-100 border rounded-lg flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
                             </div>
                           )}
                           <img 
@@ -252,8 +310,8 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                           />
                         </div>
                       )}
-                      <p className="text-xs text-purple-600 mt-2">
-                        Scan with any UPI app to pay
+                      <p className="text-xs text-green-600 mt-2">
+                        Scan with any UPI app to pay ${totalAmount.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -261,12 +319,12 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
 
                 {/* Bank Details if available */}
                 {(sellerPayment.paymentDetails?.accountNumber || sellerPayment.paymentDetails?.ifscCode) && (
-                  <div className="p-3 border border-blue-200 rounded-lg bg-blue-50">
+                  <div className="p-3 border border-green-200 rounded-lg bg-green-50">
                     <div className="flex items-center mb-2">
-                      <CreditCard className="text-blue-600 mr-2" size={16} />
-                      <h5 className="font-medium text-blue-800">Bank Transfer</h5>
+                      <CreditCard className="text-green-600 mr-2" size={16} />
+                      <h5 className="font-medium text-green-800">Bank Transfer</h5>
                     </div>
-                    <div className="space-y-1 text-sm text-blue-700">
+                    <div className="space-y-1 text-sm text-green-700">
                       {sellerPayment.paymentDetails.accountHolderName && (
                         <p>
                           <strong>Account Holder:</strong> 
@@ -324,7 +382,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                   <div className="text-sm text-yellow-800">
                     <p className="font-medium">Important:</p>
                     <ul className="list-disc list-inside mt-1 space-y-1">
-                      <li>Pay exactly ₹{listing?.price || "N/A"}</li>
+                      <li>Pay exactly ${totalAmount.toFixed(2)}</li>
                       <li>Take a screenshot after payment</li>
                       <li>Upload the proof in the next step</li>
                       <li>Wait for admin approval</li>
@@ -333,40 +391,33 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                 </div>
               </div>
 
-              <button 
-                onClick={() => setStep('upload')}
-                disabled={!sellerPayment.paymentDetails?.upiId && 
-                         !sellerPayment.paymentDetails?.qrCodeUrl && 
-                         !sellerPayment.paymentDetails?.accountNumber}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                I've Made the Payment
-              </button>
+              <div className="flex justify-between">
+                <button
+                  onClick={() => setStep('quantity')}
+                  className="bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setStep('upload')}
+                  disabled={!sellerPayment.paymentDetails?.upiId && 
+                           !sellerPayment.paymentDetails?.qrCodeUrl && 
+                           !sellerPayment.paymentDetails?.accountNumber}
+                  className="bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  I've Made the Payment
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Error state when no payment details */}
-          {step === 'details' && !sellerPayment && !paymentLoading && (
-            <div className="text-center py-8">
-              <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
-              <h4 className="text-lg font-semibold text-red-700 mb-2">Payment Details Not Available</h4>
-              <p className="text-red-600 mb-4">The seller has not set up their payment details yet.</p>
-              <button 
-                onClick={handleClose}
-                className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Upload Proof */}
+          {/* Step 3: Upload Proof */}
           {step === 'upload' && (
             <div className="space-y-4">
               <div className="text-center">
                 <h4 className="font-semibold mb-2">Upload Payment Proof</h4>
                 <p className="text-sm text-gray-600">
-                  Please upload a screenshot of your payment confirmation
+                  Please upload a screenshot of your payment confirmation for {selectedQuantity} {listing.cryptoType}
                 </p>
               </div>
 
@@ -381,7 +432,10 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                       Size: {(proofFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                     <button 
-                      onClick={() => setProofFile(null)}
+                      onClick={() => {
+                        setProofFile(null);
+                        setProofUrl(null);
+                      }}
                       className="text-sm text-red-600 hover:underline"
                     >
                       Remove file
@@ -392,17 +446,14 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                     <Upload className="mx-auto text-gray-400" size={48} />
                     <div>
                       <label htmlFor="proof-upload" className="cursor-pointer">
-                        <span className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <span className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
                           Choose File
                         </span>
                         <input 
                           id="proof-upload" 
                           type="file" 
                           accept="image/*" 
-                          onChange={(e) => {
-                            handleFileSelect(e);
-                            handleProofUpload(e.target.files[0]);
-                          }}
+                          onChange={handleFileSelect}
                           className="hidden"
                         />
                       </label>
@@ -412,17 +463,24 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                 )}
               </div>
 
-              <div className="flex space-x-3">
-                <button 
+              {uploading && (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-600 mx-auto"></div>
+                  <p className="text-sm text-gray-600 mt-2">Uploading proof...</p>
+                </div>
+              )}
+
+              <div className="flex justify-between">
+                <button
                   onClick={() => setStep('details')}
-                  className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                  className="bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 transition-colors"
                 >
                   Back
                 </button>
-                <button 
+                <button
                   onClick={handleSubmitTransaction}
                   disabled={!proofUrl || uploading || loading}
-                  className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {uploading || loading ? (
                     <>
@@ -430,7 +488,7 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Transaction'
+                    'Complete Transaction'
                   )}
                 </button>
               </div>
@@ -442,4 +500,4 @@ const BuyModal = ({ isOpen, onClose, listing }) => {
   );
 };
 
-export default BuyModal;
+export default CryptoBuyModal;
