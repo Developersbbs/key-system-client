@@ -138,7 +138,7 @@ const AdminMeetings = () => {
       .catch((err) => {
         if (err.includes('Admin has not connected')) {
           toast.error("Please connect your Google Account first to create a Meet link.");
-          window.location.href = 'http://localhost:5001/api/auth/google';
+          window.location.href = 'http://server.sbbs.co.in:5002/api/auth/google';
         } else {
           toast.error(err || "Failed to schedule meeting.");
         }
@@ -155,7 +155,7 @@ const AdminMeetings = () => {
   };
   
   const handleConnectGoogle = () => {
-    window.location.href = 'http://localhost:5001/api/auth/google';
+    window.location.href = 'http://server.sbbs.co.in:5002/api/auth/google';
   };
 
   // Calculate meeting statistics
