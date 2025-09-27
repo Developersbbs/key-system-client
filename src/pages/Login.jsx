@@ -177,8 +177,16 @@ const Login = () => {
       const userCredential = await confirmationResult.confirm(otp);
       const idToken = await userCredential.user.getIdToken();
 
+      console.log('Firebase user credential:', {
+        uid: userCredential.user.uid,
+        phoneNumber: userCredential.user.phoneNumber,
+        tokenLength: idToken.length
+      });
+
       // The backend login controller only needs the idToken
       const loginData = { idToken, rememberMe: true };
+
+      console.log('Sending login data to backend:', loginData);
 
       // Dispatch and wait for the result
       const resultAction = await dispatch(loginWithOTP(loginData)).unwrap();
