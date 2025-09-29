@@ -28,20 +28,9 @@ export const loginWithOTP = createAsyncThunk(
   "auth/loginWithOTP",
   async (loginData, { rejectWithValue }) => {
     try {
-      console.log('Login request data:', loginData);
-      console.log('API endpoint:', '/auth/login');
-      
       const res = await apiClient.post('/auth/login', loginData);
-      
-      console.log('Login response:', res.data);
       return res.data.user;
     } catch (err) {
-      console.error('Login error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        message: err.message
-      });
       return rejectWithValue(err.response?.data?.message || "Login failed");
     }
   }
