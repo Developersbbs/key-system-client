@@ -1,12 +1,35 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from '../../../api/apiClient'; // Adjust path if needed
 
-const initialState = {
-  user: null,
-  isLoggedIn: false,
-  loading: true, // Start in a loading state to check for a session
-  error: null,
+// Initialize state from localStorage if available
+const getInitialState = () => {
+  try {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      return {
+        user: JSON.parse(user),
+        isLoggedIn: true,
+        loading: false,
+        error: null,
+      };
+    }
+  } catch (error) {
+    // If there's an error parsing localStorage, clear it
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
+  
+  return {
+    user: null,
+    isLoggedIn: false,
+    loading: false, // Don't start in loading state if no token
+    error: null,
+  };
 };
+
+const initialState = getInitialState();
 
 // --- ASYNC THUNKS ---
 
@@ -15,6 +38,12 @@ export const fetchUserProfile = createAsyncThunk(
   "auth/fetchUserProfile",
   async (_, { rejectWithValue }) => {
     try {
+      // Only make the API call if there's a token in localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return rejectWithValue('No token found');
+      }
+      
       const res = await apiClient.get('/auth/me');
       return res.data.user;
     } catch (err) {
@@ -29,6 +58,10 @@ export const loginWithOTP = createAsyncThunk(
   async (loginData, { rejectWithValue }) => {
     try {
       const res = await apiClient.post('/auth/login', loginData);
+      // Store the token in localStorage
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+      }
       return res.data.user;
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Login failed");
@@ -42,8 +75,12 @@ export const registerWithOTP = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const res = await apiClient.post('/auth/register', userData);
+      // Store the token in localStorage
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+      }
       return res.data.user;
-    } catch (err)      {
+    } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Registration failed");
     }
   }
@@ -91,6 +128,7 @@ const authSlice = createSlice({
           state.isLoggedIn = false;
           state.loading = false;
           localStorage.removeItem("user");
+          localStorage.removeItem("token");
         }
       )
       // Any action is pending
