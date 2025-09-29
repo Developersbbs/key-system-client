@@ -1,35 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from '../../../api/apiClient'; // Adjust path if needed
 
-// Initialize state from localStorage if available
-const getInitialState = () => {
-  try {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      return {
-        user: JSON.parse(user),
-        isLoggedIn: true,
-        loading: false,
-        error: null,
-      };
-    }
-  } catch (error) {
-    // If there's an error parsing localStorage, clear it
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  }
-  
-  return {
-    user: null,
-    isLoggedIn: false,
-    loading: false, // Don't start in loading state if no token
-    error: null,
-  };
+const initialState = {
+  user: null,
+  isLoggedIn: false,
+  loading: true, // Start in a loading state to check for a session
+  error: null,
 };
-
-const initialState = getInitialState();
 
 // --- ASYNC THUNKS ---
 

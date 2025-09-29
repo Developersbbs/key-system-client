@@ -25,15 +25,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear localStorage and redirect to login only if not already on login page
+      // Clear localStorage and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      // Only redirect if not already on login/register pages
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        window.location.href = '/login';
-      }
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
