@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://server.sbbs.co.in:5002/api',
+  baseURL: 'https://server.sbbs.co.in/key-systems/api',
   withCredentials: true,
 });
 
