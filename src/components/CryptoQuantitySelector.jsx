@@ -79,29 +79,29 @@ const CryptoQuantitySelector = ({
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">Select Quantity</h3>
-        <Calculator className="text-blue-600" size={20} />
+        <Calculator className="text-green-600" size={20} />
       </div>
 
       {/* Available Quantity Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
         <div className="flex justify-between text-sm">
-          <span className="text-blue-700">Available:</span>
-          <span className="font-medium text-blue-900">
+          <span className="text-green-700">Available:</span>
+          <span className="font-medium text-green-900">
             {listing.availableQuantity} {listing.cryptoType}
           </span>
         </div>
         {listing.minPurchase && (
           <div className="flex justify-between text-sm mt-1">
-            <span className="text-blue-700">Min Purchase:</span>
-            <span className="font-medium text-blue-900">
+            <span className="text-green-700">Min Purchase:</span>
+            <span className="font-medium text-green-900">
               {listing.minPurchase} {listing.cryptoType}
             </span>
           </div>
         )}
         {listing.maxPurchase && (
           <div className="flex justify-between text-sm mt-1">
-            <span className="text-blue-700">Max Purchase:</span>
-            <span className="font-medium text-blue-900">
+            <span className="text-green-700">Max Purchase:</span>
+            <span className="font-medium text-green-900">
               {listing.maxPurchase} {listing.cryptoType}
             </span>
           </div>
@@ -132,7 +132,7 @@ const CryptoQuantitySelector = ({
               min={listing.minPurchase || 0.01}
               max={Math.min(listing.maxPurchase || Infinity, listing.availableQuantity)}
               step={getStepSize()}
-              className="w-full p-3 border border-gray-300 rounded-lg text-center font-mono text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg text-center font-mono text-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
               {listing.cryptoType}

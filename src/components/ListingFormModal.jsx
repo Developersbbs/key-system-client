@@ -94,7 +94,7 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit, cryptoTypes }) => {
                 value={formData.cryptoType}
                 onChange={handleChange}
                 required
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 {cryptoTypes.map(crypto => (
                   <option key={crypto} value={crypto}>{crypto}</option>
@@ -242,7 +242,7 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit, cryptoTypes }) => {
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
             >
               <Coins size={16} />
               Create Listing

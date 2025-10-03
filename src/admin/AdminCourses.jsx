@@ -369,7 +369,7 @@ const AdminCourses = () => {
                       />
                     </div>
                     
-                    <div>
+                    {/* <div>
                       <label htmlFor="image" className="block text-sm font-medium text-green-700 mb-2">
                         Image URL
                       </label>
@@ -382,7 +382,7 @@ const AdminCourses = () => {
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-green-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200" 
                       />
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 

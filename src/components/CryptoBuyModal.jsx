@@ -226,7 +226,7 @@ const CryptoBuyModal = ({ isOpen, onClose, listing }) => {
                 <button
                   onClick={() => setStep('details')}
                   disabled={selectedQuantity <= 0 || selectedQuantity > listing.availableQuantity}
-                  className="bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue to Payment
                 </button>
@@ -403,7 +403,7 @@ const CryptoBuyModal = ({ isOpen, onClose, listing }) => {
                   disabled={!sellerPayment.paymentDetails?.upiId && 
                            !sellerPayment.paymentDetails?.qrCodeUrl && 
                            !sellerPayment.paymentDetails?.accountNumber}
-                  className="bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   I've Made the Payment
                 </button>
