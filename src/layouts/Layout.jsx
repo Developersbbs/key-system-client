@@ -394,8 +394,8 @@ const Layout = ({ children }) => {
                 ) : (
                   <>
                     <Link to="/" className="text-gray-700 hover:text-gray-900 font-medium hidden md:block">Home</Link>
-                    <Link to="/" className="text-gray-700 hover:text-gray-900 font-medium">Login</Link>
-                    <Link to="/" className={`px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-all ${theme.bgGradient} text-white`}>
+                    <Link to="/login" className="text-gray-700 hover:text-gray-900 font-medium">Login</Link>
+                    <Link to="/register" className={`px-5 py-2 rounded-lg font-semibold hover:opacity-90 transition-all ${theme.bgGradient} text-white`}>
                       Get Started
                     </Link>
                   </>
