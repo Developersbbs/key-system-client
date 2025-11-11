@@ -36,10 +36,22 @@ const MemberDashboard = () => {
   // Fetch quiz results with chapter names
   const fetchQuizResults = async () => {
     try {
-      const response = await apiClient.get('/member/quiz-results');
+      // Create a timeout promise that rejects after 10 seconds
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 10000);
+      });
+
+      // Race the API call against the timeout
+      const response = await Promise.race([
+        apiClient.get('/member/quiz-results'),
+        timeoutPromise
+      ]);
+      
       setQuizResults(response.data);
     } catch (error) {
       console.error('Failed to fetch quiz results:', error);
+      // Set empty array on error to prevent undefined issues
+      setQuizResults([]);
     } finally {
       setLoading(false);
     }

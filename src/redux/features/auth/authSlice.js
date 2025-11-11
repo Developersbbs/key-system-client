@@ -98,8 +98,8 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      // Any action is rejected (except for fetchUserProfile, which is handled above)
-      .addMatcher((action) => action.type.endsWith('/rejected') && action.type !== fetchUserProfile.rejected.type,
+      // Any action is rejected
+      .addMatcher((action) => action.type.endsWith('/rejected'),
         (state, action) => {
           state.loading = false;
           state.error = action.payload;
