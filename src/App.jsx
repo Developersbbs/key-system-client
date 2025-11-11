@@ -31,6 +31,9 @@ import MemberTransactions from "./pages/MemberTransactions";
 import AdminAnnouncements from "./admin/AdminAnnouncements";
 import MemberAnnouncements from "./pages/MemberAnnouncement";
 
+// Import Protected Route Component
+import ProtectedRoute from "./components/ProtectedRoute";
+
 const App = () => {
   const dispatch = useDispatch();
 
@@ -47,35 +50,111 @@ const App = () => {
       {/* The Layout component wraps all pages to provide the sidebar and header */}
       <Layout>
         <Routes>
-          {/* --- Core & Public Routes --- */}
+          {/* --- Public Routes (only these 3) --- */}
           <Route path="/" element={<Home />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/events" element={<Events />} />
-           <Route path="/marketplace" element={<Marketplace />} /> 
-           <Route path="/profile" element={<Profile/>}/>
-           <Route path="/meeting" element={<MemberMeetings/>}/>
-           <Route path="/transactions" element={<MemberTransactions/>}/>
-           <Route path="/announcements" element={<MemberAnnouncements/>}/>
-          <Route path="/courses/:courseId" element={<Chapters />} />
-          <Route path="/courses/:courseId/chapters/:chapterId" element={<Chapter />} />
-
-          {/* --- Authentication Routes --- */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           
+          {/* --- Protected Routes (everything else requires login) --- */}
+          <Route path="/courses" element={
+            <ProtectedRoute>
+              <Courses />
+            </ProtectedRoute>
+          } />
+          <Route path="/events" element={
+            <ProtectedRoute>
+              <Events />
+            </ProtectedRoute>
+          } />
+          <Route path="/marketplace" element={
+            <ProtectedRoute>
+              <Marketplace />
+            </ProtectedRoute>
+          } />
+          <Route path="/courses/:courseId" element={
+            <ProtectedRoute>
+              <Chapters />
+            </ProtectedRoute>
+          } />
+          <Route path="/courses/:courseId/chapters/:chapterId" element={
+            <ProtectedRoute>
+              <Chapter />
+            </ProtectedRoute>
+          } />
+          
           {/* --- Member-Specific Routes --- */}
-          <Route path="/member" element={<MemberDashboard />} />
+          <Route path="/member" element={
+            <ProtectedRoute requiredRole="member">
+              <MemberDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile/>
+            </ProtectedRoute>
+          }/>
+          <Route path="/meeting" element={
+            <ProtectedRoute>
+              <MemberMeetings/>
+            </ProtectedRoute>
+          }/>
+          <Route path="/transactions" element={
+            <ProtectedRoute>
+              <MemberTransactions/>
+            </ProtectedRoute>
+          }/>
+          <Route path="/announcements" element={
+            <ProtectedRoute>
+              <MemberAnnouncements/>
+            </ProtectedRoute>
+          }/>
           
           {/* --- Admin-Specific Routes --- */}
-          <Route path="/admin/courses" element={<AdminCourses />} />
-          <Route path="/admin/members" element={<AdminMembers />} />
-          <Route path="/admin/meetings" element={<AdminMeetings />} />
-          <Route path="/admin/transactions" element={<AdminTransactions/>}/>
-          <Route path="/admin/announcements" element={<AdminAnnouncements />} /> 
-          <Route path="admin/events" element={<AdminEvents />} />
-           <Route path="/admin/levels" element={<AdminLevels />} />
-          <Route path="/admin/courses/:courseId/chapters" element={<AdminChapter />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/courses" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminCourses />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/members" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminMembers />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/meetings" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminMeetings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/transactions" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminTransactions/>
+            </ProtectedRoute>
+          }/>
+          <Route path="/admin/announcements" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminAnnouncements />
+            </ProtectedRoute>
+          } /> 
+          <Route path="/admin/events" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminEvents />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/levels" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLevels />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/courses/:courseId/chapters" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminChapter />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Layout>
     </BrowserRouter>
