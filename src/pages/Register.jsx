@@ -152,96 +152,174 @@ const Register = () => {
     }
   };
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg items-center justify-center mx-auto mt-10 mb-10">
-      <div id="recaptcha-container-register"></div>
-      
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Create an Account</h1>
-        <p className="mt-2 text-gray-600">Join us and start your journey!</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name *"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-          disabled={otpSent}
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email Address (Optional)"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={otpSent}
-        />
-        
-        <div className="flex gap-2">
-          <div className="flex items-center px-3 border border-gray-300 rounded-l-lg bg-gray-100">
-            +91
-          </div>
-          <input
-            type="number"
-            name="phoneNumber"
-            placeholder="Enter 10-digit number"
-            value={formData.phoneNumber}
-            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-            disabled={otpSent}
-            maxLength={10}
-          />
-          <button
-            type="button"
-            onClick={handleSendOtp}
-            disabled={loading || otpSent}
-            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg font-semibold disabled:opacity-50 shrink-0"
-          >
-            {otpSent ? 'Sent' : 'Send OTP'}
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Decorative header */}
+        <div className="bg-gradient-to-r from-teal-600 to-green-600 p-6 text-white">
+          <h1 className="text-2xl font-bold">Create an Account</h1>
+          <p className="text-teal-100">Join us and start your journey!</p>
         </div>
         
-        {/* IMPROVEMENT: Only show OTP field after it has been sent */}
-        {otpSent && (
-          <div>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="Enter 6-digit OTP *"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
-              maxLength={6}
-              autoFocus={otpSent}
-            />
-            <div className="flex justify-between mt-2">
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                className="text-sm text-teal-600 hover:text-teal-800"
-              >
-                Resend OTP
-              </button>
-              <span className="text-sm text-gray-500">
-                {otp.length}/6
-              </span>
+        {/* Main content */}
+        <div className="p-8">
+          {/* Hidden reCAPTCHA container */}
+          <div id="recaptcha-container-register" className="hidden"></div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name input */}
+            <div className="group">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-teal-300 rounded-lg text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none transition-all duration-200 group-hover:border-teal-400 disabled:bg-gray-100 disabled:text-gray-500"
+                required
+                disabled={otpSent}
+              />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-4 px-4 py-3 font-semibold text-white bg-gradient-to-r from-teal-600 to-green-600 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? "Registering..." : "Verify & Register"}
-            </button>
+
+            {/* Email input */}
+            <div className="group">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address (Optional)
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="your.email@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-teal-300 rounded-lg text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none transition-all duration-200 group-hover:border-teal-400 disabled:bg-gray-100 disabled:text-gray-500"
+                disabled={otpSent}
+              />
+            </div>
+            
+            {/* Phone input */}
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Mobile Number *
+              </label>
+              <div className="flex rounded-lg shadow-sm group">
+                <span className="inline-flex items-center px-4 rounded-l-lg border-2 border-r-0 border-teal-300 bg-gray-50 text-teal-700 text-sm font-medium transition-all duration-200 group-hover:border-teal-400 group-focus-within:border-teal-500">
+                  +91
+                </span>
+                <input
+                  id="phoneNumber"
+                  type="tel"
+                  name="phoneNumber"
+                  placeholder="Enter 10-digit number"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  className="flex-1 min-w-0 block w-full px-4 py-3 rounded-r-lg border-2 border-l-0 border-teal-300 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200 group-hover:border-teal-400"
+                  required
+                  disabled={otpSent || loading}
+                  maxLength={10}
+                />
+              </div>
+              {!otpSent && (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={loading || formData.phoneNumber.length !== 10}
+                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
+                    (loading || formData.phoneNumber.length !== 10)
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending OTP...
+                    </>
+                  ) : 'Send OTP'}
+                </button>
+              )}
+            </div>
+            
+            {/* OTP Input */}
+            {otpSent && (
+              <div className="space-y-4 transition-all duration-300 ease-in-out">
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                    Enter OTP *
+                  </label>
+                  <div className="relative">
+                    <div className="relative group">
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Enter 6-digit OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="block w-full px-4 py-3 pl-12 border-2 border-teal-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none text-lg font-mono tracking-widest text-center text-gray-700 placeholder-gray-400 transition-all duration-200 group-hover:border-teal-400"
+                        required
+                        maxLength={6}
+                        autoFocus
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="absolute right-0 top-0 h-full flex items-center pr-3">
+                      <span className="text-sm text-gray-500">
+                        {otp.length}/6
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex justify-between">
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      className="text-sm font-medium text-teal-600 hover:text-teal-800 hover:underline"
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
+                    (loading || otp.length !== 6)
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating Account...
+                    </>
+                  ) : 'Create Account'}
+                </button>
+              </div>
+            )}
+          </form>
+          
+          {/* Help text */}
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>Already have an account? <a href="/login" className="font-medium text-teal-600 hover:text-teal-800 hover:underline">Sign in</a></p>
           </div>
-        )}
-      </form>
+        </div>
+      </div>
     </div>
   );
 };

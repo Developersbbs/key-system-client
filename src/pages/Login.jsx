@@ -128,22 +128,39 @@ const Login = () => {
   }, []);
 
   const handleSendOtp = async () => {
+    console.log("[DEBUG] handleSendOtp called with phone:", phone);
+    
     if (!phone || phone.length !== 10) {
-      return toast.error("Please enter a valid 10-digit phone number.");
+      const errorMsg = "Please enter a valid 10-digit phone number.";
+      console.error("[DEBUG] Validation failed:", errorMsg);
+      return toast.error(errorMsg);
     }
     
     try {
+      console.log("[DEBUG] Initializing reCAPTCHA verifier");
       const appVerifier = window.recaptchaVerifier;
       const formattedPhoneNumber = `+91${phone}`;
       
+      console.log("[DEBUG] Sending OTP to:", formattedPhoneNumber);
+      console.log("[DEBUG] reCAPTCHA verifier state:", {
+        type: typeof window.recaptchaVerifier,
+        container: document.getElementById('recaptcha-container-login')?.outerHTML
+      });
+      
       const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
+      console.log("[DEBUG] OTP sent successfully, confirmation result:", result);
       
       setConfirmationResult(result);
       setOtpSent(true);
       toast.success("OTP sent successfully!");
 
     } catch (err) {
-      console.error("Error sending OTP:", err);
+      console.error("[DEBUG] Error in handleSendOtp:", {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
       toast.error(err.message || "Failed to send OTP. Please try again.");
     }
   };
@@ -170,103 +187,193 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!confirmationResult) return toast.error("Please request an OTP first.");
-    if (otp.length !== 6) return toast.error("Please enter a valid 6-digit OTP.");
+    console.log("[DEBUG] handleSubmit called with OTP:", otp);
+    
+    if (!confirmationResult) {
+      console.error("[DEBUG] No confirmation result available");
+      return toast.error("Please request an OTP first.");
+    }
+    
+    if (otp.length !== 6) {
+      console.error("[DEBUG] Invalid OTP length:", otp.length);
+      return toast.error("Please enter a valid 6-digit OTP.");
+    }
 
     try {
+      console.log("[DEBUG] Verifying OTP...");
       const userCredential = await confirmationResult.confirm(otp);
-      const idToken = await userCredential.user.getIdToken();
-
-      // The backend login controller only needs the idToken
-      const loginData = { idToken, rememberMe: true };
-
-      // Dispatch and wait for the result
-      const resultAction = await dispatch(loginWithOTP(loginData)).unwrap();
+      console.log("[DEBUG] OTP verified successfully, user:", userCredential.user);
       
-      // The user object is the result of the action
+      console.log("[DEBUG] Getting ID token...");
+      const idToken = await userCredential.user.getIdToken();
+      console.log("[DEBUG] ID token retrieved, length:", idToken ? idToken.length : 0);
+
+      const loginData = { idToken, rememberMe: true };
+      console.log("[DEBUG] Dispatching loginWithOTP with data:", { 
+        hasToken: !!idToken,
+        rememberMe: true 
+      });
+
+      const resultAction = await dispatch(loginWithOTP(loginData)).unwrap();
+      console.log("[DEBUG] Login response:", resultAction);
+      
+      if (!resultAction) {
+        throw new Error("No user data returned from server");
+      }
+      
       const userRole = resultAction.role;
+      console.log("[DEBUG] Login successful, user role:", userRole);
       toast.success("Login successful! Welcome back.");
       
-      // Navigate based on the role from the successful response
-      navigate(userRole === "admin" ? "/admin/dashboard" : "/member");
+      const redirectPath = userRole === "admin" ? "/admin/dashboard" : "/member";
+      console.log("[DEBUG] Navigating to:", redirectPath);
+      navigate(redirectPath);
 
     } catch (err) {
-      toast.error(err || "Login failed. Please check your credentials.");
+      console.error("[DEBUG] Error in handleSubmit:", {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        response: err.response,
+        stack: err.stack
+      });
+      toast.error(err.message || "Login failed. Please check your credentials.");
     }
   };
 
   return (
-    <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg justify-center items-center mx-auto mt-10">
-      {/* This div is required for Firebase reCAPTCHA */}
-      <div id="recaptcha-container-login"></div>
-      
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
-        <p className="mt-2 text-gray-600">Login to continue</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-2">
-          <div className="flex items-center px-3 border border-gray-300 rounded-l-lg bg-gray-100">
-            +91
-          </div>
-          <input
-            type="number"
-            placeholder="Enter 10-digit number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            className="w-full px-4 py-3 border border-gray-300 rounded-r-lg"
-            required
-            disabled={otpSent}
-            maxLength={10}
-          />
-          <button
-            type="button"
-            onClick={handleSendOtp}
-            disabled={loading || otpSent}
-            className="px-4 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg font-semibold disabled:opacity-50 shrink-0"
-          >
-            {loading ? '...' : otpSent ? 'Sent' : 'Send OTP'}
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Decorative header */}
+        <div className="bg-gradient-to-r from-teal-600 to-green-600 p-6 text-white">
+          <h1 className="text-2xl font-bold">Welcome Back!</h1>
+          <p className="text-teal-100">Login to access your account</p>
         </div>
         
-        {otpSent && (
-          <div>
-            <div className="flex items-center justify-between">
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                required
-                maxLength={6}
-                autoFocus={otpSent}
-              />
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                className="text-sm text-teal-600 hover:text-teal-800"
-              >
-                Resend OTP
-              </button>
+        {/* Main content */}
+        <div className="p-8">
+          {/* Hidden reCAPTCHA container */}
+          <div id="recaptcha-container-login" className="hidden"></div>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Phone input */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Mobile Number
+              </label>
+              <div className="flex rounded-lg shadow-sm group">
+                <span className="inline-flex items-center px-4 rounded-l-lg border-2 border-r-0 border-teal-300 bg-gray-50 text-teal-700 text-sm font-medium transition-all duration-200 group-hover:border-teal-400 group-focus-within:border-teal-500">
+                  +91
+                </span>
+                <input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter 10-digit number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className="flex-1 min-w-0 block w-full px-4 py-3 rounded-r-lg border-2 border-l-0 border-teal-300 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200 group-hover:border-teal-400"
+                  required
+                  disabled={otpSent || loading}
+                  maxLength={10}
+                />
+              </div>
+              {!otpSent && (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={loading || phone.length !== 10}
+                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
+                    (loading || phone.length !== 10) 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending OTP...
+                    </span>
+                  ) : 'Send OTP'}
+                </button>
+              )}
             </div>
-            <div className="flex justify-between mt-2">
-              <span className="text-sm text-gray-500">
-                {otp.length}/6
-              </span>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-4 px-4 py-3 font-semibold text-white bg-gradient-to-r from-teal-600 to-green-600 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? "Verifying..." : "Verify & Login"}
-            </button>
+            
+            {/* OTP Input */}
+            {otpSent && (
+              <div className="space-y-4 transition-all duration-300 ease-in-out">
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-1">
+                    Enter OTP
+                  </label>
+                  <div className="relative">
+                    <div className="relative group">
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Enter 6-digit OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="block w-full px-4 py-3 pl-12 border-2 border-teal-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-500 focus:outline-none text-lg font-mono tracking-widest text-center text-gray-700 placeholder-gray-400 transition-all duration-200 group-hover:border-teal-400"
+                        required
+                        maxLength={6}
+                        autoFocus
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="absolute right-0 top-0 h-full flex items-center pr-3">
+                      <span className="text-sm text-gray-500">
+                        {otp.length}/6
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      className="text-sm font-medium text-teal-600 hover:text-teal-800 hover:underline"
+                    >
+                      Resend OTP
+                    </button>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
+                    (loading || otp.length !== 6) 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : 'Verify & Continue'}
+                </button>
+              </div>
+            )}
+          </form>
+          
+          {/* Help text */}
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>We'll send you a verification code via SMS</p>
           </div>
-        )}
-      </form>
+        </div>
+      </div>
     </div>
   );
 };
