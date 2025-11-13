@@ -227,7 +227,7 @@ const Layout = ({ children }) => {
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-     { path: '/profile', label: 'Profile', icon: User },
+     { path: '/profile', label: 'QR Code', icon: User },
    
   ];
 
@@ -239,7 +239,7 @@ const Layout = ({ children }) => {
     { path: '/meeting', label: 'Meetings', icon: Projector },
     { path: '/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/events', label: 'Events', icon: Calendar },
-    { path: '/profile', label: 'Profile', icon: User },
+    { path: '/profile', label: 'QR Code', icon: User },
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;

@@ -212,15 +212,19 @@ const McqSection = ({ chapter, user, courseId }) => {
   // Update results when submission is successful
   useEffect(() => {
     if (mcqSubmission.result) {
+      const { result: submissionResult, correctAnswers: submissionAnswers } = mcqSubmission.result;
       setResults({
-        result: mcqSubmission.result,
-        correctAnswers: chapter.mcqs.map((mcq) => ({
-          mcqId: mcq._id,
-          answer: mcq.correctAnswerIndex,
-          explanation: mcq.explanation,
-        })),
+        result: submissionResult,
+        correctAnswers:
+          submissionAnswers && submissionAnswers.length > 0
+            ? submissionAnswers
+            : chapter.mcqs.map((mcq) => ({
+                mcqId: mcq._id,
+                answer: mcq.correctAnswerIndex,
+                explanation: mcq.explanation,
+              })),
       });
-      
+
       // Show success message
       toast.success('Quiz submitted successfully!');
     }

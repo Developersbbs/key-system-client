@@ -73,8 +73,8 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit, cryptoTypes }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto px-4 py-10">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
         <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
           <h3 className="text-lg font-semibold">Sell Cryptocurrency</h3>
           <button type="button" onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">

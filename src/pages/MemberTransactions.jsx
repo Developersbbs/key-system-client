@@ -13,7 +13,6 @@ import {
   User,
   Package,
   Search,
-  Download,
   ArrowUpDown,
   ImageIcon,
   TrendingUp,
@@ -330,10 +329,6 @@ const MemberTransactions = () => {
                   Transaction History ({sortedTransactions.length})
                 </h2>
               </div>
-              <button className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:text-emerald-900 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors">
-                <Download size={16} />
-                Export
-              </button>
             </div>
 
             {sortedTransactions.length === 0 ? (
@@ -411,12 +406,6 @@ const MemberTransactions = () => {
                                     month: 'short',
                                     day: 'numeric'
                                   }) : 'Date unavailable'}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="font-medium text-emerald-900">Transaction ID</p>
-                                <p className="font-mono text-xs bg-emerald-50 px-2 py-1 rounded text-emerald-700">
-                                  {transaction._id ? transaction._id.slice(-8) : 'N/A'}
                                 </p>
                               </div>
                             </div>

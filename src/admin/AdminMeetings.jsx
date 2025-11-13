@@ -128,7 +128,15 @@ const AdminMeetings = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-  
+
+  const getAuthBaseUrl = () => {
+    const { origin, hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5001';
+    }
+    return origin;
+  };
+
   const handleAddMeeting = (meetingData) => {
     dispatch(addMeeting(meetingData)).unwrap()
       .then(() => {
@@ -138,7 +146,7 @@ const AdminMeetings = () => {
       .catch((err) => {
         if (err.includes('Admin has not connected')) {
           toast.error("Please connect your Google Account first to create a Meet link.");
-          window.location.href = 'http://localhost:5002/api/auth/google';
+          window.location.href = `${getAuthBaseUrl()}/api/auth/google`;
         } else {
           toast.error(err || "Failed to schedule meeting.");
         }
@@ -155,7 +163,7 @@ const AdminMeetings = () => {
   };
   
   const handleConnectGoogle = () => {
-    window.location.href = 'http://localhost:5002/api/auth/google';
+    window.location.href = `${getAuthBaseUrl()}/api/auth/google`;
   };
 
   // Calculate meeting statistics

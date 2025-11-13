@@ -188,18 +188,6 @@ const AdminLevels = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <button className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors">
-              Admin Panel
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex" aria-label="Breadcrumb">
@@ -322,12 +310,6 @@ const AdminLevels = () => {
         />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white mt-12 py-6 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-          © {new Date().getFullYear()} Education Dashboard. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 };
