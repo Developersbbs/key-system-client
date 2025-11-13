@@ -180,20 +180,20 @@ const Home = () => {
 
           {/* Enhanced CTA Buttons */}
           <div className="mt-6 md:mt-10 flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
-            <button className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl hover:shadow-emerald-500/25">
+            <Link to="/register" className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl hover:shadow-emerald-500/25">
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative flex items-center justify-center">
                 Start Learning for Free
                 <ArrowRight className="ml-2 md:ml-3 h-4 w-4 md:h-6 md:w-6 group-hover:translate-x-1 md:group-hover:translate-x-2 transition-transform duration-300" />
               </div>
-            </button>
+            </Link>
             
-            <button className="group relative overflow-hidden border-2 border-white/40 backdrop-blur-md text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-white hover:text-emerald-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl">
+            <a href="#courses" className="group relative overflow-hidden border-2 border-white/40 backdrop-blur-md text-white px-5 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-lg hover:bg-white hover:text-emerald-600 transform hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-300 shadow-lg md:shadow-xl">
               <div className="relative flex items-center justify-center">
                 <Play className="mr-2 md:mr-3 h-4 w-4 md:h-6 md:w-6 group-hover:scale-110 transition-transform duration-300" />
                 Watch Demo
               </div>
-            </button>
+            </a>
           </div>
 
           {/* Enhanced Feature Pills */}
@@ -263,14 +263,14 @@ const Home = () => {
             <span>5.2K Students</span>
           </div>
           <div className="flex justify-center items-center">
-  <Link to="" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
-    <span className="relative z-10 flex items-center">
-      Enroll Now
-      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-    </span>
-    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
-  </Link>
-</div>
+            <Link to="/register?course=crypto-fundamentals" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+              <span className="relative z-10 flex items-center">
+                Enroll Now
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -302,14 +302,14 @@ const Home = () => {
             <span>3.8K Students</span>
           </div>
           <div className="flex justify-center items-center">
-  <Link to="" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
-    <span className="relative z-10 flex items-center">
-      Enroll Now
-      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-    </span>
-    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
-  </Link>
-</div>
+            <Link to="/register?course=technical-analysis" className="relative overflow-hidden w-full bg-gradient-to-b from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+              <span className="relative z-10 flex items-center">
+                Enroll Now
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -341,14 +341,14 @@ const Home = () => {
             <span>1.5K Students</span>
           </div>
           <div className="flex justify-center items-center">
-  <Link to="" className="relative overflow-hidden bg-gradient-to-b w-full from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
-    <span className="relative z-10 flex items-center">
-      Enroll Now
-      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-    </span>
-    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
-  </Link>
-</div>
+            <Link to="/register?course=defi-nft" className="relative overflow-hidden bg-gradient-to-b w-full from-emerald-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-0.5 active:translate-y-0">
+              <span className="relative z-10 flex items-center">
+                Enroll Now
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-700/20 to-transparent rounded-xl"></div>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -356,7 +356,7 @@ const Home = () => {
     {/* Browse All Courses Button */}
     <div className="text-center mt-16">
       <Link
-        to=""
+        to="/register?next=courses"
         className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-emerald-600 hover:via-teal-600 hover:to-green-600 transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-emerald-500/25 inline-flex items-center"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -589,9 +589,9 @@ const Home = () => {
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 <p className="text-gray-600 mb-8">Perfect for exploring crypto basics</p>
-                <button className="w-full bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 py-4 rounded-2xl font-bold text-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-300 shadow-md hover:shadow-lg">
+                <Link to="/register?plan=free" className="inline-flex w-full justify-center bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 py-4 rounded-2xl font-bold text-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-300 shadow-md hover:shadow-lg">
                   Get Started Free
-                </button>
+                </Link>
               </div>
               <div className="p-8 pt-0">
                 <ul className="space-y-4">
@@ -620,9 +620,9 @@ const Home = () => {
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 <p className="text-gray-600 mb-8">Most popular for serious learners</p>
-                <button className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-2xl font-bold text-lg hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-xl">
+                <Link to="/register?plan=pro" className="inline-flex w-full justify-center bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-2xl font-bold text-lg hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-xl">
                   Go Pro Today
-                </button>
+                </Link>
               </div>
               <div className="p-8 pt-0">
                 <ul className="space-y-4">
@@ -648,9 +648,9 @@ const Home = () => {
                   <span className="text-gray-500 ml-2">/month</span>
                 </div>
                 <p className="text-gray-600 mb-8">For dedicated crypto professionals</p>
-                <button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-4 rounded-2xl font-bold text-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl">
+                <Link to="/register?plan=premium" className="inline-flex w-full justify-center bg-gradient-to-r from-purple-500 to-blue-500 text-white py-4 rounded-2xl font-bold text-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl">
                   Become a Master
-                </button>
+                </Link>
               </div>
               <div className="p-8 pt-0">
                 <ul className="space-y-4">
