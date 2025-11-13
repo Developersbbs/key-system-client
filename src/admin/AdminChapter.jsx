@@ -420,7 +420,7 @@ const AdminChapter = () => {
           <div className="flex flex-col items-center">
             <Upload className="h-10 w-10 text-gray-400 mb-3" />
             <p className="text-sm text-gray-600 mb-2">Upload your video file</p>
-            <p className="text-xs text-gray-500 mb-4">MP4, AVI, MOV, WMV, WebM (Max: 500MB)</p>
+            <p className="text-xs text-gray-500 mb-4">MP4, AVI, MOV, WMV, WebM</p>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

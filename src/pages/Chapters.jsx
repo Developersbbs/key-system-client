@@ -1,30 +1,47 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getAllChapters, clearError } from "../redux/features/chapters/chapterSlice";
+import { getAllChapters, clearError, getCourseProgress } from "../redux/features/chapters/chapterSlice";
 import { BookOpen, Clock, AlertCircle, ArrowLeft, BookText, BarChart3, Users, Calendar } from "lucide-react";
 
 const Chapters = () => {
   const { courseId } = useParams();
   const dispatch = useDispatch();
-  const { chapters, error } = useSelector((state) => state.chapters);
+  const { chapters, error, courseProgress } = useSelector((state) => state.chapters);
+  const { user, isLoggedIn } = useSelector((state) => state.auth);
+
+  const canFetchProgress = isLoggedIn && user?.role === "member";
 
   useEffect(() => {
     if (courseId) {
       dispatch(getAllChapters(courseId));
+      if (canFetchProgress) {
+        dispatch(getCourseProgress(courseId));
+      }
     }
     return () => {
       dispatch(clearError());
     };
-  }, [dispatch, courseId]);
+  }, [dispatch, courseId, canFetchProgress]);
 
-  // Mock statistics for the dashboard (replace with real data if available)
-  const stats = {
-    totalChapters: chapters?.length || 0,
-    totalDuration: chapters?.reduce((sum, chapter) => sum + (chapter.duration || 0), 0) || 0,
-    completedChapters: 3, // This would come from user progress data
-    enrolledStudents: 42, // This would come from course enrollment data
-  };
+  const progressData = useMemo(() => {
+    if (!canFetchProgress) return null;
+    if (!courseProgress) return null;
+    return courseProgress.courseId === courseId ? courseProgress : null;
+  }, [canFetchProgress, courseProgress, courseId]);
+
+  const stats = useMemo(() => {
+    const totalChapters = chapters?.length || 0;
+    const totalDuration = chapters?.reduce((sum, chapter) => sum + (chapter.duration || 0), 0) || 0;
+    const completedChapters = progressData?.completedChapters || 0;
+
+    return {
+      totalChapters,
+      totalDuration,
+      completedChapters,
+      enrolledStudents: 42, // Placeholder until enrollment data is available
+    };
+  }, [chapters, progressData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-50 flex">
@@ -148,9 +165,50 @@ const Chapters = () => {
                     <div className="flex justify-between items-center pt-3 border-t border-green-50">
                       <div className="flex items-center text-xs text-gray-500">
                         <div className="w-20 bg-gray-200 rounded-full h-1.5 mr-2">
-                          <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '30%' }}></div>
+                          {(() => {
+                            const chapterProgress = progressData?.chaptersProgress?.find((progress) => {
+                              if (!progress?.chapterId) return false;
+                              const progressId =
+                                typeof progress.chapterId === "object" ? progress.chapterId.toString() : progress.chapterId;
+                              return progressId === chapter._id;
+                            });
+
+                            const completionPercentage = (() => {
+                              if (!chapterProgress) return 0;
+                              if (typeof chapterProgress.progressPercentage === "number") {
+                                return Math.min(100, Math.max(0, Math.round(chapterProgress.progressPercentage)));
+                              }
+                              return chapterProgress.isCompleted ? 100 : 0;
+                            })();
+
+                            const width = `${completionPercentage}%`;
+
+                            return (
+                              <div
+                                className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
+                                style={{ width }}
+                              ></div>
+                            );
+                          })()}
                         </div>
-                        <span>30% completed</span>
+                        {(() => {
+                          const chapterProgress = progressData?.chaptersProgress?.find((progress) => {
+                            if (!progress?.chapterId) return false;
+                            const progressId =
+                              typeof progress.chapterId === "object" ? progress.chapterId.toString() : progress.chapterId;
+                            return progressId === chapter._id;
+                          });
+
+                          const completionPercentage = (() => {
+                            if (!chapterProgress) return 0;
+                            if (typeof chapterProgress.progressPercentage === "number") {
+                              return Math.min(100, Math.max(0, Math.round(chapterProgress.progressPercentage)));
+                            }
+                            return chapterProgress.isCompleted ? 100 : 0;
+                          })();
+
+                          return <span>{completionPercentage}% completed</span>;
+                        })()}
                       </div>
                       <Link
                         to={`/courses/${courseId}/chapters/${chapter._id}`}

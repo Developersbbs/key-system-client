@@ -30,15 +30,6 @@ export const uploadVideo = (file, courseId, chapterId, onProgress, onError) => {
       return;
     }
 
-    // Validate file size (max 1GB)
-    const maxSize = 1000 * 1024 * 1024; // 1GB in bytes
-    if (file.size > maxSize) {
-      const error = 'File size too large. Maximum allowed size is 1GB.';
-      onError?.(error);
-      reject(new Error(error));
-      return;
-    }
-
     // Create unique filename
     const timestamp = Date.now();
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -148,13 +139,6 @@ export const validateVideoFile = (file) => {
   if (!allowedTypes.includes(file.type)) {
     result.isValid = false;
     result.errors.push(`Unsupported file type: ${file.type}`);
-  }
-
-  // Check file size (max 1GB)
-  const maxSize = 1000 * 1024 * 1024; // 1GB
-  if (file.size > maxSize) {
-    result.isValid = false;
-    result.errors.push(`File size too large (${formatFileSize(file.size)}). Maximum allowed: 1GB`);
   }
 
   return result;

@@ -352,9 +352,8 @@ const Courses = () => {
               return courseId === course._id;
             })
           );
-
-          // Don't render the level if it has no courses
-          if (coursesInLevel.length === 0) return null;
+          const hasAssignedCourses = Array.isArray(level.courses) && level.courses.length > 0;
+          const hasCoursesToDisplay = coursesInLevel.length > 0;
 
           return (
             <div key={level._id} className="relative">
@@ -399,58 +398,73 @@ const Courses = () => {
                 </div>
               )}
 
-              {/* Courses Grid */}
-              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 ${!isLevelAccessible ? 'opacity-50' : ''}`}>
-                {coursesInLevel.map((course, index) => {
-                  const isCompleted = course.isCompleted;
-                  const isUnlocked = course.isUnlocked !== false; // Default to unlocked if not specified
-                  const canClick = isLevelAccessible && (isUnlocked || !isLoggedIn || user?.role !== 'member');
-                  
-                  return (
-                    <div 
-                      key={course._id}
-                      className={`group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-200 border border-green-100 ${
-                        canClick ? 'hover:shadow-xl hover:border-green-300 cursor-pointer' : 'cursor-not-allowed'
-                      }`}
-                      onClick={() => handleCourseClick(course)}
-                    >
-                      {/* Course Image */}
-                      <CourseCardImage course={course} isLocked={!isUnlocked && isLoggedIn && user?.role === 'member'} />
-                      
-                      {/* Course Content */}
-                      <div className="p-6 relative">
-                        {/* Status Badge */}
-                        <CourseStatusBadge course={course} userProgress={userProgress} />
+              {/* Courses Grid or Locked Message */}
+              {hasCoursesToDisplay ? (
+                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 ${!isLevelAccessible ? 'opacity-50' : ''}`}>
+                  {coursesInLevel.map((course, index) => {
+                    const isCompleted = course.isCompleted;
+                    const isUnlocked = course.isUnlocked !== false; // Default to unlocked if not specified
+                    const canClick = isLevelAccessible && (isUnlocked || !isLoggedIn || user?.role !== 'member');
+                    
+                    return (
+                      <div 
+                        key={course._id}
+                        className={`group bg-white rounded-xl shadow-md overflow-hidden transition-all duration-200 border border-green-100 ${
+                          canClick ? 'hover:shadow-xl hover:border-green-300 cursor-pointer' : 'cursor-not-allowed'
+                        }`}
+                        onClick={() => handleCourseClick(course)}
+                      >
+                        {/* Course Image */}
+                        <CourseCardImage course={course} isLocked={!isUnlocked && isLoggedIn && user?.role === 'member'} />
                         
-                        {/* Course Title */}
-                        <h3 className="font-bold text-lg text-green-900 mb-2 pr-20">{course.title}</h3>
-                        
-                        {/* Course Description */}
-                        <p className="text-sm text-green-700 line-clamp-3 mb-4 h-16">{course.description}</p>
-                        
-                        {/* Course Progress (for members) */}
-                        {isLoggedIn && user?.role === 'member' && (
-                          <CourseProgressBar 
-                            progress={userProgress?.find(p => p.courseId === course._id)} 
-                          />
-                        )}
-                        
-                        {/* Course Info Footer */}
-                        <div className="pt-4 border-t border-green-100 text-sm font-medium text-green-600 flex items-center justify-between">
-                          <div className="flex items-center">
-                            <BookOpen size={16} className="mr-2"/>
-                            <span>{course.chapters?.length || 0} Chapters</span>
-                          </div>
+                        {/* Course Content */}
+                        <div className="p-6 relative">
+                          {/* Status Badge */}
+                          <CourseStatusBadge course={course} userProgress={userProgress} />
                           
-                          {!isUnlocked && isLoggedIn && user?.role === 'member' && (
-                            <span className="text-xs text-green-500">Complete previous course to unlock</span>
+                          {/* Course Title */}
+                          <h3 className="font-bold text-lg text-green-900 mb-2 pr-20">{course.title}</h3>
+                          
+                          {/* Course Description */}
+                          <p className="text-sm text-green-700 line-clamp-3 mb-4 h-16">{course.description}</p>
+                          
+                          {/* Course Progress (for members) */}
+                          {isLoggedIn && user?.role === 'member' && (
+                            <CourseProgressBar 
+                              progress={userProgress?.find(p => p.courseId === course._id)} 
+                            />
                           )}
+                          
+                          {/* Course Info Footer */}
+                          <div className="pt-4 border-t border-green-100 text-sm font-medium text-green-600 flex items-center justify-between">
+                            <div className="flex items-center">
+                              <BookOpen size={16} className="mr-2"/>
+                              <span>{course.chapters?.length || 0} Chapters</span>
+                            </div>
+                            
+                            {!isUnlocked && isLoggedIn && user?.role === 'member' && (
+                              <span className="text-xs text-green-500">Complete previous course to unlock</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white border border-green-100 rounded-xl p-6 text-center text-green-700">
+                  <div className="flex flex-col items-center gap-2">
+                    <Lock size={28} className="text-green-500" />
+                    <p className="font-semibold">
+                      {!hasAssignedCourses
+                        ? 'Courses will be added to this level soon.'
+                        : isLevelAccessible
+                          ? 'No courses are currently available for this level.'
+                          : 'Complete previous levels to unlock these courses.'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

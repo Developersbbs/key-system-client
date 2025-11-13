@@ -122,6 +122,8 @@ const chapterSlice = createSlice({
     chapters: [],
     selectedChapter: null,
     courseProgress: null,
+    courseProgressLoading: false,
+    courseProgressError: null,
     loading: false,
     updating: false, // ✅ NEW: Separate loading state for updates
     error: null,
@@ -245,8 +247,17 @@ const chapterSlice = createSlice({
       })
       
       // ✅ NEW: Course progress handler
+      .addCase(getCourseProgress.pending, (state) => {
+        state.courseProgressLoading = true;
+        state.courseProgressError = null;
+      })
       .addCase(getCourseProgress.fulfilled, (state, action) => {
         state.courseProgress = action.payload;
+        state.courseProgressLoading = false;
+      })
+      .addCase(getCourseProgress.rejected, (state, action) => {
+        state.courseProgressLoading = false;
+        state.courseProgressError = action.payload;
       })
       
       // ✅ NEW: Video update handlers
@@ -282,7 +293,8 @@ const chapterSlice = createSlice({
         (action) => action.type.endsWith('/pending') && 
         !action.type.includes('submitMcqs') && 
         !action.type.includes('updateChapter') &&
-        !action.type.includes('updateChapterVideo'),
+        !action.type.includes('updateChapterVideo') &&
+        !action.type.includes('getCourseProgress'),
         (state) => {
           state.loading = true;
           state.error = null;
@@ -292,7 +304,8 @@ const chapterSlice = createSlice({
         (action) => action.type.endsWith('/rejected') && 
         !action.type.includes('submitMcqs') && 
         !action.type.includes('updateChapter') &&
-        !action.type.includes('updateChapterVideo'),
+        !action.type.includes('updateChapterVideo') &&
+        !action.type.includes('getCourseProgress'),
         (state, action) => {
           state.loading = false;
           state.error = action.payload;

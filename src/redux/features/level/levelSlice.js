@@ -64,6 +64,13 @@ const levelSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+      .addMatcher(
+        (action) => action.type.startsWith('levels/') && action.type.endsWith('/fulfilled'),
+        (state) => {
+          state.loading = false;
+          state.error = null;
+        }
+      )
       .addMatcher((action) => action.type.endsWith('/rejected'), (state, action) => {
         state.loading = false;
         state.error = action.payload;

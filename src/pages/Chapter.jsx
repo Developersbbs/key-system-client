@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchChapterById, submitMcqs, clearMcqResult } from '../redux/features/chapters/chapterSlice';
+import { fetchChapterById, submitMcqs, clearMcqResult, getCourseProgress } from '../redux/features/chapters/chapterSlice';
 import {
   Video,
   FileText,
@@ -187,7 +187,7 @@ const VideoPlayer = ({ videoUrl, chapterId }) => {
 };
 
 // --- McqSection Component ---
-const McqSection = ({ chapter, user }) => {
+const McqSection = ({ chapter, user, courseId }) => {
   const dispatch = useDispatch();
   const { mcqSubmission } = useSelector((state) => state.chapters);
   const [answers, setAnswers] = useState({});
@@ -241,6 +241,11 @@ const McqSection = ({ chapter, user }) => {
 
     try {
       await dispatch(submitMcqs({ chapterId: chapter._id, answers })).unwrap();
+
+      const effectiveCourseId = courseId || chapter.courseId;
+      if (effectiveCourseId) {
+        dispatch(getCourseProgress(effectiveCourseId));
+      }
     } catch (err) {
       console.error('MCQ submission error:', err);
     }
@@ -473,7 +478,7 @@ const Chapter = () => {
 
         {/* MCQ Quiz */}
         {chapter.mcqs && chapter.mcqs.length > 0 && (
-          <McqSection chapter={chapter} user={user} />
+          <McqSection chapter={chapter} user={user} courseId={courseId} />
         )}
 
         {/* Tasks */}

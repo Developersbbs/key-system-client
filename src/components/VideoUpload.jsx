@@ -186,7 +186,7 @@ const VideoUpload = ({
               Choose Video
             </button>
             <p className="text-xs text-gray-400 mt-3">
-              Supported formats: MP4, AVI, MOV, WMV, FLV, WebM (Max: 500MB)
+              Supported formats: MP4, AVI, MOV, WMV, FLV, WebM
             </p>
           </div>
         )}
