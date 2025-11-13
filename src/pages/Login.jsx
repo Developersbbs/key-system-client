@@ -231,13 +231,21 @@ const Login = () => {
 
     } catch (err) {
       console.error("[DEBUG] Error in handleSubmit:", {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        response: err.response,
-        stack: err.stack
+        name: err?.name,
+        message: typeof err === 'string' ? err : err?.message,
+        code: err?.code,
+        response: err?.response,
+        stack: err?.stack
       });
-      toast.error(err.message || "Login failed. Please check your credentials.");
+
+      const errorMessage = typeof err === 'string' ? err : err?.message || "Login failed. Please check your credentials.";
+
+      if (errorMessage.toLowerCase().includes("user not registered")) {
+        toast.error("User not registered. Redirecting to registration.");
+        navigate("/register", { replace: true, state: { phone } });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
