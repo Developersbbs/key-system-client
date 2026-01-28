@@ -67,22 +67,22 @@ const NotificationBell = () => {
   const { user } = useSelector(state => state.auth);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  
+
   // Get seen announcements from localStorage
-  const [seenIds, setSeenIds] = useState(() => 
+  const [seenIds, setSeenIds] = useState(() =>
     new Set(JSON.parse(localStorage.getItem('seenAnnouncements') || '[]'))
   );
 
   useEffect(() => {
     dispatch(fetchAllAnnouncements());
-    
+
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -103,7 +103,7 @@ const NotificationBell = () => {
 
   // Get type styling based on announcement type
   const getTypeStyle = (type) => {
-    switch(type) {
+    switch (type) {
       case 'success':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'warning':
@@ -118,8 +118,8 @@ const NotificationBell = () => {
   // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -128,8 +128,8 @@ const NotificationBell = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={handleOpen} 
+      <button
+        onClick={handleOpen}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
       >
         <Bell size={22} className="text-gray-700" />
@@ -143,7 +143,7 @@ const NotificationBell = () => {
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
           <div className="p-3 font-semibold border-b border-gray-200 bg-gray-50 text-gray-800 flex justify-between items-center">
             <span>Announcements</span>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="p-1 rounded-full hover:bg-gray-200"
             >
@@ -153,8 +153,8 @@ const NotificationBell = () => {
           <div className="max-h-96 overflow-y-auto">
             {announcements.length > 0 ? (
               announcements.map(item => (
-                <div 
-                  key={item._id} 
+                <div
+                  key={item._id}
                   className={`p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${getTypeStyle(item.type)}`}
                 >
                   <div className="flex justify-between items-start mb-1">
@@ -180,8 +180,8 @@ const NotificationBell = () => {
             )}
           </div>
           <div className="p-2 border-t border-gray-200 bg-gray-50 text-center">
-            <Link 
-              to={user?.role === 'admin' ? '/admin/announcements' : '/announcements'} 
+            <Link
+              to={user?.role === 'admin' ? '/admin/announcements' : '/announcements'}
               className="text-xs text-gray-700 hover:text-gray-900 font-medium"
               onClick={() => setIsOpen(false)}
             >
@@ -206,7 +206,7 @@ const Layout = ({ children }) => {
 
   // Check if current page is login page
   const isLoginPage = location.pathname === '/login';
-  
+
   // Show sidebar only when logged in AND not on login page
   const showSidebar = isLoggedIn && !isLoginPage;
 
@@ -214,21 +214,21 @@ const Layout = ({ children }) => {
     dispatch(logoutUser());
     navigate("/");
   };
-  
+
   const isActive = (path) => location.pathname.startsWith(path);
 
   const adminNavItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { path: '/admin/members', label: 'Members', icon: Users },
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
-     { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
+    { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
     { path: '/admin/meetings', label: 'Meetings', icon: VideoIcon },
-     { path: '/admin/events', label: 'Events', icon: Calendar },
+    { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-     { path: '/profile', label: 'QR Code', icon: User },
-   
+    { path: '/profile', label: 'QR Code', icon: User },
+
   ];
 
   const memberNavItems = [
@@ -246,14 +246,14 @@ const Layout = ({ children }) => {
 
   // Close sidebar when clicking outside on mobile
   const sidebarRef = useRef(null);
-  
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
         setSidebarOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -269,8 +269,8 @@ const Layout = ({ children }) => {
           {sidebarOpen && (
             <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)}></div>
           )}
-          
-          <aside 
+
+          <aside
             ref={sidebarRef}
             className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 z-50 ${sidebarMinimized ? 'w-16 md:w-20' : 'w-full md:w-64'} bg-white shadow-lg transition-all duration-300 flex flex-col border-r border-gray-200`}
           >
@@ -280,20 +280,20 @@ const Layout = ({ children }) => {
                   <img src={logo} alt="Logo" className="h-16  transition-all" />
                 </Link>
               )}
-              <button 
-                onClick={() => setSidebarMinimized(!sidebarMinimized)} 
+              <button
+                onClick={() => setSidebarMinimized(!sidebarMinimized)}
                 className="flex items-center justify-center p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {sidebarMinimized ? <ChevronRight size={20}/> : <ChevronLeft size={20} />}
+                {sidebarMinimized ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
               </button>
             </div>
-             
+
             <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
               {navItems.map((item) => (
-                <Link 
-                  key={item.path} 
-                  to={item.path} 
-                  title={sidebarMinimized ? item.label : ''} 
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  title={sidebarMinimized ? item.label : ''}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 rounded-lg p-3 text-gray-700 hover:bg-gray-100 transition-colors ${isActive(item.path) && `${theme.bgGradient} text-white font-semibold`} ${sidebarMinimized && 'justify-center'}`}
                 >
@@ -303,9 +303,9 @@ const Layout = ({ children }) => {
               ))}
             </nav>
             <div className="p-4 border-t border-gray-200">
-              <button 
-                onClick={handleLogout} 
-                title={sidebarMinimized ? 'Logout' : ''} 
+              <button
+                onClick={handleLogout}
+                title={sidebarMinimized ? 'Logout' : ''}
                 className={`w-full flex items-center gap-3 rounded-lg p-3 text-red-600 hover:bg-red-50 transition-colors ${sidebarMinimized && 'justify-center'}`}
               >
                 <LogOut size={20} />
@@ -315,7 +315,7 @@ const Layout = ({ children }) => {
           </aside>
         </>
       )}
-      
+
       {/* --- MAIN CONTENT WRAPPER (always visible) --- */}
       <div className={`min-h-screen flex flex-col transition-all duration-300 ${showSidebar ? (sidebarMinimized ? 'md:pl-20' : 'md:pl-64') : 'pl-0'}`}>
         <header className="sticky top-0 h-16 md:h-20 flex-shrink-0 flex items-center bg-white backdrop-blur-lg shadow-sm z-30 border-b border-gray-200">
@@ -324,8 +324,8 @@ const Layout = ({ children }) => {
               <div className="flex items-center gap-4">
                 {isLoggedIn && !isLoginPage ? (
                   <>
-                    <button 
-                      onClick={() => setSidebarOpen(true)} 
+                    <button
+                      onClick={() => setSidebarOpen(true)}
                       className="p-1 md:p-2 md:hidden text-gray-700"
                     >
                       <Menu size={24} />
@@ -339,7 +339,7 @@ const Layout = ({ children }) => {
                   </>
                 ) : (
                   <Link to="">
-                   <img src={logo} alt="Logo" className="h-14 sm:h-16 md:h-20" />
+                    <img src={logo} alt="Logo" className="h-14 sm:h-16 md:h-20" />
 
                   </Link>
                 )}
@@ -354,7 +354,7 @@ const Layout = ({ children }) => {
                     >
                       <Palette size={20} className="text-gray-700" />
                     </button> */}
-                    
+
                     {showThemeSelector && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
                         <div className="p-3 font-semibold border-b border-gray-200 bg-gray-50 text-gray-800">
@@ -379,7 +379,7 @@ const Layout = ({ children }) => {
                     )}
                   </div>
                 )}
-                
+
                 {isLoggedIn && !isLoginPage ? (
                   <div className="flex items-center gap-4">
                     {/* Add Notification Bell to the header */}
@@ -404,16 +404,16 @@ const Layout = ({ children }) => {
             </div>
           </div>
         </header>
-        
+
         <main className="flex-grow p-0">
           {children}
         </main>
-        
+
         {/* --- FOOTER (always visible) --- */}
         <footer className="w-full bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 mt-auto">
           {(() => {
             const isUserLoggedIn = Boolean(isLoggedIn && user && user.role);
-            
+
             if (isUserLoggedIn) {
               // Logged in user - show only simple copyright
               return (
@@ -429,18 +429,43 @@ const Layout = ({ children }) => {
               // Not logged in - show complete footer
               return (
                 <div className="container mx-auto px-6 py-12">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-10 mb-8 md:mb-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mb-8 md:mb-12">
                     {/* Brand Section */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 text-center">
                       <Link to="/">
-                        <div className="flex items-center">
-                          <img src={logo} alt="Key System Logo" className="h-24 sm:h-14 md:h-14" />
+                        <div className="flex items-center justify-center">
+                          <img src={logo} alt="Key System Logo" className="h-32 sm:h-20 md:h-20" />
                         </div>
                       </Link>
-                      <p className="text-gray-600 text-sm leading-relaxed max-w-xs">
+                      <p className="text-gray-600 text-sm leading-relaxed max-w-lg mx-auto">
                         Empowering financial knowledge for a prosperous future through comprehensive crypto education and trading strategies.
                       </p>
-                      <div className="flex space-x-4">
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="text-center">
+                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 inline-block after:absolute after:left-1/2 after:-translate-x-1/2 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
+                        Contact Us
+                      </h4>
+                      <ul className="space-y-4">
+                        <li className="flex items-start justify-center">
+                          <MapPin className="text-emerald-500 mt-1 mr-3 flex-shrink-0" size={16} />
+                          <span className="text-gray-600 text-sm text-left">No 6, Third Floor, Kumaran Colony Main Road, Vadapalani, Chennai, Tamil Nadu</span>
+                        </li>
+                        <li className="flex items-center justify-center">
+                          <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+                          <a href="mailto:admin@keysystem.in" className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
+                            admin@keysystem.in
+                          </a>
+                        </li>
+                        <li className="flex items-center justify-center">
+                          <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
+                          <a href="tel:+919876543210" className="text-blue-600 hover:underline">
+                            +91 98765 43210
+                          </a>
+                        </li>
+                      </ul>
+                      <div className="flex space-x-4 mt-6 justify-center">
                         <a href="https://www.facebook.com/people/Key-System/61578967386229/?rdid=eF5OHaKZNdw5P7cC&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19Y9KPubDw%2F" aria-label="Facebook" className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all duration-300">
                           <Facebook size={18} />
                         </a>
@@ -448,79 +473,6 @@ const Layout = ({ children }) => {
                           <Instagram size={18} />
                         </a>
                       </div>
-                    </div>
-
-                    {/* Quick Links */}
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                        Quick Links
-                      </h4>
-                      <ul className="space-y-3">
-                        <li>
-                          <a href="/#home" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                            Home
-                          </a>
-                        </li>
-                        <li>
-                          <a href="/#features" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                            Features
-                          </a>
-                        </li>
-                        <li>
-                          <a href="/#courses" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                            Courses
-                          </a>
-                        </li>
-                        <li>
-                          <a href="/#pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                            Pricing
-                          </a>
-                        </li>
-                        <li>
-                          <a href="/#testimonials" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">
-                            Testimonials
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Resources */}
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                        Resources
-                      </h4>
-                      <ul className="space-y-3">
-                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Blog</a></li>
-                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Tutorials</a></li>
-                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Webinars</a></li>
-                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">FAQ</a></li>
-                        <li><a href="#" className="text-gray-600 hover:text-emerald-600 transition-colors duration-300 text-sm">Support Center</a></li>
-                      </ul>
-                    </div>
-
-                    {/* Contact Info */}
-                    <div>
-                      <h4 className="font-bold text-gray-900 text-lg mb-6 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-10 after:h-1 after:bg-gradient-to-r after:from-emerald-400 after:to-teal-400">
-                        Contact Us
-                      </h4>
-                      <ul className="space-y-4">
-                        <li className="flex items-start">
-                          <MapPin className="text-emerald-500 mt-1 mr-3 flex-shrink-0" size={16} />
-                          <span className="text-gray-600 text-sm">No 6, Third Floor, Kumaran Colony Main Road, Vadapalani, Chennai, Tamil Nadu</span>
-                        </li>
-                        <li className="flex items-center">
-                          <Mail className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-                          <a href="mailto:admin@keysystem.in" className="text-gray-600 text-sm hover:text-emerald-600 hover:underline">
-                            admin@keysystem.in
-                          </a>
-                        </li>
-                        <li className="flex items-center">
-                          <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-                          <a href="tel:+919876543210" className="text-blue-600 hover:underline">
-                            +91 98765 43210
-                          </a>
-                        </li>
-                      </ul>
                     </div>
                   </div>
 
