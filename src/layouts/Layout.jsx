@@ -460,7 +460,7 @@ const Layout = ({ children }) => {
                         </li>
                         <li className="flex items-center justify-center">
                           <Phone className="text-emerald-500 mr-3 flex-shrink-0" size={16} />
-                          <a href="tel:+919876543210" className="text-blue-600 hover:underline">
+                          <a href="tel:+919876543210" className="text-gray-600 hover:text-emerald-600 hover:underline">
                             +91 98765 43210
                           </a>
                         </li>
