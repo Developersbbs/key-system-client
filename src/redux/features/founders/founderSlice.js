@@ -1,17 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-// API URL - Adjust based on your environment usually it pulls from env or defaults
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import apiClient from '../../../api/apiClient';
 
 // Async thunks
 
+// Fetch all founders (public)
 // Fetch all founders (public)
 export const fetchFounders = createAsyncThunk(
     'founders/fetchFounders',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_URL}/founders`);
+            const response = await apiClient.get('/founders');
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch founders');
@@ -22,16 +20,9 @@ export const fetchFounders = createAsyncThunk(
 // Fetch all founders admin (includes inactive)
 export const fetchAdminFounders = createAsyncThunk(
     'founders/fetchAdminFounders',
-    async (_, { rejectWithValue, getState }) => {
+    async (_, { rejectWithValue }) => {
         try {
-            const { auth } = getState();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${auth.token}`,
-                },
-            };
-
-            const response = await axios.get(`${API_URL}/founders/admin/all`, config);
+            const response = await apiClient.get('/founders/admin/all');
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch admin founders');
@@ -42,16 +33,9 @@ export const fetchAdminFounders = createAsyncThunk(
 // Fetch users for linking (Admin)
 export const fetchUsersToLink = createAsyncThunk(
     'founders/fetchUsersToLink',
-    async (_, { rejectWithValue, getState }) => {
+    async (_, { rejectWithValue }) => {
         try {
-            const { auth } = getState();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${auth.token}`,
-                },
-            };
-
-            const response = await axios.get(`${API_URL}/admin/users`, config);
+            const response = await apiClient.get('/admin/users');
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch users');
@@ -62,16 +46,9 @@ export const fetchUsersToLink = createAsyncThunk(
 // Create founder
 export const createFounder = createAsyncThunk(
     'founders/createFounder',
-    async (founderData, { rejectWithValue, getState }) => {
+    async (founderData, { rejectWithValue }) => {
         try {
-            const { auth } = getState();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${auth.token}`,
-                },
-            };
-
-            const response = await axios.post(`${API_URL}/founders`, founderData, config);
+            const response = await apiClient.post('/founders', founderData);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to create founder');
@@ -82,16 +59,9 @@ export const createFounder = createAsyncThunk(
 // Update founder
 export const updateFounder = createAsyncThunk(
     'founders/updateFounder',
-    async ({ id, founderData }, { rejectWithValue, getState }) => {
+    async ({ id, founderData }, { rejectWithValue }) => {
         try {
-            const { auth } = getState();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${auth.token}`,
-                },
-            };
-
-            const response = await axios.put(`${API_URL}/founders/${id}`, founderData, config);
+            const response = await apiClient.put(`/founders/${id}`, founderData);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to update founder');
@@ -102,16 +72,9 @@ export const updateFounder = createAsyncThunk(
 // Delete founder
 export const deleteFounder = createAsyncThunk(
     'founders/deleteFounder',
-    async (id, { rejectWithValue, getState }) => {
+    async (id, { rejectWithValue }) => {
         try {
-            const { auth } = getState();
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${auth.token}`,
-                },
-            };
-
-            await axios.delete(`${API_URL}/founders/${id}`, config);
+            await apiClient.delete(`/founders/${id}`);
             return id;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || 'Failed to delete founder');

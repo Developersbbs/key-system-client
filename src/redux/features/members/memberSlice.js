@@ -47,6 +47,18 @@ export const updateUserStatus = createAsyncThunk(
   }
 );
 
+export const updateUserDetails = createAsyncThunk(
+  'members/updateDetails',
+  async ({ userId, data }, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.put(`/admin/users/${userId}`, data);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(handleApiError(err));
+    }
+  }
+);
+
 const memberSlice = createSlice({
   name: 'members',
   initialState: {
@@ -78,7 +90,7 @@ const memberSlice = createSlice({
         // Remove user from both arrays first
         state.members = state.members.filter(m => m._id !== updatedUser._id);
         state.admins = state.admins.filter(a => a._id !== updatedUser._id);
-        
+
         // Add to appropriate array based on new role
         if (updatedUser.role === 'admin') {
           state.admins.push(updatedUser);
@@ -90,23 +102,23 @@ const memberSlice = createSlice({
       })
       .addCase(updateUserStatus.fulfilled, (state, action) => {
         const updatedUser = action.payload;
-        
+
         // Update in members array
         const memberIndex = state.members.findIndex(m => m._id === updatedUser._id);
         if (memberIndex !== -1) {
           state.members[memberIndex] = updatedUser;
         }
-        
+
         // Update in admins array
         const adminIndex = state.admins.findIndex(a => a._id === updatedUser._id);
         if (adminIndex !== -1) {
           state.admins[adminIndex] = updatedUser;
         }
-        
+
         state.loading = false;
         state.error = null;
       })
-      
+
       // --- PENDING HANDLERS ---
       .addCase(fetchAllMembers.pending, (state) => {
         state.loading = true;
@@ -124,7 +136,7 @@ const memberSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --- REJECTED HANDLERS ---
       .addCase(fetchAllMembers.rejected, (state, action) => {
         state.loading = false;
@@ -139,6 +151,32 @@ const memberSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(updateUserStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(updateUserDetails.fulfilled, (state, action) => {
+        const updatedUser = action.payload.user;
+
+        // Update in members array
+        const memberIndex = state.members.findIndex(m => m._id === updatedUser._id);
+        if (memberIndex !== -1) {
+          state.members[memberIndex] = { ...state.members[memberIndex], ...updatedUser };
+        }
+
+        // Update in admins array
+        const adminIndex = state.admins.findIndex(a => a._id === updatedUser._id);
+        if (adminIndex !== -1) {
+          state.admins[adminIndex] = { ...state.admins[adminIndex], ...updatedUser };
+        }
+
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(updateUserDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

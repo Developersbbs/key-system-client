@@ -60,6 +60,32 @@ const AdminAttendance = () => {
 
     const selectedMeeting = meetings.find(m => m._id === selectedMeetingId);
 
+    const downloadReport = () => {
+        if (!attendanceLogs.length || !selectedMeeting) return;
+
+        const headers = ['Name', 'Email', 'Joined At', 'Duration (mins)'];
+        const csvRows = [headers.join(',')];
+
+        attendanceLogs.forEach(log => {
+            const row = [
+                `"${log.userName}"`,
+                `"${log.userId?.email || ''}"`,
+                `"${format(new Date(log.joinedAt), 'PP pp')}"`,
+                log.duration
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${selectedMeeting.title}_attendance.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     // Calculate generic stats
     const totalParticipants = attendanceLogs.length;
     const avgDuration = totalParticipants > 0
@@ -160,6 +186,14 @@ const AdminAttendance = () => {
                                         <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Duration</p>
                                         <p className="text-xl font-bold text-blue-600">{avgDuration}m</p>
                                     </div>
+                                    <button
+                                        onClick={downloadReport}
+                                        disabled={attendanceLogs.length === 0}
+                                        className="ml-2 flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Download CSV"
+                                    >
+                                        <Download size={18} /> Export
+                                    </button>
                                 </div>
                             </div>
 

@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllMembers, fetchAllAdmins, updateUserRole, updateUserStatus } from '../redux/features/members/memberSlice';
+import { fetchAllMembers, fetchAllAdmins, updateUserRole, updateUserStatus, updateUserDetails } from '../redux/features/members/memberSlice';
 import { fetchAllBatches, createBatch, updateBatch, addMembersToBatch, removeMemberFromBatch, deleteBatch } from '../redux/features/batches/batchSlice';
-import { Users, ShieldCheck, Phone, X, Plus, Edit, Trash2, UserPlus, Package, ToggleLeft, ToggleRight, BarChart3, Filter, Search } from 'lucide-react';
+import { Users, ShieldCheck, Phone, X, Plus, Edit, Trash2, UserPlus, Package, ToggleLeft, ToggleRight, BarChart3, Filter, Search, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Reusable Toggle Switch Component for Role
 const RoleToggle = ({ user, currentUser, onToggle }) => {
   const isCurrentUser = user._id === currentUser?._id;
   const isSuperAdmin = currentUser?.isSuperadmin === true;
-  
+
   // Only show role toggle if current user is super admin
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          user.role === 'admin' 
-            ? 'bg-green-100 text-green-800' 
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin'
+            ? 'bg-green-100 text-green-800'
             : 'bg-gray-100 text-gray-800'
-        }`}>
+          }`}>
           {user.role === 'admin' ? 'Admin' : 'Member'}
         </span>
       </div>
@@ -28,10 +27,10 @@ const RoleToggle = ({ user, currentUser, onToggle }) => {
   return (
     <label htmlFor={`role-toggle-${user._id}`} className="flex items-center cursor-pointer">
       <div className="relative">
-        <input 
-          id={`role-toggle-${user._id}`} 
-          type="checkbox" 
-          className="sr-only" 
+        <input
+          id={`role-toggle-${user._id}`}
+          type="checkbox"
+          className="sr-only"
           checked={user.role === 'admin'}
           disabled={isCurrentUser}
           onChange={() => onToggle(user, user.role === 'admin' ? 'member' : 'admin')}
@@ -49,14 +48,14 @@ const RoleToggle = ({ user, currentUser, onToggle }) => {
 // Reusable Toggle Switch Component for Active Status
 const StatusToggle = ({ user, onToggle }) => {
   const isActive = user.isActive !== false; // Default to true if undefined
-  
+
   return (
     <label htmlFor={`status-toggle-${user._id}`} className="flex items-center cursor-pointer">
       <div className="relative">
-        <input 
-          id={`status-toggle-${user._id}`} 
-          type="checkbox" 
-          className="sr-only" 
+        <input
+          id={`status-toggle-${user._id}`}
+          type="checkbox"
+          className="sr-only"
           checked={isActive}
           onChange={() => onToggle(user, !isActive)}
         />
@@ -91,7 +90,7 @@ const BatchModal = ({ batch, onClose, onSave }) => {
           <h3 className="text-xl font-semibold text-gray-800">{batch ? 'Edit Batch' : 'Create New Batch'}</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Batch Name</label>
@@ -147,8 +146,8 @@ const BatchModal = ({ batch, onClose, onSave }) => {
             <button type="button" onClick={onClose} className="bg-gray-200 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors"
             >
               {batch ? 'Update Batch' : 'Create Batch'}
@@ -165,8 +164,8 @@ const AddMembersToBatchModal = ({ batch, availableMembers, onClose, onSave }) =>
   const [selectedMembers, setSelectedMembers] = useState([]);
 
   const handleMemberToggle = (memberId) => {
-    setSelectedMembers(prev => 
-      prev.includes(memberId) 
+    setSelectedMembers(prev =>
+      prev.includes(memberId)
         ? prev.filter(id => id !== memberId)
         : [...prev, memberId]
     );
@@ -184,15 +183,15 @@ const AddMembersToBatchModal = ({ batch, availableMembers, onClose, onSave }) =>
           <h3 className="text-lg font-semibold text-gray-800">Add Members to {batch.name}</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
         </div>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="p-4 max-h-[50vh] overflow-y-auto">
             {availableMembers.length > 0 ? (
               <div className="space-y-2">
                 {availableMembers.map(member => (
                   <label key={member._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="w-4 h-4 accent-green-600"
                       checked={selectedMembers.includes(member._id)}
                       onChange={() => handleMemberToggle(member._id)}
@@ -208,13 +207,13 @@ const AddMembersToBatchModal = ({ batch, availableMembers, onClose, onSave }) =>
               <p className="text-gray-500 text-center py-4">No available members to add</p>
             )}
           </div>
-          
+
           <div className="p-4 bg-gray-50 border-t flex justify-end gap-2">
             <button type="button" onClick={onClose} className="bg-gray-200 px-4 py-2 rounded-lg font-semibold">
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={selectedMembers.length === 0}
               className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -227,14 +226,86 @@ const AddMembersToBatchModal = ({ batch, availableMembers, onClose, onSave }) =>
   );
 };
 
+// Modal for editing user details
+const EditUserModal = ({ user, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(user._id, formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h3 className="text-xl font-semibold text-gray-800">Edit User Details</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="bg-gray-200 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AdminMembers = () => {
   const [activeTab, setActiveTab] = useState('members');
   const [batchModal, setBatchModal] = useState({ show: false, batch: null });
   const [addMembersModal, setAddMembersModal] = useState({ show: false, batch: null });
+  const [editUserModal, setEditUserModal] = useState({ show: false, user: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [isUpdating, setIsUpdating] = useState(false); // Add loading state
   const dispatch = useDispatch();
-  
+
   const { members, admins, error } = useSelector((state) => state.members);
   const { batches } = useSelector((state) => state.batches);
   const { user: currentUser } = useSelector((state) => state.auth);
@@ -246,14 +317,16 @@ const AdminMembers = () => {
   }, [dispatch]);
 
   // Filter members and admins based on search term
-  const filteredMembers = members.filter(member => 
+  const filteredMembers = members.filter(member =>
     member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.phoneNumber?.includes(searchTerm)
+    member.phoneNumber?.includes(searchTerm) ||
+    member.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const filteredAdmins = admins.filter(admin => 
+
+  const filteredAdmins = admins.filter(admin =>
     admin.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.phoneNumber?.includes(searchTerm)
+    admin.phoneNumber?.includes(searchTerm) ||
+    admin.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleRoleChange = async (user, newRole) => {
@@ -268,7 +341,7 @@ const AdminMembers = () => {
       try {
         await dispatch(updateUserRole({ userId: user._id, role: newRole })).unwrap();
         toast.success(`${user.name}'s role updated.`);
-        
+
         // Refresh data immediately after successful update
         await Promise.all([
           dispatch(fetchAllMembers()),
@@ -289,7 +362,7 @@ const AdminMembers = () => {
       try {
         await dispatch(updateUserStatus({ userId: user._id, isActive: newStatus })).unwrap();
         toast.success(`${user.name} has been ${statusText}d.`);
-        
+
         // Refresh data immediately after successful update
         await Promise.all([
           dispatch(fetchAllMembers()),
@@ -303,16 +376,32 @@ const AdminMembers = () => {
     }
   };
 
+  const handleUserUpdate = async (userId, data) => {
+    try {
+      await dispatch(updateUserDetails({ userId, data })).unwrap();
+      toast.success("User details updated successfully.");
+      setEditUserModal({ show: false, user: null });
+
+      // Refresh data
+      await Promise.all([
+        dispatch(fetchAllMembers()),
+        dispatch(fetchAllAdmins())
+      ]);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to update user details');
+    }
+  };
+
   const handleBatchSave = async (batchData) => {
     try {
-      const action = batchModal.batch 
+      const action = batchModal.batch
         ? updateBatch({ id: batchModal.batch._id, data: batchData })
         : createBatch(batchData);
 
       await dispatch(action).unwrap();
       toast.success(`Batch ${batchModal.batch ? 'updated' : 'created'} successfully.`);
       setBatchModal({ show: false, batch: null });
-      
+
       // Refresh data after batch operations
       await Promise.all([
         dispatch(fetchAllBatches()),
@@ -328,7 +417,7 @@ const AdminMembers = () => {
       await dispatch(addMembersToBatch({ batchId, memberIds })).unwrap();
       toast.success("Members added to batch successfully.");
       setAddMembersModal({ show: false, batch: null });
-      
+
       // Refresh members and batches data
       await Promise.all([
         dispatch(fetchAllMembers()),
@@ -344,7 +433,7 @@ const AdminMembers = () => {
       try {
         await dispatch(removeMemberFromBatch({ batchId, memberId })).unwrap();
         toast.success("Member removed from batch.");
-        
+
         // Refresh data immediately
         await Promise.all([
           dispatch(fetchAllMembers()),
@@ -361,7 +450,7 @@ const AdminMembers = () => {
       try {
         await dispatch(deleteBatch(batchId)).unwrap();
         toast.success("Batch deleted successfully.");
-        
+
         // Refresh data immediately
         await Promise.all([
           dispatch(fetchAllMembers()),
@@ -379,14 +468,14 @@ const AdminMembers = () => {
       // For new batch creation, show all members without a batch
       return members.filter(member => !member.batch);
     }
-    
+
     // For existing batch editing, show members without a batch OR members already in this batch
-    return members.filter(member => 
-      !member.batch || 
+    return members.filter(member =>
+      !member.batch ||
       (member.batch && member.batch._id === currentBatch._id)
     );
   };
-  
+
   const TabButton = ({ tabName, label, count, icon: Icon }) => (
     <button onClick={() => setActiveTab(tabName)} className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition ${activeTab === tabName ? 'bg-green-100 text-green-800 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
       <Icon size={16} />{label}<span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tabName ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>{count}</span>
@@ -419,7 +508,7 @@ const AdminMembers = () => {
             </div>
           )}
         </div>
-        
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
@@ -454,7 +543,7 @@ const AdminMembers = () => {
             <TabButton tabName="admins" label="Admins" count={admins.length} icon={ShieldCheck} />
             {/* <TabButton tabName="batches" label="Batches" count={batches.length} icon={Package} /> */}
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -491,6 +580,7 @@ const AdminMembers = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -500,6 +590,9 @@ const AdminMembers = () => {
                       <div className="font-medium text-gray-900">{user.name}</div>
                       <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                         <Phone size={14} />{user.phoneNumber}
+                      </div>
+                      <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                        <Mail size={12} />{user.email}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -516,6 +609,15 @@ const AdminMembers = () => {
                     </td>
                     <td className="px-6 py-4">
                       <StatusToggle user={user} onToggle={handleStatusChange} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => setEditUserModal({ show: true, user })}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit User"
+                      >
+                        <Edit size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -538,6 +640,7 @@ const AdminMembers = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -555,12 +658,24 @@ const AdminMembers = () => {
                       <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                         <Phone size={14} />{user.phoneNumber}
                       </div>
+                      <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                        <Mail size={12} />{user.email}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <RoleToggle user={user} currentUser={currentUser} onToggle={handleRoleChange} />
                     </td>
                     <td className="px-6 py-4">
                       <StatusToggle user={user} onToggle={handleStatusChange} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => setEditUserModal({ show: true, user })}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit User"
+                      >
+                        <Edit size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -579,7 +694,7 @@ const AdminMembers = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">Batch Management</h2>
-              <button 
+              <button
                 onClick={() => setBatchModal({ show: true, batch: null })}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-green-700 transition"
               >
@@ -610,21 +725,21 @@ const AdminMembers = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => setAddMembersModal({ show: true, batch })}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
                           title="Add Members"
                         >
                           <UserPlus size={16} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => setBatchModal({ show: true, batch })}
                           className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition"
                           title="Edit Batch"
                         >
                           <Edit size={16} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteBatch(batch._id, batch.name)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Delete Batch"
@@ -645,7 +760,7 @@ const AdminMembers = () => {
                                 <div className="font-medium text-sm text-gray-900">{member.name}</div>
                                 <div className="text-xs text-gray-500">{member.phoneNumber}</div>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => handleRemoveMemberFromBatch(batch._id, member._id, member.name)}
                                 className="p-1 text-red-500 hover:bg-red-100 rounded-full transition"
                                 title="Remove from batch"
@@ -666,7 +781,7 @@ const AdminMembers = () => {
                   <Package size={48} className="mx-auto text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No batches created yet</h3>
                   <p className="text-gray-500 mb-4">Create your first batch to organize members by cohort or program.</p>
-                  <button 
+                  <button
                     onClick={() => setBatchModal({ show: true, batch: null })}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
                   >
@@ -681,7 +796,7 @@ const AdminMembers = () => {
 
       {/* Modals */}
       {batchModal.show && (
-        <BatchModal 
+        <BatchModal
           batch={batchModal.batch}
           onClose={() => setBatchModal({ show: false, batch: null })}
           onSave={handleBatchSave}
@@ -689,11 +804,19 @@ const AdminMembers = () => {
       )}
 
       {addMembersModal.show && (
-        <AddMembersToBatchModal 
+        <AddMembersToBatchModal
           batch={addMembersModal.batch}
           availableMembers={getAvailableMembers(addMembersModal.batch)}
           onClose={() => setAddMembersModal({ show: false, batch: null })}
           onSave={handleAddMembers}
+        />
+      )}
+
+      {editUserModal.show && (
+        <EditUserModal
+          user={editUserModal.user}
+          onClose={() => setEditUserModal({ show: false, user: null })}
+          onSave={handleUserUpdate}
         />
       )}
     </div>

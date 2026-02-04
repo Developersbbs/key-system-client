@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAdminFounders, createFounder, updateFounder, deleteFounder, fetchUsersToLink } from '../redux/features/founders/founderSlice';
 
-import { Plus, Edit2, Trash2, X, Upload, Save, Search, Filter, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Upload, Save, Search, Filter, User, Loader, CheckCircle, Eye } from 'lucide-react';
+import { uploadImage, deleteImage } from '../utils/imageUpload';
+import { locationData } from '../utils/locationData';
 import { toast } from 'react-hot-toast';
 
 const AdminFounders = () => {
     const dispatch = useDispatch();
     const { founders, users, loading, error } = useSelector((state) => state.founders);
 
+    useEffect(() => {
+        console.log('Founders State Users:', users);
+    }, [users]);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [viewData, setViewData] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDesignation, setFilterDesignation] = useState('All');
@@ -20,6 +28,10 @@ const AdminFounders = () => {
         user: '', // For linking to registered user
         imageUrl: '',
         description: '',
+        mobile: '',
+        address: '',
+        state: '',
+        district: '',
         socialLinks: {
             linkedin: '',
             twitter: '',
@@ -27,15 +39,32 @@ const AdminFounders = () => {
             instagram: ''
         },
         order: 0,
-        isActive: true
+        isActive: true,
+        isCustomDesignation: false
     });
+
+    const [availableDistricts, setAvailableDistricts] = useState([]);
+
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
 
     const [selectedId, setSelectedId] = useState(null);
 
     useEffect(() => {
         dispatch(fetchAdminFounders());
-        dispatch(fetchUsersToLink());
+        dispatch(fetchUsersToLink())
+            .unwrap()
+            .then(res => console.log('fetchUsersToLink result:', res))
+            .catch(err => console.error('fetchUsersToLink error:', err));
     }, [dispatch]);
+
+    useEffect(() => {
+        if (formData.state) {
+            setAvailableDistricts(locationData[formData.state] || []);
+        } else {
+            setAvailableDistricts([]);
+        }
+    }, [formData.state]);
 
     const designations = ['Founder', 'Director', 'Senior Director', 'Key Leader'];
 
@@ -64,10 +93,14 @@ const AdminFounders = () => {
     const openAddModal = () => {
         setFormData({
             name: '',
-            designation: 'Key Leader',
+            designation: 'Key Leader', // Default
             user: '',
             imageUrl: '',
             description: '',
+            mobile: '',
+            address: '',
+            state: '',
+            district: '',
             socialLinks: {
                 linkedin: '',
                 twitter: '',
@@ -75,10 +108,18 @@ const AdminFounders = () => {
                 instagram: ''
             },
             order: 0,
-            isActive: true
+            isActive: true,
+            isCustomDesignation: false
         });
+        setUploadProgress(0);
+        setIsUploading(false);
         setIsEditMode(false);
         setIsModalOpen(true);
+    };
+
+    const openViewModal = (founder) => {
+        setViewData(founder);
+        setIsViewModalOpen(true);
     };
 
     const openEditModal = (founder) => {
@@ -88,6 +129,10 @@ const AdminFounders = () => {
             user: founder.user?._id || founder.user || '',
             imageUrl: founder.imageUrl || '',
             description: founder.description || '',
+            mobile: founder.mobile || '',
+            address: founder.address || '',
+            state: founder.state || '',
+            district: founder.district || '',
             socialLinks: {
                 linkedin: founder.socialLinks?.linkedin || '',
                 twitter: founder.socialLinks?.twitter || '',
@@ -95,8 +140,11 @@ const AdminFounders = () => {
                 instagram: founder.socialLinks?.instagram || ''
             },
             order: founder.order || 0,
-            isActive: founder.isActive
+            isActive: founder.isActive,
+            isCustomDesignation: !designations.includes(founder.designation)
         });
+        setUploadProgress(0);
+        setIsUploading(false);
         setSelectedId(founder._id);
         setIsEditMode(true);
         setIsModalOpen(true);
@@ -107,6 +155,11 @@ const AdminFounders = () => {
 
         if (!formData.name || !formData.designation) {
             toast.error('Name and Designation are required');
+            return;
+        }
+
+        if (!formData.state || !formData.district) {
+            toast.error('State and District are required');
             return;
         }
 
@@ -124,6 +177,8 @@ const AdminFounders = () => {
             toast.error(err || 'Operation failed');
         }
     };
+
+
 
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this founder?')) {
@@ -246,6 +301,13 @@ const AdminFounders = () => {
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
+                                                            onClick={() => openViewModal(founder)}
+                                                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
                                                             onClick={() => openEditModal(founder)}
                                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                             title="Edit"
@@ -294,6 +356,37 @@ const AdminFounders = () => {
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Select User (Optional)</label>
+                                        <select
+                                            name="user"
+                                            value={formData.user}
+                                            onChange={(e) => {
+                                                const selectedUserId = e.target.value;
+                                                const selectedUser = users.find(u => u._id === selectedUserId);
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    user: selectedUserId,
+                                                    name: selectedUserId && selectedUser ? selectedUser.name : prev.name,
+                                                    mobile: selectedUserId && selectedUser ? selectedUser.phoneNumber || prev.mobile : prev.mobile
+                                                }));
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                        >
+                                            <option value="">-- Select a registered member --</option>
+                                            {users && users.length > 0 ? (
+                                                users.map(user => (
+                                                    <option key={user._id} value={user._id}>
+                                                        {user.name} ({user.email}) - {user.role}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <option disabled>No members available</option>
+                                            )}
+                                        </select>
+                                        <p className="text-xs text-gray-500 mt-1">Selecting a user will auto-fill name and mobile number.</p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                                         <input
@@ -307,71 +400,160 @@ const AdminFounders = () => {
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Link Registered Member (Optional)</label>
-                                        <select
-                                            name="user"
-                                            value={formData.user}
-                                            onChange={(e) => {
-                                                const selectedUserId = e.target.value;
-                                                const selectedUser = users.find(u => u._id === selectedUserId);
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    user: selectedUserId,
-                                                    name: selectedUserId && selectedUser ? selectedUser.name : prev.name
-                                                }));
-                                            }}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
-                                        >
-                                            <option value="">-- Select a member --</option>
-                                            {users && users.length > 0 ? (
-                                                users.map(user => (
-                                                    <option key={user._id} value={user._id}>
-                                                        {user.name} ({user.email}) - {user.role}
-                                                    </option>
-                                                ))
-                                            ) : (
-                                                <option disabled>No members available</option>
-                                            )}
-                                        </select>
-                                        <p className="text-xs text-gray-500 mt-1">Select a registered member to link with this leader profile.</p>
-                                    </div>
+
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
                                         <select
                                             name="designation"
-                                            value={formData.designation}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                            value={formData.isCustomDesignation ? 'Custom' : formData.designation}
+                                            onChange={(e) => {
+                                                if (e.target.value === 'Custom') {
+                                                    setFormData(prev => ({ ...prev, isCustomDesignation: true, designation: '' }));
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, isCustomDesignation: false, designation: e.target.value }));
+                                                }
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white mb-2"
                                         >
                                             {designations.map(d => (
                                                 <option key={d} value={d}>{d}</option>
                                             ))}
+                                            <option value="Custom">Different Designation...</option>
+                                        </select>
+                                        {formData.isCustomDesignation && (
+                                            <input
+                                                type="text"
+                                                name="designation"
+                                                value={formData.designation}
+                                                onChange={handleInputChange}
+                                                placeholder="Enter custom designation"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                                        <select
+                                            name="state"
+                                            value={formData.state}
+                                            onChange={(e) => {
+                                                setFormData(prev => ({ ...prev, state: e.target.value, district: '' }));
+                                            }}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                            required
+                                        >
+                                            <option value="">Select State</option>
+                                            {Object.keys(locationData).sort().map(state => (
+                                                <option key={state} value={state}>{state}</option>
+                                            ))}
                                         </select>
                                     </div>
 
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">District *</label>
+                                        <select
+                                            name="district"
+                                            value={formData.district}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                                            required
+                                            disabled={!formData.state}
+                                        >
+                                            <option value="">Select District</option>
+                                            {availableDistricts.map(district => (
+                                                <option key={district} value={district}>{district}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                                        <input
+                                            type="text"
+                                            name="mobile"
+                                            value={formData.mobile}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                            placeholder="Optional"
+                                        />
+                                    </div>
+
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-grow">
-                                                <Upload className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                                <input
-                                                    type="text"
-                                                    name="imageUrl"
-                                                    value={formData.imageUrl}
-                                                    onChange={handleInputChange}
-                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-                                                    placeholder="https://example.com/image.jpg"
-                                                />
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                        <input
+                                            type="text"
+                                            name="address"
+                                            value={formData.address}
+                                            onChange={handleInputChange}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                            placeholder="Optional address"
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+                                        <div className="flex gap-4 items-start">
+                                            <div className="flex-grow">
+                                                <div className="relative border border-gray-300 rounded-lg overflow-hidden">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                setIsUploading(true);
+                                                                setUploadProgress(0);
+                                                                uploadImage(
+                                                                    file,
+                                                                    'founders',
+                                                                    (progress) => setUploadProgress(progress),
+                                                                    (error) => {
+                                                                        toast.error(error);
+                                                                        setIsUploading(false);
+                                                                    }
+                                                                ).then((url) => {
+                                                                    setFormData(prev => ({ ...prev, imageUrl: url }));
+                                                                    setIsUploading(false);
+                                                                    toast.success('Image uploaded!');
+                                                                }).catch(err => {
+                                                                    console.error(err);
+                                                                    setIsUploading(false);
+                                                                });
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                        disabled={isUploading}
+                                                    />
+                                                    <div className="flex items-center justify-center py-2 px-4 bg-gray-50 text-gray-500">
+                                                        <Upload size={18} className="mr-2" />
+                                                        <span className="text-sm">Click to upload image</span>
+                                                    </div>
+                                                    {isUploading && (
+                                                        <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-400 mt-1">Supported formats: JPG, PNG, GIF, WEBP. Max 5MB.</p>
                                             </div>
-                                            {/* Placeholder for future file upload feature if needed */}
+
+                                            {formData.imageUrl && (
+                                                <div className="relative h-20 w-20 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 group">
+                                                    <img src={formData.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (window.confirm('Remove this image?')) {
+                                                                setFormData(prev => ({ ...prev, imageUrl: '' }));
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
-                                        {formData.imageUrl && (
-                                            <div className="mt-2 h-20 w-20 rounded-lg border border-gray-200 overflow-hidden">
-                                                <img src={formData.imageUrl} alt="Preview" className="h-full w-full object-cover" />
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div className="md:col-span-2">
@@ -485,6 +667,122 @@ const AdminFounders = () => {
                     </div>
                 )}
             </div>
+
+            {/* View Modal */}
+            {isViewModalOpen && viewData && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                            <h2 className="text-xl font-bold text-gray-800">Leader Details</h2>
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div className="flex flex-col md:flex-row gap-6 items-start">
+                                <div className="h-32 w-32 rounded-xl bg-gray-200 overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm mx-auto md:mx-0">
+                                    {viewData.imageUrl ? (
+                                        <img src={viewData.imageUrl} alt={viewData.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-gray-400">
+                                            <User size={40} />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-grow space-y-4 w-full">
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-gray-900">{viewData.name}</h3>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                                                {viewData.designation}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${viewData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {viewData.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                        {viewData.mobile && (
+                                            <div className="p-3 bg-gray-50 rounded-lg">
+                                                <span className="block text-gray-500 text-xs uppercase font-semibold mb-1">Mobile</span>
+                                                <span className="text-gray-900 font-medium">{viewData.mobile}</span>
+                                            </div>
+                                        )}
+                                        {viewData.state && (
+                                            <div className="p-3 bg-gray-50 rounded-lg">
+                                                <span className="block text-gray-500 text-xs uppercase font-semibold mb-1">Location</span>
+                                                <span className="text-gray-900 font-medium">{viewData.district}, {viewData.state}</span>
+                                            </div>
+                                        )}
+                                        {viewData.address && (
+                                            <div className="p-3 bg-gray-50 rounded-lg md:col-span-2">
+                                                <span className="block text-gray-500 text-xs uppercase font-semibold mb-1">Address</span>
+                                                <span className="text-gray-900 font-medium">{viewData.address}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {viewData.description && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 mb-2">About</h4>
+                                    <p className="text-gray-600 bg-gray-50 p-4 rounded-xl leading-relaxed">
+                                        {viewData.description}
+                                    </p>
+                                </div>
+                            )}
+
+                            {viewData.socialLinks && Object.values(viewData.socialLinks).some(link => link) && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 mb-3">Social Connections</h4>
+                                    <div className="flex gap-3">
+                                        {viewData.socialLinks.linkedin && (
+                                            <a href={viewData.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#0077b5]/10 text-[#0077b5] rounded-lg hover:bg-[#0077b5]/20 transition-colors text-sm font-medium">
+                                                LinkedIn
+                                            </a>
+                                        )}
+                                        {viewData.socialLinks.twitter && (
+                                            <a href={viewData.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-black/5 text-black rounded-lg hover:bg-black/10 transition-colors text-sm font-medium">
+                                                X (Twitter)
+                                            </a>
+                                        )}
+                                        {viewData.socialLinks.facebook && (
+                                            <a href={viewData.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1877f2]/10 text-[#1877f2] rounded-lg hover:bg-[#1877f2]/20 transition-colors text-sm font-medium">
+                                                Facebook
+                                            </a>
+                                        )}
+                                        {viewData.socialLinks.instagram && (
+                                            <a href={viewData.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#e4405f]/10 text-[#e4405f] rounded-lg hover:bg-[#e4405f]/20 transition-colors text-sm font-medium">
+                                                Instagram
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="text-xs text-gray-400 pt-4 border-t border-gray-100 flex justify-between">
+                                <span>Display Order: {viewData.order}</span>
+                                {viewData.user && <span>Linked User: {viewData.user.name || 'Yes'}</span>}
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end">
+                            <button
+                                onClick={() => setIsViewModalOpen(false)}
+                                className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };
