@@ -25,11 +25,15 @@ import AdminMeetings from "./admin/AdminMeetings";
 import AdminEvents from "./admin/AdminEvents";
 import Marketplace from "./pages/Marcketplace";
 import AdminTransactions from "./admin/AdminTransactions";
+import AdminSettings from "./admin/AdminSettings";
 import Profile from "./pages/Profile";
 import MemberMeetings from "./pages/MemberMeetings";
 import MemberTransactions from "./pages/MemberTransactions";
 import AdminAnnouncements from "./admin/AdminAnnouncements";
 import MemberAnnouncements from "./pages/MemberAnnouncement";
+import Founders from "./pages/Founders";
+import AdminFounders from "./admin/AdminFounders";
+import AdminAttendance from "./admin/AdminAttendance";
 
 // Import Protected Route Component
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -54,7 +58,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          
+
           {/* --- Protected Routes (everything else requires login) --- */}
           <Route path="/courses" element={
             <ProtectedRoute>
@@ -81,7 +85,7 @@ const App = () => {
               <Chapter />
             </ProtectedRoute>
           } />
-          
+
           {/* --- Member-Specific Routes --- */}
           <Route path="/member" element={
             <ProtectedRoute requiredRole="member">
@@ -90,25 +94,30 @@ const App = () => {
           } />
           <Route path="/profile" element={
             <ProtectedRoute>
-              <Profile/>
+              <Profile />
             </ProtectedRoute>
-          }/>
+          } />
           <Route path="/meeting" element={
             <ProtectedRoute>
-              <MemberMeetings/>
+              <MemberMeetings />
             </ProtectedRoute>
-          }/>
+          } />
           <Route path="/transactions" element={
             <ProtectedRoute>
-              <MemberTransactions/>
+              <MemberTransactions />
             </ProtectedRoute>
-          }/>
+          } />
           <Route path="/announcements" element={
             <ProtectedRoute>
-              <MemberAnnouncements/>
+              <MemberAnnouncements />
             </ProtectedRoute>
-          }/>
-          
+          } />
+          <Route path="/founders" element={
+            <ProtectedRoute>
+              <Founders />
+            </ProtectedRoute>
+          } />
+
           {/* --- Admin-Specific Routes --- */}
           <Route path="/admin/courses" element={
             <ProtectedRoute requiredRole="admin">
@@ -127,14 +136,14 @@ const App = () => {
           } />
           <Route path="/admin/transactions" element={
             <ProtectedRoute requiredRole="admin">
-              <AdminTransactions/>
+              <AdminTransactions />
             </ProtectedRoute>
-          }/>
+          } />
           <Route path="/admin/announcements" element={
             <ProtectedRoute requiredRole="admin">
               <AdminAnnouncements />
             </ProtectedRoute>
-          } /> 
+          } />
           <Route path="/admin/events" element={
             <ProtectedRoute requiredRole="admin">
               <AdminEvents />
@@ -153,6 +162,21 @@ const App = () => {
           <Route path="/admin/dashboard" element={
             <ProtectedRoute requiredRole="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/settings" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/founders" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminFounders />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/attendance" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminAttendance />
             </ProtectedRoute>
           } />
         </Routes>

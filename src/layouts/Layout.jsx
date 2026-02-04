@@ -223,11 +223,14 @@ const Layout = ({ children }) => {
     { path: '/admin/courses', label: 'Courses', icon: BookOpen },
     { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
     { path: '/admin/meetings', label: 'Meetings', icon: VideoIcon },
+    { path: '/admin/attendance', label: 'Attendance', icon: Users },
     { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
+    { path: '/admin/settings', label: 'Settings', icon: Settings },
     { path: '/profile', label: 'QR Code', icon: User },
+    { path: '/admin/founders', label: 'Leaders', icon: Users },
 
   ];
 
@@ -240,6 +243,7 @@ const Layout = ({ children }) => {
     { path: '/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/events', label: 'Events', icon: Calendar },
     { path: '/profile', label: 'QR Code', icon: User },
+    { path: '/founders', label: 'Leaders', icon: Users },
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;

@@ -272,7 +272,8 @@ const AdminTransactions = () => {
             <div className="p-6">
               <div className="mb-4">
                 <h4 className="font-medium text-emerald-900">{selectedTransaction.listing?.title}</h4>
-                <p className="text-sm text-emerald-600">
+                <p className="text-
+sm text-emerald-600">
                   Amount: ${selectedTransaction.amount} • 
                   {selectedTransaction.quantity && selectedTransaction.cryptoType && (
                     <>Quantity: {selectedTransaction.quantity} {selectedTransaction.cryptoType} • </>
@@ -281,6 +282,7 @@ const AdminTransactions = () => {
                   Date: {new Date(selectedTransaction.createdAt).toLocaleDateString()}
                 </p>
                 {selectedTransaction.rejectionReason && (
+
                   <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
                     <p className="text-sm text-red-700">
                       <strong>Rejection Reason:</strong> {selectedTransaction.rejectionReason}

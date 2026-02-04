@@ -6,20 +6,34 @@ import { BookOpen, PlayCircle, ChevronRight, CheckCircle, Award, Clock, Trending
 import apiClient from '../api/apiClient'; // Adjust path as needed
 
 // Inactive User Message Component
-const InactiveUserMessage = () => (
-  <div className="w-full max-w-4xl mx-auto px-4 py-12">
-    <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-      <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-      <h2 className="text-2xl font-bold text-red-900 mb-2">Account Inactive</h2>
-      <p className="text-red-700 mb-4">
-        Your account is currently inactive. You don't have access to the dashboard or courses at this time.
-      </p>
-      <p className="text-red-600 text-sm">
-        Please contact an administrator to reactivate your account.
-      </p>
+const InactiveUserMessage = () => {
+  const handleSubscribe = () => {
+    alert('To subscribe for $10/year and reactivate your account, please contact the administrator at admin@keysystem.in or call +91 98765 43210');
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto px-4 py-12">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+        <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold text-red-900 mb-2">Account Inactive</h2>
+        <p className="text-red-700 mb-4">
+          Your account is currently inactive. You don't have access to the dashboard or courses at this time.
+        </p>
+        <p className="text-red-600 text-sm mb-6">
+          Subscribe now to reactivate your account and get full access!
+        </p>
+
+        {/* Subscription Button */}
+        <button
+          onClick={handleSubscribe}
+          className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-lg font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl"
+        >
+          Subscribe for $10/year
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const MemberDashboard = () => {
   const dispatch = useDispatch();
@@ -46,7 +60,7 @@ const MemberDashboard = () => {
         apiClient.get('/member/quiz-results'),
         timeoutPromise
       ]);
-      
+
       setQuizResults(response.data);
     } catch (error) {
       console.error('Failed to fetch quiz results:', error);
@@ -63,7 +77,7 @@ const MemberDashboard = () => {
       // Fetch member-specific courses and user progress
       dispatch(fetchMyCourses());
       dispatch(fetchUserProgress());
-      
+
       // Fetch quiz results with chapter names
       fetchQuizResults();
     } else {
@@ -81,7 +95,7 @@ const MemberDashboard = () => {
     totalCourses: courses?.length || 0,
     completedCourses: courses?.filter(course => course.isCompleted)?.length || 0,
     totalQuizzes: quizResults.length,
-    averageScore: quizResults.length > 0 
+    averageScore: quizResults.length > 0
       ? Math.round(quizResults.reduce((sum, result) => sum + result.score, 0) / quizResults.length)
       : 0
   };
@@ -155,7 +169,7 @@ const MemberDashboard = () => {
                 <p className="text-green-100 text-sm mb-3">
                   {nextCourse.chapters?.length || 0} chapters available
                 </p>
-                <Link 
+                <Link
                   to={`/courses/${nextCourse._id}`}
                   className="inline-flex items-center gap-2 bg-white text-green-700 font-semibold py-2 px-4 rounded-lg hover:shadow-md transition hover:bg-green-50"
                 >
@@ -180,13 +194,12 @@ const MemberDashboard = () => {
                 {courses.map(course => {
                   const progress = userProgress?.find(p => p.courseId === course._id);
                   const isLocked = course.isUnlocked === false;
-                  
+
                   return (
-                    <div key={course._id} className={`p-4 rounded-lg border transition ${
-                      isLocked 
-                        ? 'bg-gray-50 border-gray-200 opacity-60' 
-                        : 'bg-white border-green-100 hover:shadow-md hover:border-green-300'
-                    }`}>
+                    <div key={course._id} className={`p-4 rounded-lg border transition ${isLocked
+                      ? 'bg-gray-50 border-gray-200 opacity-60'
+                      : 'bg-white border-green-100 hover:shadow-md hover:border-green-300'
+                      }`}>
                       <div className="flex justify-between items-center">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -203,20 +216,20 @@ const MemberDashboard = () => {
                           <p className="text-sm text-gray-500 mb-2">
                             {course.chapters?.length || 0} chapters
                           </p>
-                          
+
                           {/* Progress Bar */}
                           {progress && !isLocked && (
                             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                              <div 
-                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300" 
+                              <div
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${progress.progressPercentage || 0}%` }}
                               ></div>
                             </div>
                           )}
                         </div>
-                        
+
                         {!isLocked ? (
-                          <Link 
+                          <Link
                             to={`/courses/${course._id}`}
                             className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:opacity-90 transition ml-4 shadow-md hover:shadow-lg"
                           >
@@ -261,7 +274,7 @@ const MemberDashboard = () => {
               <Award className="text-green-600" />
               Recent Quiz Results
             </h2>
-            
+
             {loading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -275,18 +288,17 @@ const MemberDashboard = () => {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {quizResults.slice(0, 10).map(result => (
                   <div key={`${result.chapterId}-${result.completedAt}`} className="p-3 bg-green-50 rounded-lg hover:bg-green-100 transition border border-green-100">
-                    <Link 
-                      to={`/courses/${result.courseId}/chapters/${result.chapterId}`} 
+                    <Link
+                      to={`/courses/${result.courseId}/chapters/${result.chapterId}`}
                       className="block"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-medium text-green-900 text-sm leading-tight flex-1 mr-2">
                           {result.chapterTitle}
                         </h4>
-                        <span className={`font-bold text-lg flex-shrink-0 ${
-                          result.score >= 70 ? 'text-green-600' : 
+                        <span className={`font-bold text-lg flex-shrink-0 ${result.score >= 70 ? 'text-green-600' :
                           result.score >= 50 ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
+                          }`}>
                           {result.score}%
                         </span>
                       </div>
@@ -307,8 +319,8 @@ const MemberDashboard = () => {
               <div className="text-center py-6">
                 <Award className="mx-auto h-12 w-12 text-gray-300 mb-2" />
                 <p className="text-gray-500 text-sm">
-                  {courses && courses.length === 0 
-                    ? "Start taking courses to see your quiz results here!" 
+                  {courses && courses.length === 0
+                    ? "Start taking courses to see your quiz results here!"
                     : "Complete some quizzes to see your results here."
                   }
                 </p>

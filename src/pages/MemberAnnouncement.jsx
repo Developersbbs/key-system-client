@@ -204,6 +204,7 @@ const MemberAnnouncements = () => {
         ) : (
           <div className="bg-white p-8 rounded-lg shadow-sm text-center">
             <Bell size={48} className="mx-auto text-gray-400 mb-4" />
+
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No announcements found</h3>
             <p className="text-gray-600">
               {searchTerm 

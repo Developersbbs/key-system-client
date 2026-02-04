@@ -1,0 +1,229 @@
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchAllMeetings, fetchMeetingLogs } from '../redux/features/meetings/meetingSlice';
+import { fetchAllMembers } from '../redux/features/members/memberSlice';
+import { Calendar, Users, Clock, Search, Download, ChevronRight, BarChart3 } from 'lucide-react';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
+import apiClient from '../api/apiClient';
+
+const AdminAttendance = () => {
+    const dispatch = useDispatch();
+    const { meetings, loading } = useSelector(state => state.meetings);
+    const [selectedMeetingId, setSelectedMeetingId] = useState(null);
+    const [attendanceLogs, setAttendanceLogs] = useState([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        dispatch(fetchAllMeetings());
+    }, [dispatch]);
+
+    const handleSelectMeeting = (meetingId) => {
+        if (selectedMeetingId === meetingId) return; // Already selected
+        setSelectedMeetingId(meetingId);
+        fetchLogs(meetingId);
+    };
+
+    const fetchLogs = (meetingId) => {
+        setLoadingLogs(true);
+        dispatch(fetchMeetingLogs(meetingId))
+            .unwrap()
+            .then((data) => {
+                setAttendanceLogs(data.logs);
+            })
+            .catch(() => toast.error('Failed to load attendance logs'))
+            .finally(() => setLoadingLogs(false));
+    };
+
+    const handleSyncAttendance = async (meetingId, e) => {
+        e.stopPropagation(); // Prevent row click
+        const toastId = toast.loading("Syncing with Zoom...");
+        try {
+            const res = await apiClient.post(`/meetings/${meetingId}/sync`);
+            if (res.data.success) {
+                toast.success(res.data.message, { id: toastId });
+                // If this is the currently selected meeting, refresh logs
+                if (selectedMeetingId === meetingId) {
+                    fetchLogs(meetingId);
+                }
+            }
+        } catch (error) {
+            console.error("Sync error:", error);
+            toast.error(error.response?.data?.message || "Failed to sync attendance", { id: toastId });
+        }
+    };
+
+    const filteredMeetings = meetings.filter(m =>
+        m.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const selectedMeeting = meetings.find(m => m._id === selectedMeetingId);
+
+    // Calculate generic stats
+    const totalParticipants = attendanceLogs.length;
+    const avgDuration = totalParticipants > 0
+        ? Math.round(attendanceLogs.reduce((acc, log) => acc + (log.duration || 0), 0) / totalParticipants)
+        : 0;
+
+    return (
+        <div className="w-full p-6 bg-gray-50 min-h-screen font-sans">
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Attendance Reports</h1>
+                    <p className="text-gray-500 mt-1">Track member participation and watching hours</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]">
+
+                {/* Left: Meeting List */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search meetings..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        {loading ? (
+                            <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div></div>
+                        ) : filteredMeetings.length === 0 ? (
+                            <div className="text-center p-8 text-gray-500">No meetings found</div>
+                        ) : (
+                            <div className="divide-y divide-gray-100">
+                                {filteredMeetings.map(meeting => (
+                                    <div
+                                        key={meeting._id}
+                                        onClick={() => handleSelectMeeting(meeting._id)}
+                                        className={`p-4 cursor-pointer hover:bg-emerald-50 transition-colors ${selectedMeetingId === meeting._id ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'border-l-4 border-transparent'}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h3 className={`font-semibold text-sm ${selectedMeetingId === meeting._id ? 'text-emerald-800' : 'text-gray-800'}`}>{meeting.title}</h3>
+                                            {meeting.zoomMeetingId && (
+                                                <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Zoom</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center text-xs text-gray-500 gap-3 mb-2">
+                                            <span className="flex items-center gap-1"><Calendar size={12} /> {format(new Date(meeting.meetingDate), 'MMM d, yyyy')}</span>
+                                            <span className="flex items-center gap-1"><Clock size={12} /> {format(new Date(meeting.meetingDate), 'h:mm a')}</span>
+                                        </div>
+
+                                        {selectedMeetingId === meeting._id && meeting.zoomMeetingId && (
+                                            <button
+                                                onClick={(e) => handleSyncAttendance(meeting._id, e)}
+                                                className="w-full mt-2 text-xs bg-white border border-emerald-200 text-emerald-700 py-1.5 rounded-lg font-medium hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></svg>
+                                                Sync Report
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right: Details */}
+                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
+                    {!selectedMeeting ? (
+                        <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <Users size={32} />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-600 mb-1">Select a Meeting</h3>
+                            <p className="text-sm">Choose a meeting from the list to view attendance details and watching hours.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-1">{selectedMeeting.title}</h2>
+                                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                                        <span className="flex items-center gap-1.5"><Calendar size={14} /> {format(new Date(selectedMeeting.meetingDate), 'PPP p')}</span>
+                                    </p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="text-right">
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Participants</p>
+                                        <p className="text-xl font-bold text-emerald-600">{totalParticipants}</p>
+                                    </div>
+                                    <div className="text-right pl-4 border-l border-gray-200">
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Duration</p>
+                                        <p className="text-xl font-bold text-blue-600">{avgDuration}m</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto">
+                                {loadingLogs ? (
+                                    <div className="flex justify-center p-20"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-500"></div></div>
+                                ) : attendanceLogs.length === 0 ? (
+                                    <div className="text-center p-20 text-gray-500">
+                                        <p>No attendance records found.</p>
+                                        {selectedMeeting.zoomMeetingId && (
+                                            <p className="text-xs mt-2 text-emerald-600">Try clicking "Sync Report" to fetch data from Zoom.</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-gray-50 sticky top-0 z-10">
+                                            <tr>
+                                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">Member</th>
+                                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">Joined At</th>
+                                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-right">Duration</th>
+                                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {attendanceLogs.map((log) => (
+                                                <tr key={log._id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="p-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                                                                {log.userName.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-medium text-gray-900 text-sm">{log.userName}</p>
+                                                                <p className="text-xs text-gray-500">{log.userId?.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4 text-sm text-gray-500">
+                                                        {format(new Date(log.joinedAt), 'h:mm a')}
+                                                    </td>
+                                                    <td className="p-4 text-sm text-right">
+                                                        {log.duration > 0 ? (
+                                                            <span className="font-bold text-blue-600">{log.duration} mins</span>
+                                                        ) : (
+                                                            <span className="text-gray-400">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${log.duration > 30 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                            {log.duration > 30 ? 'Attended' : 'Partial'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default AdminAttendance;

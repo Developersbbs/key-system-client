@@ -28,12 +28,32 @@ export const removeMeeting = createAsyncThunk('meetings/remove', async (id, { re
   }
 });
 
+export const joinMeeting = createAsyncThunk('meetings/join', async (id, { rejectWithValue }) => {
+  try {
+    await apiClient.post(`/meetings/${id}/join`);
+    return id;
+  } catch (err) {
+    // Fail silently or just return error, we don't want to block joining
+    return rejectWithValue(err.response?.data?.message);
+  }
+});
+
+export const fetchMeetingLogs = createAsyncThunk('meetings/fetchLogs', async (id, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.get(`/meetings/${id}/logs`);
+    return { meetingId: id, logs: res.data.logs };
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message);
+  }
+});
+
 const meetingSlice = createSlice({
   name: 'meetings',
   initialState: {
     meetings: [],
     loading: false,
     error: null,
+    logs: {}, // Store logs by meetingId: { [meetingId]: [logs] }
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -44,8 +64,11 @@ const meetingSlice = createSlice({
       .addCase(addMeeting.fulfilled, (state, action) => {
         state.meetings.unshift(action.payload);
       })
-       .addCase(removeMeeting.fulfilled, (state, action) => {
+      .addCase(removeMeeting.fulfilled, (state, action) => {
         state.meetings = state.meetings.filter(m => m._id !== action.payload);
+      })
+      .addCase(fetchMeetingLogs.fulfilled, (state, action) => {
+        state.logs[action.payload.meetingId] = action.payload.logs;
       })
       .addMatcher((action) => action.type.startsWith('meetings/'), (state, action) => {
         if (action.type.endsWith('/pending')) {
@@ -58,7 +81,7 @@ const meetingSlice = createSlice({
           state.error = action.payload;
         }
       })
-     
+
   },
 });
 
