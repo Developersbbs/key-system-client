@@ -63,7 +63,7 @@ const AdminAttendance = () => {
     const downloadReport = () => {
         if (!attendanceLogs.length || !selectedMeeting) return;
 
-        const headers = ['Name', 'Email', 'Joined At', 'Duration (mins)'];
+        const headers = ['Name', 'Email', 'Joined At', 'Left At', 'Duration (mins)'];
         const csvRows = [headers.join(',')];
 
         attendanceLogs.forEach(log => {
@@ -71,6 +71,7 @@ const AdminAttendance = () => {
                 `"${log.userName}"`,
                 `"${log.userId?.email || ''}"`,
                 `"${format(new Date(log.joinedAt), 'PP pp')}"`,
+                `"${log.leftAt ? format(new Date(log.leftAt), 'PP pp') : '-'}"`,
                 log.duration
             ];
             csvRows.push(row.join(','));
@@ -213,6 +214,7 @@ const AdminAttendance = () => {
                                             <tr>
                                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">Member</th>
                                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">Joined At</th>
+                                                <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200">Left At</th>
                                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-right">Duration</th>
                                                 <th className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-center">Status</th>
                                             </tr>
@@ -233,6 +235,9 @@ const AdminAttendance = () => {
                                                     </td>
                                                     <td className="p-4 text-sm text-gray-500">
                                                         {format(new Date(log.joinedAt), 'h:mm a')}
+                                                    </td>
+                                                    <td className="p-4 text-sm text-gray-500">
+                                                        {log.leftAt ? format(new Date(log.leftAt), 'h:mm a') : '-'}
                                                     </td>
                                                     <td className="p-4 text-sm text-right">
                                                         {log.duration > 0 ? (
