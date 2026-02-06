@@ -34,6 +34,9 @@ import MemberAnnouncements from "./pages/MemberAnnouncement";
 import Founders from "./pages/Founders";
 import AdminFounders from "./admin/AdminFounders";
 import AdminAttendance from "./admin/AdminAttendance";
+import Achievers from "./pages/Achievers";
+import AdminTools from "./admin/AdminTools";
+import Tools from "./pages/Tools";
 
 // Import Protected Route Component
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -117,6 +120,16 @@ const App = () => {
               <Founders />
             </ProtectedRoute>
           } />
+          <Route path="/achievers" element={
+            <ProtectedRoute>
+              <Achievers />
+            </ProtectedRoute>
+          } />
+          <Route path="/tools" element={
+            <ProtectedRoute>
+              <Tools />
+            </ProtectedRoute>
+          } />
 
           {/* --- Admin-Specific Routes --- */}
           <Route path="/admin/courses" element={
@@ -177,6 +190,11 @@ const App = () => {
           <Route path="/admin/attendance" element={
             <ProtectedRoute requiredRole="admin">
               <AdminAttendance />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/tools" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminTools />
             </ProtectedRoute>
           } />
         </Routes>

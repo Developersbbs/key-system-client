@@ -103,11 +103,11 @@ const AdminChapter = () => {
           if (error.stack) {
             console.error(error.stack);
           }
-          setVideoUpload(prev => ({ 
-            ...prev, 
-            isUploading: false, 
-            error: errorMsg, 
-            progress: 0 
+          setVideoUpload(prev => ({
+            ...prev,
+            isUploading: false,
+            error: errorMsg,
+            progress: 0
           }));
           toast.error(errorMsg);
           throw error;
@@ -148,11 +148,11 @@ const AdminChapter = () => {
       if (error.stack) {
         console.error(error.stack);
       }
-      setVideoUpload(prev => ({ 
-        ...prev, 
-        isUploading: false, 
-        error: errorMsg, 
-        progress: 0 
+      setVideoUpload(prev => ({
+        ...prev,
+        isUploading: false,
+        error: errorMsg,
+        progress: 0
       }));
       toast.error(errorMsg);
       throw error;
@@ -264,9 +264,9 @@ const AdminChapter = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -285,11 +285,11 @@ const AdminChapter = () => {
 
   const addMcq = () => setFormData(prev => ({
     ...prev,
-    mcqs: [...prev.mcqs, { 
-      question: '', 
-      options: ['', '', '', ''], 
-      correctAnswerIndex: 0, 
-      explanation: '' 
+    mcqs: [...prev.mcqs, {
+      question: '',
+      options: ['', '', '', ''],
+      correctAnswerIndex: 0,
+      explanation: ''
     }]
   }));
 
@@ -307,11 +307,11 @@ const AdminChapter = () => {
 
   const addTask = () => setFormData(prev => ({
     ...prev,
-    tasks: [...prev.tasks, { 
-      type: 'online', 
-      title: '', 
-      description: '', 
-      deadline: '' 
+    tasks: [...prev.tasks, {
+      type: 'online',
+      title: '',
+      description: '',
+      deadline: ''
     }]
   }));
 
@@ -342,18 +342,18 @@ const AdminChapter = () => {
     const chapterData = {
       ...formData,
       duration: Number(formData.duration) || 0,
-      mcqs: formData.mcqs.map(mcq => ({ 
-        ...mcq, 
-        correctAnswerIndex: Number(mcq.correctAnswerIndex) 
+      mcqs: formData.mcqs.map(mcq => ({
+        ...mcq,
+        correctAnswerIndex: Number(mcq.correctAnswerIndex)
       }))
     };
 
     try {
       if (editingChapter) {
-        await dispatch(updateChapter({ 
-          courseId, 
-          chapterId: editingChapter._id, 
-          updatedData: chapterData 
+        await dispatch(updateChapter({
+          courseId,
+          chapterId: editingChapter._id,
+          updatedData: chapterData
         })).unwrap();
         toast.success('Chapter updated successfully!');
       } else {
@@ -373,7 +373,7 @@ const AdminChapter = () => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${chapterTitle}"? This action cannot be undone.`
     );
-    
+
     if (!confirmed) return;
 
     try {
@@ -400,11 +400,10 @@ const AdminChapter = () => {
     <button
       type="button"
       onClick={() => setActiveTab(tabName)}
-      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
-        activeTab === tabName
+      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${activeTab === tabName
           ? 'bg-teal-600 text-white shadow-sm'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
-      }`}
+        }`}
     >
       {label} {count !== undefined && `(${count})`}
     </button>
@@ -413,7 +412,7 @@ const AdminChapter = () => {
   const VideoUploadSection = () => (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-3">Chapter Video</label>
-      
+
       {/* Upload Area */}
       {!videoUpload.uploadedUrl && !videoUpload.isUploading && !videoUpload.error && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors duration-200">
@@ -522,10 +521,48 @@ const AdminChapter = () => {
     </div>
   );
 
- 
+  const VideoPreviewModal = ({ videoUrl, onClose }) => {
+    if (!videoUrl) return null;
+    return (
+      <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4">
+        <div className="relative w-full max-w-5xl bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors"
+              title="Open in new tab"
+            >
+              <LinkIcon size={20} />
+            </a>
+            <button
+              onClick={onClose}
+              className="p-2 bg-black/50 hover:bg-gray-800 text-white rounded-full backdrop-blur-sm transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="w-full h-auto max-h-[85vh] mx-auto"
+            onError={(e) => toast.error("Error playing video file")}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const [previewVideoUrl, setPreviewVideoUrl] = useState(null);
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <VideoPreviewModal
+        videoUrl={previewVideoUrl}
+        onClose={() => setPreviewVideoUrl(null)}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
@@ -935,11 +972,10 @@ const AdminChapter = () => {
                   <button
                     onClick={handleSubmit}
                     disabled={videoUpload.isUploading}
-                    className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-colors duration-200 font-medium ${
-                      videoUpload.isUploading
+                    className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-colors duration-200 font-medium ${videoUpload.isUploading
                         ? 'bg-gray-400 cursor-not-allowed text-white'
                         : 'bg-teal-600 hover:bg-teal-700 text-white'
-                    }`}
+                      }`}
                   >
                     <Save size={18} />
                     {videoUpload.isUploading ? 'Uploading...' : (editingChapter ? 'Update Chapter' : 'Create Chapter')}
@@ -1002,12 +1038,22 @@ const AdminChapter = () => {
                           <PlayCircle size={14} />
                           {chapter.duration || 0} min
                         </span>
+
+                        {/* Video Badge with Preview */}
                         {chapter.videoUrl && (
-                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                          <div className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-sm px-1 py-1 pr-3 rounded-full">
+                            <button
+                              onClick={() => setPreviewVideoUrl(chapter.videoUrl)}
+                              className="p-1 bg-blue-200 hover:bg-blue-300 rounded-full text-blue-900 transition-colors mr-1"
+                              title="Preview Video"
+                            >
+                              <PlayCircle size={12} fill="currentColor" />
+                            </button>
                             <Video size={14} />
                             Video
-                          </span>
+                          </div>
                         )}
+
                         <button
                           onClick={() => toggleChapterExpansion(chapter._id)}
                           className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-sm px-2 py-1 rounded transition-colors duration-200"
@@ -1051,14 +1097,12 @@ const AdminChapter = () => {
                           <div className="flex items-center gap-2">
                             <Video size={16} className="text-teal-500" />
                             <span className="text-sm font-medium text-gray-700">Video:</span>
-                            <a
-                              href={chapter.videoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-teal-600 hover:text-teal-800 text-sm truncate flex-1"
+                            <button
+                              onClick={() => setPreviewVideoUrl(chapter.videoUrl)}
+                              className="text-teal-600 hover:text-teal-800 text-sm truncate flex-1 text-left"
                             >
-                              View Video
-                            </a>
+                              Preview Video
+                            </button>
                           </div>
                         )}
                         {chapter.documentUrl && (

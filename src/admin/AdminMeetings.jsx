@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, addMeeting, removeMeeting, fetchMeetingLogs } from '../redux/features/meetings/meetingSlice';
 import { fetchAllAdmins, fetchAllMembers } from '../redux/features/members/memberSlice';
-import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon } from 'lucide-react';
+import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
 import { Select } from 'antd';
@@ -95,36 +95,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Meeting Link</label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <LinkIcon size={18} className="absolute left-3 top-3.5 text-gray-400" />
-                  <input
-                    type="url"
-                    placeholder="https://zoom.us/j/..."
-                    value={formData.meetingLink}
-                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
-                    className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    required
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateZoom}
-                  disabled={generatingZoom}
-                  className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors text-sm font-bold whitespace-nowrap flex items-center gap-2"
-                  title="Auto-generate via Zoom API"
-                >
-                  {generatingZoom ? (
-                    <span className="animate-spin">⌛</span>
-                  ) : (
-                    <Video size={18} />
-                  )}
-                  {generatingZoom ? 'Generating...' : 'Auto-Generate'}
-                </button>
-              </div>
-            </div>
+
 
             <div className="space-y-1">
               <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Date & Time</label>
@@ -157,6 +128,37 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
                 onChange={(values) => setFormData({ ...formData, participants: values })}
                 options={members.map(member => ({ label: member.name, value: member._id }))}
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Meeting Link</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <LinkIcon size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                  <input
+                    type="url"
+                    placeholder="https://zoom.us/j/..."
+                    value={formData.meetingLink}
+                    onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                    className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateZoom}
+                  disabled={generatingZoom}
+                  className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors text-sm font-bold whitespace-nowrap flex items-center gap-2"
+                  title="Auto-generate via Zoom API"
+                >
+                  {generatingZoom ? (
+                    <span className="animate-spin">⌛</span>
+                  ) : (
+                    <Video size={18} />
+                  )}
+                  {generatingZoom ? 'Generating...' : 'Auto-Generate'}
+                </button>
+              </div>
             </div>
           </div>
           <div className="p-4 bg-gray-50 flex justify-end rounded-b-lg border-t border-gray-100">
@@ -250,14 +252,25 @@ const AdminMeetings = () => {
   const [currentMeetingLogs, setCurrentMeetingLogs] = useState([]); // Store current logs
 
   const dispatch = useDispatch();
-  const { meetings, loading, error } = useSelector(state => state.meetings);
+  const { meetings, loading, error, pagination } = useSelector(state => state.meetings);
   const { members, admins } = useSelector(state => state.members);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
-    dispatch(fetchAllMeetings());
+    dispatch(fetchAllMeetings({ page: currentPage, limit: itemsPerPage }));
     dispatch(fetchAllMembers());
     dispatch(fetchAllAdmins());
-  }, [dispatch]);
+  }, [dispatch, currentPage]);
+
+  console.log("DEBUG: Pagination State:", { meetingsLength: meetings.length, pagination, loading });
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= (pagination?.totalPages || 1)) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const handleAddMeeting = (meetingData) => {
     dispatch(addMeeting(meetingData)).unwrap()
@@ -489,6 +502,54 @@ const AdminMeetings = () => {
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && meetings.length > 0 && pagination && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-100 gap-4">
+                <div className="text-sm text-gray-500">
+                  Showing <span className="font-bold text-gray-800">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="font-bold text-gray-800">{Math.min(currentPage * itemsPerPage, pagination.totalDocs)}</span> of <span className="font-bold text-gray-800">{pagination.totalDocs}</span> meetings
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((validPage) => (
+                      // Show only current, first, last, and nearby pages for cleaner look if many pages
+                      (validPage === 1 || validPage === pagination.totalPages || (validPage >= currentPage - 1 && validPage <= currentPage + 1)) ? (
+                        <button
+                          key={validPage}
+                          onClick={() => handlePageChange(validPage)}
+                          className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${currentPage === validPage
+                            ? 'bg-emerald-600 text-white shadow-emerald-200 shadow-md'
+                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-emerald-200'
+                            }`}
+                        >
+                          {validPage}
+                        </button>
+                      ) : (
+                        (validPage === currentPage - 2 || validPage === currentPage + 2) && <span key={validPage} className="px-1 text-gray-400">...</span>
+                      )
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === pagination.totalPages}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-600"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -506,7 +567,7 @@ const AdminMeetings = () => {
         onClose={() => setIsLogsModalOpen(false)}
         logs={currentMeetingLogs}
       />
-    </div>
+    </div >
   );
 };
 

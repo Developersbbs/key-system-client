@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../redux/features/auth/authSlice';
-import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector, Video, VideoIcon, DollarSign, Bell, X, Info, Palette, Instagram, MapPin, Mail, Phone } from 'lucide-react';
+import { Home, BookOpen, Users, LogOut, User, Menu, ChevronLeft, ChevronRight, Twitter, Facebook, Linkedin, Settings, CircleGauge, Calendar, Megaphone, CircleDollarSign, Projector, Video, VideoIcon, DollarSign, Bell, X, Info, Palette, Instagram, MapPin, Mail, Phone, Trophy, FolderOpen } from 'lucide-react';
 import logo from '../assets/key-system-logo.png';
 import { fetchAllAnnouncements } from '../redux/features/announcements/announcementSlice';
 
@@ -231,7 +231,8 @@ const Layout = ({ children }) => {
     { path: '/admin/settings', label: 'Settings', icon: Settings },
     { path: '/profile', label: 'QR Code', icon: User },
     { path: '/admin/founders', label: 'Leaders', icon: Users },
-
+    { path: '/achievers', label: 'Achievers', icon: Trophy },
+    { path: '/admin/tools', label: 'Tools', icon: FolderOpen },
   ];
 
   const memberNavItems = [
@@ -244,6 +245,8 @@ const Layout = ({ children }) => {
     { path: '/events', label: 'Events', icon: Calendar },
     { path: '/profile', label: 'QR Code', icon: User },
     { path: '/founders', label: 'Leaders', icon: Users },
+    { path: '/achievers', label: 'Achievers', icon: Trophy },
+    { path: '/tools', label: 'Tools', icon: FolderOpen },
   ];
 
   const navItems = user?.role === 'admin' ? adminNavItems : memberNavItems;
@@ -292,7 +295,7 @@ const Layout = ({ children }) => {
               </button>
             </div>
 
-            <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto">
+            <nav className="flex-1 p-2 md:p-4 space-y-1 md:space-y-2 overflow-y-auto no-scrollbar">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
@@ -301,7 +304,7 @@ const Layout = ({ children }) => {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 rounded-lg p-3 text-gray-700 hover:bg-gray-100 transition-colors ${isActive(item.path) && `${theme.bgGradient} text-white font-semibold`} ${sidebarMinimized && 'justify-center'}`}
                 >
-                  <item.icon size={20} />
+                  <item.icon size={30} />
                   {!sidebarMinimized && <span>{item.label}</span>}
                 </Link>
               ))}
@@ -312,7 +315,7 @@ const Layout = ({ children }) => {
                 title={sidebarMinimized ? 'Logout' : ''}
                 className={`w-full flex items-center gap-3 rounded-lg p-3 text-red-600 hover:bg-red-50 transition-colors ${sidebarMinimized && 'justify-center'}`}
               >
-                <LogOut size={20} />
+                <LogOut size={30} />
                 {!sidebarMinimized && <span className="font-medium">Logout</span>}
               </button>
             </div>

@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiClient from '../../../api/apiClient';
 
-export const fetchAllMeetings = createAsyncThunk('meetings/fetchAll', async (_, { rejectWithValue }) => {
+export const fetchAllMeetings = createAsyncThunk('meetings/fetchAll', async ({ page = 1, limit = 10 } = {}, { rejectWithValue }) => {
   try {
-    const res = await apiClient.get('/meetings');
+    const res = await apiClient.get(`/meetings?page=${page}&limit=${limit}`);
     return res.data;
   } catch (err) {
     return rejectWithValue(err.response?.data?.message);
@@ -54,12 +54,28 @@ const meetingSlice = createSlice({
     loading: false,
     error: null,
     logs: {}, // Store logs by meetingId: { [meetingId]: [logs] }
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      totalDocs: 0
+    }
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchAllMeetings.fulfilled, (state, action) => {
-        state.meetings = action.payload;
+        // Construct new state
+        if (action.payload.meetings) {
+          state.meetings = action.payload.meetings;
+          state.pagination = {
+            currentPage: action.payload.currentPage,
+            totalPages: action.payload.totalPages,
+            totalDocs: action.payload.totalDocs
+          };
+        } else {
+          // Backwards compatibility safety
+          state.meetings = action.payload;
+        }
       })
       .addCase(addMeeting.fulfilled, (state, action) => {
         state.meetings.unshift(action.payload);
