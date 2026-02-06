@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllMeetings, addMeeting, removeMeeting, fetchMeetingLogs } from '../redux/features/meetings/meetingSlice';
+import { fetchAllMeetings, addMeeting, removeMeeting, fetchMeetingLogs, updateMeeting } from '../redux/features/meetings/meetingSlice';
 import { fetchAllAdmins, fetchAllMembers } from '../redux/features/members/memberSlice';
-import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft } from 'lucide-react';
+import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft, Edit2, PlayCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
 import { Select } from 'antd';
@@ -18,10 +18,40 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
     host: '',
     participants: [],
     meetingLink: '',
-    zoomMeetingId: '' // Store Zoom ID
+    zoomMeetingId: '', // Store Zoom ID
+    recordingLink: '' // Store Recording Link
   });
   const { loading } = useSelector(state => state.meetings);
   const [generatingZoom, setGeneratingZoom] = useState(false);
+
+  // Prefill form when editing
+  useEffect(() => {
+    if (isOpen && onSubmit.initialData) {
+      const data = onSubmit.initialData;
+      setFormData({
+        title: data.title || '',
+        description: data.description || '',
+        meetingDate: data.meetingDate ? new Date(data.meetingDate).toISOString().slice(0, 16) : '',
+        host: data.host?._id || data.host || '',
+        participants: data.participants?.map(p => p._id || p) || [],
+        meetingLink: data.meetingLink || '',
+        zoomMeetingId: data.zoomMeetingId || '',
+        recordingLink: data.recordingLink || ''
+      });
+    } else if (isOpen) {
+      // Reset if new meeting
+      setFormData({
+        title: '',
+        description: '',
+        meetingDate: '',
+        host: '',
+        participants: [],
+        meetingLink: '',
+        zoomMeetingId: '',
+        recordingLink: ''
+      });
+    }
+  }, [isOpen, onSubmit.initialData]);
 
   const handleGenerateZoom = async () => {
     try {
@@ -57,7 +87,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit.handler(formData);
   };
 
   if (!isOpen) return null;
@@ -67,7 +97,9 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
         <form onSubmit={handleSubmit}>
           <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-lg">
-            <h3 className="text-lg font-bold text-gray-800">Schedule New Meeting</h3>
+            <h3 className="text-lg font-bold text-gray-800">
+              {onSubmit.initialData ? 'Edit Meeting' : 'Schedule New Meeting'}
+            </h3>
             <button type="button" onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors"><X size={20} className="text-gray-500" /></button>
           </div>
           <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -160,6 +192,21 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
                 </button>
               </div>
             </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Recording Link (Youtube / Drive)</label>
+              <div className="relative">
+                <PlayCircle size={18} className="absolute left-3 top-3.5 text-gray-400" />
+                <input
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={formData.recordingLink}
+                  onChange={(e) => setFormData({ ...formData, recordingLink: e.target.value })}
+                  className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 ml-1">Optional: Add this after the meeting is completed.</p>
+            </div>
           </div>
           <div className="p-4 bg-gray-50 flex justify-end rounded-b-lg border-t border-gray-100">
             <button
@@ -167,7 +214,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
               disabled={loading}
               className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-semibold disabled:opacity-50 hover:bg-emerald-700 transition-all shadow-lg hover:shadow-emerald-500/30 flex items-center gap-2"
             >
-              {loading ? 'Scheduling...' : 'Schedule Meeting'}
+              {loading ? 'Saving...' : (onSubmit.initialData ? 'Update Meeting' : 'Schedule Meeting')}
             </button>
           </div>
         </form>
@@ -248,6 +295,7 @@ const LogsModal = ({ isOpen, onClose, logs, users }) => {
 
 const AdminMeetings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState(null); // Track editing state
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false); // Log Modal State
   const [currentMeetingLogs, setCurrentMeetingLogs] = useState([]); // Store current logs
 
@@ -281,6 +329,30 @@ const AdminMeetings = () => {
       .catch((err) => {
         toast.error(err || "Failed to schedule meeting.");
       });
+  };
+
+  const handleUpdateMeeting = (meetingData) => {
+    if (!editingMeeting) return;
+
+    dispatch(updateMeeting({ id: editingMeeting._id, meetingData })).unwrap()
+      .then(() => {
+        toast.success("Meeting updated successfully!");
+        setIsModalOpen(false);
+        setEditingMeeting(null);
+      })
+      .catch((err) => {
+        toast.error(err || "Failed to update meeting.");
+      });
+  };
+
+  const openAddModal = () => {
+    setEditingMeeting(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (meeting) => {
+    setEditingMeeting(meeting);
+    setIsModalOpen(true);
   };
 
   const handleDelete = (meetingId, meetingTitle) => {
@@ -343,7 +415,7 @@ const AdminMeetings = () => {
           <p className="text-gray-500 mt-1">Manage Zoom meetings and track attendance</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={openAddModal}
           className="bg-emerald-600 text-white px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg hover:shadow-emerald-500/30 font-semibold"
         >
           <Plus size={20} /> New Meeting
@@ -426,7 +498,7 @@ const AdminMeetings = () => {
                 <Video size={48} className="text-emerald-200 mx-auto mb-4" />
                 <p className="text-gray-500 font-medium">No meetings have been scheduled yet.</p>
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openAddModal}
                   className="mt-4 text-emerald-600 font-semibold text-sm hover:underline"
                 >
                   Schedule your first meeting
@@ -495,6 +567,21 @@ const AdminMeetings = () => {
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete Meeting"
                       >
+                      </button>
+
+                      <button
+                        onClick={() => openEditModal(meeting)}
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Meeting"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(meeting._id, meeting.title)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Meeting"
+                      >
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -557,7 +644,7 @@ const AdminMeetings = () => {
       <MeetingFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddMeeting}
+        onSubmit={{ handler: editingMeeting ? handleUpdateMeeting : handleAddMeeting, initialData: editingMeeting }}
         admins={admins}
         members={members}
       />

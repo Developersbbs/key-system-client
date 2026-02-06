@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, joinMeeting } from '../redux/features/meetings/meetingSlice';
-import { Calendar, Video, User, Clock, Users, ChevronRight, AlertCircle, Link, FileText, X, Save } from 'lucide-react';
+import { Calendar, Video, User, Clock, Users, ChevronRight, AlertCircle, Link, FileText, X, Save, PlayCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
 import apiClient from '../api/apiClient';
@@ -382,9 +382,20 @@ const MemberMeetings = () => {
                     <FileText size={16} /> My Notes
                   </button>
 
-                  <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
-                    <Video size={16} /> Ended
-                  </div>
+                  {meeting.recordingLink ? (
+                    <a
+                      href={meeting.recordingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                    >
+                      <PlayCircle size={16} /> Watch Recording
+                    </a>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
+                      <Video size={16} /> Ended
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

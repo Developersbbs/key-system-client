@@ -19,6 +19,16 @@ export const addMeeting = createAsyncThunk('meetings/add', async (meetingData, {
   }
 });
 
+// ✅ Update Meeting
+export const updateMeeting = createAsyncThunk('meetings/update', async ({ id, meetingData }, { rejectWithValue }) => {
+  try {
+    const res = await apiClient.put(`/meetings/${id}`, meetingData);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message);
+  }
+});
+
 export const removeMeeting = createAsyncThunk('meetings/remove', async (id, { rejectWithValue }) => {
   try {
     await apiClient.delete(`/meetings/${id}`);
@@ -79,6 +89,12 @@ const meetingSlice = createSlice({
       })
       .addCase(addMeeting.fulfilled, (state, action) => {
         state.meetings.unshift(action.payload);
+      })
+      .addCase(updateMeeting.fulfilled, (state, action) => {
+        const index = state.meetings.findIndex(m => m._id === action.payload._id);
+        if (index !== -1) {
+          state.meetings[index] = action.payload;
+        }
       })
       .addCase(removeMeeting.fulfilled, (state, action) => {
         state.meetings = state.meetings.filter(m => m._id !== action.payload);
