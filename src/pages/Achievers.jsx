@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/apiClient';
-import { Trophy, Plus, Calendar, CheckCircle, Clock, Activity, Trash2, Award, Camera, Image as ImageIcon } from 'lucide-react';
+import { Trophy, Plus, Calendar, CheckCircle, Clock, Activity, Trash2, Award, Camera, Image as ImageIcon, Layout } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,9 @@ const Achievers = () => {
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
     const [loadingActivities, setLoadingActivities] = useState(true);
     const { user } = useSelector((state) => state.auth);
+
+    // View State for Mobile (Slider)
+    const [activeTab, setActiveTab] = useState('achievers');
 
     // Activity Form State
     const [activityForm, setActivityForm] = useState({
@@ -55,16 +58,6 @@ const Achievers = () => {
     useEffect(() => {
         fetchLeaderboard();
         fetchActivities();
-
-        // Initial celebration if user is in top 3
-        /*
-        if (leaderboard.length > 0) {
-             const currentUserRank = leaderboard.findIndex(u => u.email === user.email);
-             if (currentUserRank >= 0 && currentUserRank < 3) {
-                 setTimeout(() => triggerConfetti(), 1000);
-             }
-        }
-        */
     }, []);
 
     const triggerConfetti = () => {
@@ -89,7 +82,7 @@ const Achievers = () => {
         uploadFile(
             file,
             path,
-            null, // No detailed progress needed for small photos
+            null,
             (error) => {
                 toast.error(error);
                 setUploading(false);
@@ -152,7 +145,6 @@ const Achievers = () => {
         }
     };
 
-    // Animation Variants
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -172,28 +164,57 @@ const Achievers = () => {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
-            <motion.h1
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-3xl font-bold text-gray-800 flex items-center gap-3 mb-8"
-            >
-                <Trophy className="text-yellow-500" size={32} />
-                Achievers & Activities
-            </motion.h1>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <motion.h1
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-3xl font-bold text-gray-800 flex items-center gap-3"
+                >
+                    <Trophy className="text-yellow-500" size={32} />
+                    Achievers & Activities
+                </motion.h1>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* --- LEADERBOARD SECTION (Left Column) --- */}
-                <div className="lg:col-span-1 space-y-6">
+                {/* Slider / Segmented Control (Visible on Mobile, Hidden on LG) */}
+                <div className="lg:hidden bg-gray-100 p-1 rounded-xl flex w-full md:w-auto relative">
+                    <motion.div
+                        className="absolute top-1 bottom-1 bg-white rounded-lg shadow-sm z-0"
+                        initial={false}
+                        animate={{
+                            left: activeTab === 'achievers' ? '4px' : '50%',
+                            width: 'calc(50% - 4px)'
+                        }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                    <button
+                        onClick={() => setActiveTab('achievers')}
+                        className={`flex-1 px-6 py-2 rounded-lg text-sm font-semibold z-10 transition-colors ${activeTab === 'achievers' ? 'text-gray-800' : 'text-gray-500'}`}
+                    >
+                        Achievers
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('activities')}
+                        className={`flex-1 px-6 py-2 rounded-lg text-sm font-semibold z-10 transition-colors ${activeTab === 'activities' ? 'text-gray-800' : 'text-gray-500'}`}
+                    >
+                        Activities
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content Grid: 1 Col on Mobile (Toggle), 2 Cols on Desktop (50/50 Split) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                {/* --- LEADERBOARD SECTION --- */}
+                <div className={`${activeTab === 'achievers' ? 'block' : 'hidden'} lg:block space-y-6`}>
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 sticky top-6"
+                        className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 sticky top-6 h-full"
                     >
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-4">
                             <Award className="text-emerald-500" />
                             Top Performers
                         </h2>
-                        <p className="text-sm text-gray-500 mb-6">Ranked by total performance score.</p>
+                        {/* <p className="text-sm text-gray-500 mb-6">Ranked by total performance score.</p> */}
 
                         {loadingLeaderboard ? (
                             <div className="flex justify-center p-8">
@@ -252,7 +273,7 @@ const Achievers = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Rank Badge for Top 3 (absolute to pop out) */}
+                                            {/* Rank Badge for Top 3 */}
                                             {index < 3 && (
                                                 <div className="absolute -top-2 -right-2 bg-white border border-gray-100 shadow-sm rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-600">
                                                     {index + 1}
@@ -270,8 +291,8 @@ const Achievers = () => {
                     </motion.div>
                 </div>
 
-                {/* --- ACTIVITIES SECTION (Right Column - Wider) --- */}
-                <div className="lg:col-span-2 space-y-6">
+                {/* --- ACTIVITIES SECTION --- */}
+                <div className={`${activeTab === 'activities' ? 'block' : 'hidden'} lg:block space-y-6`}>
                     {/* Add Activity Form */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -279,90 +300,96 @@ const Achievers = () => {
                         transition={{ delay: 0.2 }}
                         className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100"
                     >
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-4">
                             <Activity className="text-emerald-500" />
                             Log Key Activity
                         </h2>
-                        <form onSubmit={handleActivitySubmit} className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1">
+                        <form onSubmit={handleActivitySubmit} className="flex flex-col gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input
                                     type="text"
                                     name="title"
                                     value={activityForm.title}
                                     onChange={handleActivityChange}
-                                    placeholder="Activity Title (e.g. Client Call)"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-300"
+                                    placeholder="Title (e.g. Client Call)"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                                     required
                                 />
-                            </div>
-                            <div className="flex-1">
-                                <input
-                                    type="text"
-                                    name="description"
-                                    value={activityForm.description}
-                                    onChange={handleActivityChange}
-                                    placeholder="Description..."
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all hover:border-emerald-300"
-                                    required
-                                />
-                            </div>
-                            <div className="w-full md:w-32">
-                                <select
-                                    name="type"
-                                    value={activityForm.type}
-                                    onChange={handleActivityChange}
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
-                                >
-                                    <option value="Task">Task</option>
-                                    <option value="Call">Call</option>
-                                    <option value="Meeting">Meeting</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-
-                            {/* Photo Upload Button */}
-                            <div className="relative">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleFileUpload}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                                    disabled={uploading}
-                                    id="photo-upload"
-                                />
-                                <div
-                                    className={`p-3 border rounded-lg flex items-center justify-center transition-all ${activityForm.photo
-                                        ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                                        : 'border-gray-300 hover:bg-gray-50 text-gray-500'
-                                        }`}
-                                    title={activityForm.photo ? "Photo uploaded" : "Upload photo"}
-                                >
-                                    {uploading ? (
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>
-                                    ) : activityForm.photo ? (
-                                        <ImageIcon size={20} />
-                                    ) : (
-                                        <Camera size={20} />
-                                    )}
+                                <div className="w-full">
+                                    <select
+                                        name="type"
+                                        value={activityForm.type}
+                                        onChange={handleActivityChange}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                                    >
+                                        <option value="Task">Task</option>
+                                        <option value="Call">Call</option>
+                                        <option value="Meeting">Meeting</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                type="submit"
-                                disabled={uploading}
-                                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                <Plus size={20} />
-                                Add
-                            </motion.button>
+                            <textarea
+                                name="description"
+                                value={activityForm.description}
+                                onChange={handleActivityChange}
+                                placeholder="Description..."
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all h-24 resize-none"
+                                required
+                            />
+
+
+                            <div className="flex gap-4 items-center">
+                                {/* Photo Upload Button */}
+                                <div className="relative flex-1">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileUpload}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                        disabled={uploading}
+                                        id="photo-upload"
+                                    />
+                                    <div
+                                        className={`p-3 border rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${activityForm.photo
+                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                            : 'border-gray-300 hover:bg-gray-50 text-gray-500'
+                                            }`}
+                                    >
+                                        {uploading ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>
+                                        ) : activityForm.photo ? (
+                                            <>
+                                                <ImageIcon size={20} />
+                                                <span className="text-sm font-medium">Photo Attached</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Camera size={20} />
+                                                <span className="text-sm font-medium">Upload Proof</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={uploading}
+                                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    <Plus size={20} />
+                                    Add Activity
+                                </motion.button>
+                            </div>
                         </form>
                     </motion.div>
 
                     {/* Activities List */}
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 min-h-[400px]">
-                        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
                             <Clock className="text-gray-500" />
                             Recent Activities
                         </h2>
@@ -376,7 +403,7 @@ const Achievers = () => {
                                 variants={containerVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="space-y-4"
+                                className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2"
                             >
                                 <AnimatePresence>
                                     {activities.length > 0 ? (
@@ -389,17 +416,17 @@ const Achievers = () => {
                                                 className="group flex items-start justify-between p-4 bg-gray-50 rounded-xl hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-emerald-100"
                                             >
                                                 <div className="flex gap-4">
-                                                    <div className={`mt-1 p-2 rounded-lg transform transition-transform group-hover:scale-110 ${activity.type === 'Call' ? 'bg-lime-100 text-lime-600' :
+                                                    <div className={`mt-1 p-2 rounded-lg transform transition-transform group-hover:scale-110 flex-shrink-0 ${activity.type === 'Call' ? 'bg-lime-100 text-lime-600' :
                                                         activity.type === 'Meeting' ? 'bg-teal-100 text-teal-600' :
                                                             'bg-emerald-100 text-emerald-600'
                                                         }`}>
                                                         <CheckCircle size={20} />
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-bold text-gray-800">{activity.title}</h3>
-                                                        <p className="text-gray-600 text-sm mt-1">{activity.description}</p>
-                                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                                            <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-medium">{activity.type}</span>
+                                                        <h3 className="font-bold text-gray-800 text-sm md:text-base">{activity.title}</h3>
+                                                        <p className="text-gray-600 text-xs md:text-sm mt-1 line-clamp-2">{activity.description}</p>
+                                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-400">
+                                                            <span className="bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600 font-medium">{activity.type}</span>
                                                             <span>{new Date(activity.date).toLocaleDateString()}</span>
                                                         </div>
                                                         {activity.photo && (
@@ -407,7 +434,7 @@ const Achievers = () => {
                                                                 <img
                                                                     src={activity.photo}
                                                                     alt="Activity proof"
-                                                                    className="h-24 w-auto object-cover rounded-lg border border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+                                                                    className="h-20 w-auto object-cover rounded-lg border border-gray-200 hover:scale-105 transition-transform cursor-pointer shadow-sm"
                                                                     onClick={() => window.open(activity.photo, '_blank')}
                                                                 />
                                                             </div>
@@ -416,10 +443,10 @@ const Achievers = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteActivity(activity._id)}
-                                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-2 transform hover:scale-110"
+                                                    className="text-gray-300 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all p-2"
                                                     title="Delete Activity"
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </motion.div>
                                         ))
