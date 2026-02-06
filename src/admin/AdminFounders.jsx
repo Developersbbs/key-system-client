@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAdminFounders, createFounder, updateFounder, deleteFounder, fetchUsersToLink } from '../redux/features/founders/founderSlice';
 
-import { Plus, Edit2, Trash2, X, Upload, Save, Search, Filter, User, Loader, CheckCircle, Eye } from 'lucide-react';
-import { uploadImage, deleteImage } from '../utils/imageUpload';
+import { Plus, Edit2, Trash2, X, Upload, Save, Search, Filter, User, Loader, CheckCircle, Eye, FileVideo } from 'lucide-react';
+import { uploadImage, deleteImage, uploadFile } from '../utils/imageUpload';
 import { locationData } from '../utils/locationData';
 import { toast } from 'react-hot-toast';
 
@@ -28,6 +28,7 @@ const AdminFounders = () => {
         user: '', // For linking to registered user
         imageUrl: '',
         description: '',
+        videoUrl: '',
         mobile: '',
         address: '',
         state: '',
@@ -47,6 +48,8 @@ const AdminFounders = () => {
 
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
+    const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+    const [isVideoUploading, setIsVideoUploading] = useState(false);
 
     const [selectedId, setSelectedId] = useState(null);
 
@@ -97,6 +100,7 @@ const AdminFounders = () => {
             user: '',
             imageUrl: '',
             description: '',
+            videoUrl: '',
             mobile: '',
             address: '',
             state: '',
@@ -129,6 +133,7 @@ const AdminFounders = () => {
             user: founder.user?._id || founder.user || '',
             imageUrl: founder.imageUrl || '',
             description: founder.description || '',
+            videoUrl: founder.videoUrl || '',
             mobile: founder.mobile || '',
             address: founder.address || '',
             state: founder.state || '',
@@ -568,6 +573,91 @@ const AdminFounders = () => {
                                         ></textarea>
                                     </div>
 
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Video Introduction</label>
+                                        <div className="flex gap-4 items-start">
+                                            <div className="flex-grow">
+                                                <div className="space-y-3">
+                                                    {/* File Upload Option */}
+                                                    <div className="relative border border-gray-300 rounded-lg overflow-hidden border-dashed">
+                                                        <input
+                                                            type="file"
+                                                            accept="video/mp4,video/webm,video/ogg"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files[0];
+                                                                if (file) {
+                                                                    setIsVideoUploading(true);
+                                                                    setVideoUploadProgress(0);
+                                                                    uploadFile(
+                                                                        file,
+                                                                        'founder-videos',
+                                                                        (progress) => setVideoUploadProgress(progress),
+                                                                        (error) => {
+                                                                            toast.error(error);
+                                                                            setIsVideoUploading(false);
+                                                                        }
+                                                                    ).then((url) => {
+                                                                        setFormData(prev => ({ ...prev, videoUrl: url }));
+                                                                        setIsVideoUploading(false);
+                                                                        toast.success('Video uploaded!');
+                                                                    }).catch(err => {
+                                                                        console.error(err);
+                                                                        setIsVideoUploading(false);
+                                                                    });
+                                                                }
+                                                            }}
+                                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                            disabled={isVideoUploading}
+                                                        />
+                                                        <div className="flex items-center justify-center py-4 px-4 bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors">
+                                                            <Upload size={18} className="mr-2" />
+                                                            <span className="text-sm">Upload Video (MP4)</span>
+                                                        </div>
+                                                        {isVideoUploading && (
+                                                            <div className="absolute bottom-0 left-0 h-1 bg-emerald-500 transition-all duration-300" style={{ width: `${videoUploadProgress}%` }}></div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="text-center text-xs text-gray-400 font-medium">- OR -</div>
+
+                                                    {/* URL Input Option */}
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            name="videoUrl"
+                                                            value={formData.videoUrl}
+                                                            onChange={handleInputChange}
+                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                                            placeholder="Paste YouTube/Vimeo embed URL here"
+                                                        />
+                                                        <FileVideo size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-2">Upload a video file (max 50MB) or provide an embed URL.</p>
+                                            </div>
+
+                                            {formData.videoUrl && (
+                                                <div className="relative h-24 w-40 rounded-lg border border-gray-200 overflow-hidden flex-shrink-0 group bg-black">
+                                                    <div className="w-full h-full flex items-center justify-center text-white">
+                                                        <FileVideo size={30} />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (window.confirm('Remove this video?')) {
+                                                                setFormData(prev => ({ ...prev, videoUrl: '' }));
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                                                    >
+                                                        <X size={20} />
+                                                        <span className="ml-1 text-sm">Remove</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     {/* Social Links */}
                                     <div className="md:col-span-2">
                                         <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">Social Links</h3>
@@ -735,6 +825,33 @@ const AdminFounders = () => {
                                     <p className="text-gray-600 bg-gray-50 p-4 rounded-xl leading-relaxed">
                                         {viewData.description}
                                     </p>
+                                </div>
+                            )}
+
+                            {viewData.videoUrl && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 mb-2">Video</h4>
+                                    <div className="relative pt-[56.25%] rounded-xl overflow-hidden bg-black shadow-lg border border-gray-200">
+                                        {(viewData.videoUrl.includes('firebasestorage') || viewData.videoUrl.endsWith('.mp4') || viewData.videoUrl.endsWith('.webm')) ? (
+                                            <video
+                                                src={viewData.videoUrl}
+                                                className="absolute inset-0 w-full h-full object-contain"
+                                                controls
+                                                playsInline
+                                            >
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        ) : (
+                                            <iframe
+                                                src={viewData.videoUrl}
+                                                className="absolute inset-0 w-full h-full"
+                                                title={viewData.name}
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            ></iframe>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

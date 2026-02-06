@@ -35,6 +35,7 @@ import Founders from "./pages/Founders";
 import AdminFounders from "./admin/AdminFounders";
 import AdminAttendance from "./admin/AdminAttendance";
 import Achievers from "./pages/Achievers";
+import UserActivities from "./pages/UserActivities";
 import AdminTools from "./admin/AdminTools";
 import Tools from "./pages/Tools";
 
@@ -123,6 +124,11 @@ const App = () => {
           <Route path="/achievers" element={
             <ProtectedRoute>
               <Achievers />
+            </ProtectedRoute>
+          } />
+          <Route path="/achievers/:userId" element={
+            <ProtectedRoute>
+              <UserActivities />
             </ProtectedRoute>
           } />
           <Route path="/tools" element={

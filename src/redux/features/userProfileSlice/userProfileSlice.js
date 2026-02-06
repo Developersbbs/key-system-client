@@ -41,6 +41,19 @@ export const updateProfileSettings = createAsyncThunk(
   }
 );
 
+// ✅ Update profile image
+export const updateProfileImage = createAsyncThunk(
+  'user/updateProfileImage',
+  async (imageUrl, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.put('/users/profile-image', { imageUrl });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update profile image');
+    }
+  }
+);
+
 // ✅ Get seller payment details (for buyer before purchase)
 export const fetchSellerPaymentDetails = createAsyncThunk(
   'user/fetchSellerPaymentDetails',
@@ -114,6 +127,22 @@ const userProfileSlice = createSlice({
         state.loading = false;
       })
       .addCase(updateProfileSettings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // 🔹 updateProfileImage
+      .addCase(updateProfileImage.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfileImage.fulfilled, (state, action) => {
+        if (state.profile) {
+          state.profile = action.payload.user;
+        }
+        state.loading = false;
+      })
+      .addCase(updateProfileImage.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

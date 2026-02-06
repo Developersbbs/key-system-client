@@ -394,9 +394,21 @@ const Layout = ({ children }) => {
                     <span className="text-gray-800 font-medium hidden sm:block">
                       {user?.name || 'User'}
                     </span>
-                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${theme.bgGradient} text-white`}>
-                      <User size={20} />
-                    </div>
+                    {user?.imageUrl ? (
+                      <Link to="/profile">
+                        <img
+                          src={user.imageUrl}
+                          alt={user.name}
+                          className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-2 border-white shadow-sm hover:opacity-90 transition-opacity"
+                        />
+                      </Link>
+                    ) : (
+                      <Link to="/profile">
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center ${theme.bgGradient} text-white shadow-sm hover:opacity-90 transition-opacity`}>
+                          <User size={20} />
+                        </div>
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <>

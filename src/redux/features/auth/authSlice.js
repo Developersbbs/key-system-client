@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from '../../../api/apiClient'; // Adjust path if needed
+import { updateProfileImage } from '../userProfileSlice/userProfileSlice';
 
 const initialState = {
   user: null,
@@ -43,7 +44,7 @@ export const registerWithOTP = createAsyncThunk(
     try {
       const res = await apiClient.post('/auth/register', userData);
       return res.data.user;
-    } catch (err)      {
+    } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Registration failed");
     }
   }
@@ -81,6 +82,16 @@ const authSlice = createSlice({
           state.loading = false;
           state.error = null;
           localStorage.setItem("user", JSON.stringify(action.payload));
+        }
+      )
+      // Update auth user when profile image is updated
+      .addMatcher(
+        (action) => action.type === updateProfileImage.fulfilled.type,
+        (state, action) => {
+          if (state.user) {
+            state.user = { ...state.user, imageUrl: action.payload.user.imageUrl };
+            localStorage.setItem("user", JSON.stringify(state.user));
+          }
         }
       )
       // Rejected: Session check failed or user logged out

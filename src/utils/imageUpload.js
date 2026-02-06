@@ -2,14 +2,14 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebas
 import { storage } from '../config/firebase';
 
 /**
- * Upload image file to Firebase Storage
- * @param {File} file - Image file to upload
+ * Upload file to Firebase Storage (Images or Videos)
+ * @param {File} file - File to upload
  * @param {string} path - Path to store the file
  * @param {function} onProgress - Progress callback function
  * @param {function} onError - Error callback function
- * @returns {Promise<string>} - Download URL of uploaded image
+ * @returns {Promise<string>} - Download URL of uploaded file
  */
-export const uploadImage = (file, path = 'founders', onProgress, onError) => {
+export const uploadFile = (file, path = 'uploads', onProgress, onError) => {
     return new Promise((resolve, reject) => {
         // Validate file
         if (!file) {
@@ -20,18 +20,24 @@ export const uploadImage = (file, path = 'founders', onProgress, onError) => {
         }
 
         // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        const videoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+        const allowedTypes = [...imageTypes, ...videoTypes];
+
         if (!allowedTypes.includes(file.type)) {
-            const error = 'Invalid file type. Please upload an image file (JPEG, PNG, WEBP, GIF).';
+            const error = 'Invalid file type. Please upload a valid image or video file.';
             onError?.(error);
             reject(new Error(error));
             return;
         }
 
-        // Validate file size (e.g., max 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        // Validate file size
+        // Images: 5MB, Videos: 50MB
+        const isVideo = videoTypes.includes(file.type);
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+
         if (file.size > maxSize) {
-            const error = 'File size too large. Maximum size is 5MB.';
+            const error = `File size too large. Maximum size is ${isVideo ? '50MB' : '5MB'}.`;
             onError?.(error);
             reject(new Error(error));
             return;
@@ -87,7 +93,7 @@ export const uploadImage = (file, path = 'founders', onProgress, onError) => {
                     resolve(downloadURL);
                 } catch (error) {
                     console.error('Error getting download URL:', error);
-                    const errorMessage = 'Failed to get image URL after upload.';
+                    const errorMessage = 'Failed to get file URL after upload.';
                     onError?.(errorMessage);
                     reject(new Error(errorMessage));
                 }
@@ -99,28 +105,33 @@ export const uploadImage = (file, path = 'founders', onProgress, onError) => {
     });
 };
 
+// Export alias for backward compatibility
+export const uploadImage = (file, path = 'founders', onProgress, onError) => {
+    return uploadFile(file, path, onProgress, onError);
+};
+
 /**
- * Delete image from Firebase Storage
- * @param {string} imageUrl - Full URL of the image to delete
+ * Delete file from Firebase Storage
+ * @param {string} fileUrl - Full URL of the file to delete
  * @returns {Promise<void>}
  */
-export const deleteImage = async (imageUrl) => {
+export const deleteImage = async (fileUrl) => {
     try {
         // Extract the path from the full URL
         // Firebase URLs: https://firebasestorage.googleapis.com/.../o/<path>?...
-        const url = new URL(imageUrl);
+        const url = new URL(fileUrl);
         const pathname = decodeURIComponent(url.pathname);
         const path = pathname.split('/o/')[1]?.split('?')[0];
 
         if (!path) {
-            throw new Error('Invalid image URL format');
+            throw new Error('Invalid URL format');
         }
 
-        const imageRef = ref(storage, path);
-        await deleteObject(imageRef);
-        console.log('Image deleted successfully');
+        const fileRef = ref(storage, path);
+        await deleteObject(fileRef);
+        console.log('File deleted successfully');
     } catch (error) {
-        console.error('Error deleting image:', error);
-        // Silent fail if image doesn't exist or already deleted
+        console.error('Error deleting file:', error);
+        // Silent fail if file doesn't exist or already deleted
     }
 };

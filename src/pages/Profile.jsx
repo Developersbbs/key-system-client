@@ -1,10 +1,10 @@
 // src/pages/Profile.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Upload, QrCode, Trash2, ImageIcon, RefreshCw } from 'lucide-react';
+import { Upload, QrCode, Trash2, ImageIcon, RefreshCw, User, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { updatePaymentDetails, fetchUserProfile } from '../redux/features/userProfileSlice/userProfileSlice';
-import { uploadQRCode, deleteFileFromFirebase } from '../utils/uploadUtils';
+import { updatePaymentDetails, fetchUserProfile, updateProfileImage } from '../redux/features/userProfileSlice/userProfileSlice';
+import { uploadQRCode, deleteFileFromFirebase, uploadFileToFirebase } from '../utils/uploadUtils';
 
 const Profile = () => {
   const dispatch = useDispatch();
@@ -13,6 +13,7 @@ const Profile = () => {
 
   const [qrFile, setQrFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [qrImageError, setQrImageError] = useState(false);
   const [qrImageLoading, setQrImageLoading] = useState(false);
@@ -90,17 +91,17 @@ const Profile = () => {
   const handleQRFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File size should be less than 5MB');
       return;
     }
-    
+
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file');
       return;
     }
-    
+
     setQrFile(file);
   };
 
@@ -133,9 +134,9 @@ const Profile = () => {
       const qrCodeUrl = await uploadQRCode(qrFile, user._id);
 
       // Update profile with new QR code URL
-      await dispatch(updatePaymentDetails({ 
+      await dispatch(updatePaymentDetails({
         ...paymentDetails,
-        qrCodeUrl 
+        qrCodeUrl
       })).unwrap();
 
       toast.success('QR code uploaded successfully!');
@@ -170,9 +171,9 @@ const Profile = () => {
       await deleteFileFromFirebase(paymentDetails.qrCodeUrl);
 
       // Update profile to remove QR code URL
-      await dispatch(updatePaymentDetails({ 
+      await dispatch(updatePaymentDetails({
         ...paymentDetails,
-        qrCodeUrl: "" 
+        qrCodeUrl: ""
       })).unwrap();
 
       toast.success('QR code removed successfully!');
@@ -194,6 +195,48 @@ const Profile = () => {
       toast.success('Payment details saved successfully!');
     } catch (error) {
       toast.error(error.message || 'Failed to save payment details');
+    }
+  };
+
+  // Handle Profile Photo Selection & Upload
+  const handleProfilePhotoSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsProfileUploading(true);
+
+      // Upload to Firebase
+      // Use 'profile-photos/USER_ID' path
+      const path = `profile-photos/${user._id}`;
+      // Use a consistent name or unique, here we use timestamp to avoid caching issues easily
+      const fileName = `profile_${Date.now()}_${file.name}`;
+
+      const downloadURL = await uploadFileToFirebase(file, path, fileName);
+
+      // Update Backend
+      await dispatch(updateProfileImage(downloadURL)).unwrap();
+
+      toast.success('Profile photo updated successfully!');
+
+      // Refresh profile to update Redux state fully if needed (thunk usually updates it though)
+      dispatch(fetchUserProfile());
+
+    } catch (error) {
+      console.error('Profile photo upload error:', error);
+      toast.error(error.message || 'Failed to update profile photo');
+    } finally {
+      setIsProfileUploading(false);
     }
   };
 
@@ -220,6 +263,62 @@ const Profile = () => {
         </div>
       </div> */}
 
+
+      {/* Profile Header & Photo Upload */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row items-center gap-6">
+        <div className="relative group">
+          <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-md bg-gray-50 flex items-center justify-center">
+            {profile?.imageUrl ? (
+              <img
+                src={profile.imageUrl}
+                alt={profile?.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User size={64} className="text-gray-300" />
+            )}
+
+            {/* Overlay for upload */}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              onClick={() => document.getElementById('profile-photo-input').click()}>
+              <div className="text-white flex flex-col items-center text-xs font-medium">
+                <Camera size={20} className="mb-1" />
+                <span>Change</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            id="profile-photo-input"
+            accept="image/*"
+            className="hidden"
+            onChange={handleProfilePhotoSelect}
+            disabled={isProfileUploading}
+          />
+
+          {isProfileUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 text-center md:text-left">
+          <h1 className="text-2xl font-bold text-gray-900">{profile?.name || user?.name}</h1>
+          <p className="text-gray-500">{profile?.email || user?.email}</p>
+          {profile?.chapter && (
+            <span className="inline-block mt-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-100">
+              Chapter: {profile.chapter}
+            </span>
+          )}
+          <p className="mt-4 text-xs text-gray-400">
+            Click on the photo to update your profile picture.
+          </p>
+        </div>
+      </div>
+
       {/* Payment QR Code Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
@@ -242,7 +341,7 @@ const Profile = () => {
                     <span className="text-xs text-gray-500 text-center mb-2">
                       QR Code<br />Unavailable
                     </span>
-                    <button 
+                    <button
                       onClick={retryQrImage}
                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                     >
@@ -302,7 +401,7 @@ const Profile = () => {
                   <Trash2 size={16} className="mr-1" />
                   {isDeleting ? 'Removing...' : 'Remove QR Code'}
                 </button>
-                
+
                 {qrImageError && (
                   <button
                     onClick={() => {
@@ -365,7 +464,7 @@ const Profile = () => {
                   </div>
                 </div>
               )}
-              
+
               {qrFile && (
                 <button
                   onClick={handleUploadQR}
@@ -385,12 +484,12 @@ const Profile = () => {
                   )}
                 </button>
               )}
-              
+
               {!qrFile && (
                 <div className="text-sm text-gray-500 space-y-2">
                   <p>Select an image (max 5MB) to upload your QR code to Firebase.</p>
                   <p className="text-xs">
-                    <strong>Tip:</strong> Generate your QR code from your UPI app (PhonePe, GPay, etc.) 
+                    <strong>Tip:</strong> Generate your QR code from your UPI app (PhonePe, GPay, etc.)
                     and take a screenshot to upload here.
                   </p>
                 </div>

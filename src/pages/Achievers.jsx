@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/apiClient';
 import { Trophy, Plus, Calendar, CheckCircle, Clock, Activity, Trash2, Award, Camera, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,6 +9,7 @@ import confetti from 'canvas-confetti';
 import { uploadFile } from '../utils/fileUpload';
 
 const Achievers = () => {
+    const navigate = useNavigate();
     const [leaderboard, setLeaderboard] = useState([]);
     const [activities, setActivities] = useState([]);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
@@ -210,7 +212,8 @@ const Achievers = () => {
                                             key={user._id}
                                             variants={itemVariants}
                                             whileHover={{ scale: 1.02 }}
-                                            className={`relative flex items-center justify-between p-4 rounded-xl border border-transparent transition-all shadow-sm hover:shadow-md ${getRankStyle(index)}`}
+                                            className={`relative flex items-center justify-between p-4 rounded-xl border border-transparent transition-all shadow-sm hover:shadow-md cursor-pointer ${getRankStyle(index)}`}
+                                            onClick={() => navigate(`/achievers/${user._id}`)}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center font-bold">

@@ -273,6 +273,33 @@ const Founders = () => {
                                 </div>
                             )}
 
+                            {viewData.videoUrl && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 mb-2">Video Introduction</h4>
+                                    <div className="relative pt-[56.25%] rounded-xl overflow-hidden bg-black shadow-lg">
+                                        {(viewData.videoUrl.includes('firebasestorage') || viewData.videoUrl.endsWith('.mp4') || viewData.videoUrl.endsWith('.webm')) ? (
+                                            <video
+                                                src={viewData.videoUrl}
+                                                className="absolute inset-0 w-full h-full object-contain"
+                                                controls
+                                                playsInline
+                                            >
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        ) : (
+                                            <iframe
+                                                src={viewData.videoUrl}
+                                                className="absolute inset-0 w-full h-full"
+                                                title={viewData.name}
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            ></iframe>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {viewData.socialLinks && Object.values(viewData.socialLinks).some(link => link) && (
                                 <div>
                                     <h4 className="text-sm font-bold text-gray-900 mb-3">Connect</h4>
