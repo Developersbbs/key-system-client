@@ -21,9 +21,17 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   }
 
   // If role is required and user doesn't have it, redirect to appropriate dashboard
-  if (requiredRole && user?.role !== requiredRole) {
-    const redirectPath = user?.role === 'admin' ? '/admin/dashboard' : '/member';
-    return <Navigate to={redirectPath} replace />;
+  if (requiredRole) {
+    // Allow superadmin to access all routes
+    // For admin routes, allow both 'admin' and 'superadmin'
+    const hasAccess =
+      user?.role === requiredRole ||
+      (requiredRole === 'admin' && user?.role === 'superadmin');
+
+    if (!hasAccess) {
+      const redirectPath = (user?.role === 'admin' || user?.role === 'superadmin') ? '/admin/dashboard' : '/member';
+      return <Navigate to={redirectPath} replace />;
+    }
   }
 
   return children;

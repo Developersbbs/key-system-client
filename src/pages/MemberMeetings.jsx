@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, joinMeeting } from '../redux/features/meetings/meetingSlice';
-import { Calendar, Video, User, Clock, Users, ChevronRight, AlertCircle, Link, FileText, X, Save, PlayCircle } from 'lucide-react';
+import { Calendar, Video, User, Clock, Users, ChevronRight, AlertCircle, Link, FileText, X, Save, PlayCircle, Camera, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
 import apiClient from '../api/apiClient';
@@ -128,6 +128,163 @@ const MomModal = ({ isOpen, onClose, meetingId, meetingTitle }) => {
 
 };
 
+// Photo Upload Modal Component
+const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error('Please select a photo first');
+      return;
+    }
+
+    setUploading(true);
+    const toastId = toast.loading('Uploading attendance photo...');
+
+    try {
+      // 1. Get presigned URL
+      const presignRes = await apiClient.post('/upload/meeting-upload', {
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        fileSize: selectedFile.size,
+        type: 'attendance'
+      });
+
+      const { uploadUrl, finalUrl } = presignRes.data;
+
+      // 2. Upload to storage
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: {
+          'Content-Type': selectedFile.type
+        }
+      });
+
+      // 3. Submit attendance with photo URL
+      await apiClient.post(`/meetings/${meeting._id}/attendance-photo`, {
+        photoUrl: finalUrl
+      });
+
+      toast.success('Attendance marked successfully!', { id: toastId });
+      onClose();
+      setSelectedFile(null);
+      setPreview(null);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload photo', { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!uploading) {
+      setSelectedFile(null);
+      setPreview(null);
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+        {/* Header */}
+        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <Camera className="text-purple-600" size={20} />
+              Upload Attendance Photo
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {meeting?.title}
+            </p>
+          </div>
+          <button onClick={handleClose} disabled={uploading} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {preview ? (
+            <div className="space-y-4">
+              <img src={preview} alt="Preview" className="w-full h-64 object-cover rounded-lg border-2 border-gray-200" />
+              <button
+                onClick={() => {
+                  setSelectedFile(null);
+                  setPreview(null);
+                }}
+                disabled={uploading}
+                className="w-full py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Choose different photo
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <Upload className="w-12 h-12 mb-3 text-gray-400" />
+                <p className="mb-2 text-sm text-gray-500">
+                  <span className="font-semibold">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-xs text-gray-500">PNG, JPG, WEBP (MAX. 5MB)</p>
+              </div>
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileSelect}
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end gap-3">
+          <button
+            onClick={handleClose}
+            disabled={uploading}
+            className="px-5 py-2.5 rounded-lg text-gray-600 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            className="px-6 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {uploading ? <span className="animate-spin">⌛</span> : <Camera size={18} />}
+            {uploading ? 'Uploading...' : 'Mark Attendance'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MemberMeetings = () => {
   const dispatch = useDispatch();
 
@@ -139,6 +296,7 @@ const MemberMeetings = () => {
   const [memberMeetings, setMemberMeetings] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null); // For MOM Modal
   const [isMomModalOpen, setIsMomModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false); // For Photo Upload Modal
 
   // Fetch all meetings when component mounts
   useEffect(() => {
@@ -160,6 +318,11 @@ const MemberMeetings = () => {
   const openMomModal = (meeting) => {
     setSelectedMeeting(meeting);
     setIsMomModalOpen(true);
+  };
+
+  const openPhotoModal = (meeting) => {
+    setSelectedMeeting(meeting);
+    setIsPhotoModalOpen(true);
   };
 
   // Get upcoming and past meetings
@@ -305,23 +468,37 @@ const MemberMeetings = () => {
                     <FileText size={16} /> My Notes
                   </button>
 
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (meeting.meetingLink) {
-                        dispatch(joinMeeting(meeting._id));
-                        window.open(meeting.meetingLink, '_blank');
-                      }
-                    }}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
-                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      }`}
-                    disabled={!meeting.meetingLink}
-                  >
-                    <Video size={16} />
-                    {meeting.meetingLink ? 'Join' : 'No Link'}
-                  </button>
+                  {/* Show Join button only for Zoom and Online meetings */}
+                  {meeting.meetingType !== 'in-person' && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (meeting.meetingLink) {
+                          dispatch(joinMeeting(meeting._id));
+                          window.open(meeting.meetingLink, '_blank');
+                        }
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }`}
+                      disabled={!meeting.meetingLink}
+                    >
+                      <Video size={16} />
+                      {meeting.meetingLink ? 'Join' : 'No Link'}
+                    </button>
+                  )}
+
+                  {/* Show upload photo button for in-person meetings */}
+                  {meeting.meetingType === 'in-person' && (
+                    <button
+                      onClick={() => openPhotoModal(meeting)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                    >
+                      <Camera size={16} />
+                      Upload Attendance Photo
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -435,6 +612,13 @@ const MemberMeetings = () => {
         onClose={() => setIsMomModalOpen(false)}
         meetingId={selectedMeeting?._id}
         meetingTitle={selectedMeeting?.title}
+      />
+
+      {/* Photo Upload Modal */}
+      <PhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        meeting={selectedMeeting}
       />
     </div>
   );

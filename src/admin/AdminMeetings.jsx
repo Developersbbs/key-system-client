@@ -14,7 +14,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
     title: '',
     description: '',
     meetingDate: '',
-    meetingDate: '',
+    meetingType: 'manual', // Default to manual
     host: '',
     participants: [],
     meetingLink: '',
@@ -77,6 +77,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         title: data.title || '',
         description: data.description || '',
         meetingDate: data.meetingDate ? new Date(data.meetingDate).toISOString().slice(0, 16) : '',
+        meetingType: data.meetingType || 'manual',
         host: data.host?._id || data.host || '',
         participants: data.participants?.map(p => p._id || p) || [],
         meetingLink: data.meetingLink || '',
@@ -91,6 +92,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         title: '',
         description: '',
         meetingDate: '',
+        meetingType: 'manual',
         host: '',
         participants: [],
         meetingLink: '',
@@ -120,6 +122,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
       if (res.data.success) {
         setFormData(prev => ({
           ...prev,
+          meetingType: 'zoom', // Set type to zoom
           meetingLink: res.data.data.join_url,
           zoomMeetingId: res.data.data.meeting_id, // Capture Zoom ID
           description: prev.description + (res.data.data.password ? `\n\nPassword: ${res.data.data.password}` : '')
@@ -176,7 +179,45 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
               />
             </div>
 
-
+            {/* Meeting Type Selector */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Meeting Type</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, meetingType: 'zoom' })}
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all ${formData.meetingType === 'zoom'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <Video size={20} className="mx-auto mb-1" />
+                  <div className="text-sm font-semibold">Zoom</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, meetingType: 'manual' })}
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all ${formData.meetingType === 'manual'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <LinkIcon size={20} className="mx-auto mb-1" />
+                  <div className="text-sm font-semibold">Online</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, meetingType: 'in-person' })}
+                  className={`flex-1 p-3 rounded-xl border-2 transition-all ${formData.meetingType === 'in-person'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <Users size={20} className="mx-auto mb-1" />
+                  <div className="text-sm font-semibold">In-Person</div>
+                </button>
+              </div>
+            </div>
 
             <div className="space-y-1">
               <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Date & Time</label>
@@ -212,33 +253,43 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Meeting Link</label>
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">
+                {formData.meetingType === 'in-person' ? 'Location' : 'Meeting Link'}
+              </label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <LinkIcon size={18} className="absolute left-3 top-3.5 text-gray-400" />
                   <input
-                    type="url"
-                    placeholder="https://zoom.us/j/..."
+                    type={formData.meetingType === 'in-person' ? 'text' : 'url'}
+                    placeholder={
+                      formData.meetingType === 'zoom'
+                        ? 'https://zoom.us/j/...'
+                        : formData.meetingType === 'in-person'
+                          ? 'Conference Room A, Building B'
+                          : 'https://meet.google.com/... or Teams link'
+                    }
                     value={formData.meetingLink}
                     onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
                     className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                     required
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateZoom}
-                  disabled={generatingZoom}
-                  className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors text-sm font-bold whitespace-nowrap flex items-center gap-2"
-                  title="Auto-generate via Zoom API"
-                >
-                  {generatingZoom ? (
-                    <span className="animate-spin">⌛</span>
-                  ) : (
-                    <Video size={18} />
-                  )}
-                  {generatingZoom ? 'Generating...' : 'Auto-Generate'}
-                </button>
+                {formData.meetingType === 'zoom' && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateZoom}
+                    disabled={generatingZoom}
+                    className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition-colors text-sm font-bold whitespace-nowrap flex items-center gap-2"
+                    title="Auto-generate via Zoom API"
+                  >
+                    {generatingZoom ? (
+                      <span className="animate-spin">⌛</span>
+                    ) : (
+                      <Video size={18} />
+                    )}
+                    {generatingZoom ? 'Generating...' : 'Auto-Generate'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -353,16 +404,37 @@ const LogsModal = ({ isOpen, onClose, logs, users }) => {
                       <p className="text-xs text-gray-500">{log.userId?.email || 'No Email'}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 mb-1">
-                      Joined
-                    </span>
-                    <p className="text-xs text-gray-500 font-medium">{format(new Date(log.joinedAt), 'h:mm a, MMM d')}</p>
-                    {log.duration > 0 && (
-                      <p className="text-xs text-blue-600 font-bold mt-1">
-                        {log.duration} mins
-                      </p>
+                  <div className="flex items-center gap-3">
+                    {/* Show attendance photo if available */}
+                    {log.attendanceProof && (
+                      <a
+                        href={log.attendanceProof}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative"
+                        title="View attendance photo"
+                      >
+                        <img
+                          src={log.attendanceProof}
+                          alt="Attendance proof"
+                          className="w-12 h-12 rounded-lg object-cover border-2 border-purple-200 hover:border-purple-400 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-all flex items-center justify-center">
+                          <span className="text-white opacity-0 group-hover:opacity-100 text-xs">View</span>
+                        </div>
+                      </a>
                     )}
+                    <div className="text-right">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 mb-1">
+                        Joined
+                      </span>
+                      <p className="text-xs text-gray-500 font-medium">{format(new Date(log.joinedAt), 'h:mm a, MMM d')}</p>
+                      {log.duration > 0 && (
+                        <p className="text-xs text-blue-600 font-bold mt-1">
+                          {log.duration} mins
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -600,7 +672,32 @@ const AdminMeetings = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">Zoom</span>
+                        {/* Meeting Type Badge */}
+                        {meeting.meetingType === 'zoom' && (
+                          <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1">
+                            <Video size={12} /> Zoom
+                          </span>
+                        )}
+                        {meeting.meetingType === 'manual' && (
+                          <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1">
+                            <LinkIcon size={12} /> Online
+                          </span>
+                        )}
+                        {meeting.meetingType === 'in-person' && (
+                          <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1">
+                            <Users size={12} /> In-Person
+                          </span>
+                        )}
+                        {!meeting.meetingType && meeting.zoomMeetingId && (
+                          <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1">
+                            <Video size={12} /> Zoom
+                          </span>
+                        )}
+                        {!meeting.meetingType && !meeting.zoomMeetingId && (
+                          <span className="bg-gray-50 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-1">
+                            <LinkIcon size={12} /> Meeting
+                          </span>
+                        )}
                         <h3 className="text-lg font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">{meeting.title}</h3>
                       </div>
                       <p className="text-gray-500 text-sm leading-relaxed mb-4">{meeting.description}</p>
@@ -639,7 +736,8 @@ const AdminMeetings = () => {
                     </div>
 
                     <div className="flex flex-col items-end gap-3 pl-4">
-                      {meeting.meetingLink && (
+                      {/* Show Join button only for Zoom and Online meetings */}
+                      {meeting.meetingLink && meeting.meetingType !== 'in-person' && (
                         <a
                           href={meeting.meetingLink}
                           target="_blank"
@@ -648,6 +746,16 @@ const AdminMeetings = () => {
                         >
                           <Video size={16} /> Join
                         </a>
+                      )}
+
+                      {/* Show location info for in-person meetings */}
+                      {meeting.meetingType === 'in-person' && meeting.meetingLink && (
+                        <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-lg text-sm font-semibold">
+                          <Users size={16} />
+                          <span className="max-w-[150px] truncate" title={meeting.meetingLink}>
+                            {meeting.meetingLink}
+                          </span>
+                        </div>
                       )}
 
                       <button
