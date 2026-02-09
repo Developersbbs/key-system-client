@@ -19,10 +19,55 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
     participants: [],
     meetingLink: '',
     zoomMeetingId: '', // Store Zoom ID
-    recordingLink: '' // Store Recording Link
+    recordingLink: '', // Store Recording Link
+    momLink: '',
+    engagementProof: ''
   });
   const { loading } = useSelector(state => state.meetings);
   const [generatingZoom, setGeneratingZoom] = useState(false);
+  const [uploadingType, setUploadingType] = useState(null); // 'mom' or 'proof'
+
+  const handleFileUpload = async (file, type) => {
+    if (!file) return;
+
+    setUploadingType(type);
+    const toastId = toast.loading(`Uploading ${type === 'mom' ? 'MOM' : 'Proof'}...`);
+
+    try {
+      // 1. Get Presigned URL
+      const presignRes = await apiClient.post('/upload/meeting-upload', {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        type: type // 'mom' or 'proof'
+      });
+
+      const { uploadUrl, finalUrl } = presignRes.data;
+
+      // 2. Upload to S3
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+
+      // 3. Update State
+      setFormData(prev => ({
+        ...prev,
+        [type === 'mom' ? 'momLink' : 'engagementProof']: finalUrl
+      }));
+
+      toast.success(`${type === 'mom' ? 'MOM' : 'Proof'} uploaded successfully!`, { id: toastId });
+
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error('Upload failed. Please try again.', { id: toastId });
+    } finally {
+      setUploadingType(null);
+    }
+  };
 
   // Prefill form when editing
   useEffect(() => {
@@ -36,7 +81,9 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         participants: data.participants?.map(p => p._id || p) || [],
         meetingLink: data.meetingLink || '',
         zoomMeetingId: data.zoomMeetingId || '',
-        recordingLink: data.recordingLink || ''
+        recordingLink: data.recordingLink || '',
+        momLink: data.momLink || '',
+        engagementProof: data.engagementProof || ''
       });
     } else if (isOpen) {
       // Reset if new meeting
@@ -48,7 +95,9 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         participants: [],
         meetingLink: '',
         zoomMeetingId: '',
-        recordingLink: ''
+        recordingLink: '',
+        momLink: '',
+        engagementProof: ''
       });
     }
   }, [isOpen, onSubmit.initialData]);
@@ -205,7 +254,46 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
                   className="w-full p-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 ml-1">Optional: Add this after the meeting is completed.</p>
+            </div>
+
+            {/* ✅ MOM Upload */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Minutes of Meeting (PDF/Doc)</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => handleFileUpload(e.target.files[0], 'mom')}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                />
+                {uploadingType === 'mom' && <span className="text-xs text-emerald-600 animate-pulse">Uploading...</span>}
+                {formData.momLink && <span className="text-xs text-green-600 font-bold">✓ Uploaded</span>}
+              </div>
+              {formData.momLink && (
+                <a href={formData.momLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline ml-1">
+                  View Current File
+                </a>
+              )}
+            </div>
+
+            {/* ✅ Engagement Proof Upload */}
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Engagement Proof (Image)</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e.target.files[0], 'proof')}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                />
+                {uploadingType === 'proof' && <span className="text-xs text-emerald-600 animate-pulse">Uploading...</span>}
+                {formData.engagementProof && <span className="text-xs text-green-600 font-bold">✓ Uploaded</span>}
+              </div>
+              {formData.engagementProof && (
+                <a href={formData.engagementProof} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline ml-1">
+                  View Current Proof
+                </a>
+              )}
             </div>
           </div>
           <div className="p-4 bg-gray-50 flex justify-end rounded-b-lg border-t border-gray-100">

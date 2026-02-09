@@ -869,6 +869,7 @@ const AdminFounders = () => {
                                                 X (Twitter)
                                             </a>
                                         )}
+
                                         {viewData.socialLinks.facebook && (
                                             <a href={viewData.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1877f2]/10 text-[#1877f2] rounded-lg hover:bg-[#1877f2]/20 transition-colors text-sm font-medium">
                                                 Facebook

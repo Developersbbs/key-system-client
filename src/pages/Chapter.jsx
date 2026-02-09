@@ -15,176 +15,9 @@ import {
 import toast from 'react-hot-toast';
 
 // --- VideoPlayer Component ---
-const VideoPlayer = ({ videoUrl, chapterId }) => {
-  const videoRef = useRef(null);
-  const [progress, setProgress] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const dispatch = useDispatch();
-  
-  // Clean the URL by trimming whitespace
-  const cleanUrl = videoUrl?.trim();
-  
-  // Check if URL is valid
-  if (!cleanUrl) {
-    return (
-      <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <XCircle className="mx-auto h-10 w-10 mb-2 text-red-500" />
-          <p className="text-red-600 font-medium">No video URL provided</p>
-        </div>
-      </div>
-    );
-  }
+import VideoPlayer from '../components/VideoPlayer';
+import apiClient from '../api/apiClient';
 
-  // Validate URL format
-  let urlObject;
-  try {
-    urlObject = new URL(cleanUrl);
-  } catch (e) {
-    return (
-      <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <XCircle className="mx-auto h-10 w-10 mb-2 text-red-500" />
-          <p className="text-red-600 font-medium">Invalid video URL format</p>
-          <p className="text-red-500 text-sm mt-1 break-all">{cleanUrl}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if it's a YouTube URL
-  const isYouTubeUrl = urlObject.hostname.includes('youtube.com') || urlObject.hostname.includes('youtu.be');
-  
-  // Handle progress tracking for HTML5 video
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      const duration = videoRef.current.duration;
-      if (duration > 0) {
-        const newProgress = (currentTime / duration) * 100;
-        setProgress(newProgress);
-        
-        // Mark as completed when 90% watched
-        if (newProgress >= 90 && !isCompleted) {
-          setIsCompleted(true);
-        }
-      }
-    }
-  };
-
-  if (isYouTubeUrl) {
-    // Handle YouTube videos with iframe
-    const getYouTubeVideoId = (url) => {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : null;
-    };
-
-    const videoId = getYouTubeVideoId(cleanUrl);
-    if (!videoId) {
-      return (
-        <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-red-50 flex items-center justify-center p-4">
-          <div className="text-center">
-            <XCircle className="mx-auto h-10 w-10 mb-2 text-red-500" />
-            <p className="text-red-600 font-medium">Invalid YouTube URL</p>
-            <p className="text-red-500 text-sm mt-1 break-all">{cleanUrl}</p>
-          </div>
-        </div>
-      );
-    }
-
-    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-
-    return (
-      <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg">
-        <iframe
-          src={embedUrl}
-          title="YouTube video player"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-        ></iframe>
-        {/* Progress indicator for YouTube */}
-        <div className="w-full bg-gray-200 h-2 rounded-b-lg">
-          <div 
-            className="bg-teal-600 h-2 rounded-b-lg transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-      </div>
-    );
-  }
-
-  // For AWS S3 and other direct video files
-  return (
-    <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-black">
-      <video
-        ref={videoRef}
-        src={cleanUrl}
-        controls
-        className="w-full h-full"
-        preload="metadata"
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={() => {
-          if (!isCompleted) {
-            setIsCompleted(true);
-          }
-        }}
-        onError={(e) => {
-          console.error('Video playback error:', e);
-          console.error('Error code:', e.target.error?.code);
-          console.error('Error message:', e.target.error?.message);
-          
-          let errorMsg = 'Unable to play video';
-          switch (e.target.error?.code) {
-            case 1:
-              errorMsg = 'Video fetch aborted';
-              break;
-            case 2:
-              errorMsg = 'Network error occurred';
-              break;
-            case 3:
-              errorMsg = 'Video decoding failed';
-              break;
-            case 4:
-              errorMsg = 'Video format not supported';
-              break;
-            default:
-              errorMsg = 'Unknown video error';
-          }
-          
-          // Create error display
-          const errorElement = document.createElement('div');
-          errorElement.className = "aspect-video w-full rounded-xl overflow-hidden shadow-lg bg-red-50 flex items-center justify-center p-4";
-          errorElement.innerHTML = `
-            <div class="text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-10 w-10 mb-2 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="15" y1="9" x2="9" y2="15"></line>
-                <line x1="9" y1="9" x2="15" y2="15"></line>
-              </svg>
-              <p class="text-red-600 font-medium">Video Error</p>
-              <p class="text-red-500 text-sm mt-1">${ errorMsg }</p>
-              <p class="text-gray-500 text-xs mt-2 break-all">${cleanUrl}</p>
-            </div>
-          `;
-          e.target.parentNode.replaceChild(errorElement, e.target);
-        }}
-        onLoadedMetadata={() => console.log('Video metadata loaded successfully')}
-      >
-        Your browser does not support the video tag.
-      </video>
-      {/* Progress bar */}
-      <div className="w-full bg-gray-200 h-2 rounded-b-lg">
-        <div 
-          className="bg-teal-600 h-2 rounded-b-lg transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        ></div>
-      </div>
-    </div> 
-  );
-};
 
 // --- McqSection Component ---
 const McqSection = ({ chapter, user, courseId }) => {
@@ -219,16 +52,16 @@ const McqSection = ({ chapter, user, courseId }) => {
           submissionAnswers && submissionAnswers.length > 0
             ? submissionAnswers
             : chapter.mcqs.map((mcq) => ({
-                mcqId: mcq._id,
-                answer: mcq.correctAnswerIndex,
-                explanation: mcq.explanation,
-              })),
+              mcqId: mcq._id,
+              answer: mcq.correctAnswerIndex,
+              explanation: mcq.explanation,
+            })),
       });
 
       // Show success message
       toast.success('Quiz submitted successfully!');
     }
-    
+
     if (mcqSubmission.error) {
       toast.error(mcqSubmission.error);
     }
@@ -338,9 +171,8 @@ const McqSection = ({ chapter, user, courseId }) => {
         <button
           onClick={handleSubmit}
           disabled={Object.keys(answers).length === 0 || mcqSubmission.loading}
-          className={`mt-8 w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-3 rounded-lg shadow hover:shadow-md transition text-lg flex items-center justify-center gap-2 ${
-            Object.keys(answers).length === 0 || mcqSubmission.loading ? 'opacity-50 cursor-not-allowed' : 'hover:from-teal-700 hover:to-green-700'
-          }`}
+          className={`mt-8 w-full bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold py-3 rounded-lg shadow hover:shadow-md transition text-lg flex items-center justify-center gap-2 ${Object.keys(answers).length === 0 || mcqSubmission.loading ? 'opacity-50 cursor-not-allowed' : 'hover:from-teal-700 hover:to-green-700'
+            }`}
         >
           <CheckCircle size={20} />
           {mcqSubmission.loading ? 'Submitting...' : 'Submit Quiz'}
@@ -361,8 +193,8 @@ const McqSection = ({ chapter, user, courseId }) => {
             {results.result.score >= 80
               ? 'Excellent work!'
               : results.result.score >= 60
-              ? 'Good job!'
-              : 'Keep learning and try again!'}
+                ? 'Good job!'
+                : 'Keep learning and try again!'}
           </p>
         </div>
       )}
@@ -385,7 +217,7 @@ const Chapter = () => {
         .then(chapter => console.log('Fetched chapter:', chapter))
         .catch(error => console.error('Error fetching chapter:', error));
     }
-    
+
     // Clear MCQ result when component unmounts
     return () => {
       dispatch(clearMcqResult());
@@ -457,7 +289,7 @@ const Chapter = () => {
               <Video size={24} className="text-teal-600" />
               Chapter Video
             </h2>
-            <VideoPlayer videoUrl={chapter.videoUrl} chapterId={chapter._id} />
+            <VideoPlayer videoUrl={chapter.videoUrl} chapterId={chapter._id} courseId={courseId} />
           </div>
         )}
 
@@ -512,11 +344,10 @@ const Chapter = () => {
                         </p>
                       )}
                       <span
-                        className={`inline-block mt-3 text-xs font-semibold px-2 py-1 rounded-full ${
-                          task.type === 'online'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-orange-100 text-orange-800'
-                        }`}
+                        className={`inline-block mt-3 text-xs font-semibold px-2 py-1 rounded-full ${task.type === 'online'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-orange-100 text-orange-800'
+                          }`}
                       >
                         {task.type === 'online' ? 'Online Task' : 'Offline Task'}
                       </span>

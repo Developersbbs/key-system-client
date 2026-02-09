@@ -389,12 +389,38 @@ const MemberMeetings = () => {
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
                     >
-                      <PlayCircle size={16} /> Watch Recording
+                      <PlayCircle size={16} /> Recording
                     </a>
                   ) : (
                     <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
                       <Video size={16} /> Ended
                     </div>
+                  )}
+
+                  {/* ✅ View MOM (Admin Uploaded) */}
+                  {meeting.momLink && (
+                    <a
+                      href={meeting.momLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
+                      title="View Minutes of Meeting"
+                    >
+                      <FileText size={16} /> MOM
+                    </a>
+                  )}
+
+                  {/* ✅ View Proof */}
+                  {meeting.engagementProof && (
+                    <a
+                      href={meeting.engagementProof}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md hover:shadow-lg"
+                      title="View Engagement Proof"
+                    >
+                      <Link size={16} /> Proof
+                    </a>
                   )}
                 </div>
               </div>
