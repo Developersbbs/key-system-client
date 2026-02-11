@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Lock, Video, AlertCircle } from 'lucide-react';
+import { Settings, Save, Lock, Video, AlertCircle, CreditCard, Upload } from 'lucide-react';
+import axios from 'axios';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 
@@ -10,7 +11,13 @@ const AdminSettings = () => {
         zoomAccountId: '',
         zoomClientId: '',
         zoomClientSecret: '',
-        zoomHostEmail: '' // New Field
+        zoomHostEmail: '', // New Field
+        // Bank Details
+        upiId: '',
+        accountNumber: '',
+        ifscCode: '',
+        accountName: '',
+        qrCodeUrl: ''
     });
 
     useEffect(() => {
@@ -42,6 +49,57 @@ const AdminSettings = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validations
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File size exceeds 5MB');
+            return;
+        }
+        if (!file.type.startsWith('image/')) {
+            toast.error('Only image files are allowed');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const uploadToast = toast.loading('Uploading QR Code...');
+
+            // 1. Get presigned URL
+            const presignRes = await apiClient.post('/upload/system-config', {
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size
+            });
+
+            if (!presignRes.data.success) {
+                throw new Error('Failed to get upload URL');
+            }
+
+            const { uploadUrl, finalUrl } = presignRes.data;
+
+            // 2. Upload to Firebase
+            await axios.put(uploadUrl, file, {
+                headers: { 'Content-Type': file.type }
+            });
+
+            // 3. Update config state with new URL
+            setConfig(prev => ({
+                ...prev,
+                qrCodeUrl: finalUrl
+            }));
+
+            toast.success('QR Code uploaded successfully', { id: uploadToast });
+        } catch (error) {
+            console.error('QR upload error:', error);
+            toast.error('Failed to upload QR code');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -173,6 +231,116 @@ const AdminSettings = () => {
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition-all outline-none"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">If set, ALL meetings will be created under this Zoom user, ignoring the currently logged-in admin's email.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bank Details Section */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <div className="bg-purple-100 p-2 rounded-lg">
+                                <CreditCard className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <h2 className="text-lg font-bold text-gray-800">Bank Details & Payment</h2>
+                        </div>
+                        <span className="text-xs font-medium px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                            For Subscriptions
+                        </span>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* UPI ID */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    UPI ID
+                                </label>
+                                <input
+                                    type="text"
+                                    name="upiId"
+                                    value={config.upiId || ''}
+                                    onChange={handleChange}
+                                    placeholder="e.g. user@okhdfcbank"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all outline-none"
+                                />
+                            </div>
+
+                            {/* Account Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Account Holder Name
+                                </label>
+                                <input
+                                    type="text"
+                                    name="accountName"
+                                    value={config.accountName || ''}
+                                    onChange={handleChange}
+                                    placeholder="e.g. John Doe"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all outline-none"
+                                />
+                            </div>
+
+                            {/* Account Number */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Account Number
+                                </label>
+                                <input
+                                    type="text"
+                                    name="accountNumber"
+                                    value={config.accountNumber || ''}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 1234567890"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all outline-none"
+                                />
+                            </div>
+
+                            {/* IFSC Code */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    IFSC Code
+                                </label>
+                                <input
+                                    type="text"
+                                    name="ifscCode"
+                                    value={config.ifscCode || ''}
+                                    onChange={handleChange}
+                                    placeholder="e.g. HDFC0001234"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all outline-none"
+                                />
+                            </div>
+
+                            {/* QR Code Upload */}
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Payment QR Code
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    {config.qrCodeUrl && (
+                                        <div className="w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                                            <img src={config.qrCodeUrl} alt="QR Code" className="object-contain w-full h-full" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-colors">
+                                                <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                                                <span className="text-sm text-gray-500">
+                                                    {config.qrCodeUrl ? 'Change QR Code Image' : 'Upload QR Code Image'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">Supported formats: PNG, JPG, JPEG (Max 5MB)</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

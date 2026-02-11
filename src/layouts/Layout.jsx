@@ -227,6 +227,7 @@ const Layout = ({ children }) => {
     { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
+    { path: '/admin/subscriptions', label: 'Subscriptions', icon: CircleDollarSign },
     { path: '/admin/announcements', label: 'Announcements', icon: Megaphone },
     { path: '/admin/settings', label: 'Settings', icon: Settings },
     { path: '/profile', label: 'QR Code', icon: User },

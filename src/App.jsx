@@ -38,6 +38,7 @@ import Achievers from "./pages/Achievers";
 import UserActivities from "./pages/UserActivities";
 import AdminTools from "./admin/AdminTools";
 import Tools from "./pages/Tools";
+import AdminSubscriptions from "./admin/AdminSubscriptions";
 
 // Import Protected Route Component
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -201,6 +202,11 @@ const App = () => {
           <Route path="/admin/tools" element={
             <ProtectedRoute requiredRole="admin">
               <AdminTools />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/subscriptions" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminSubscriptions />
             </ProtectedRoute>
           } />
         </Routes>

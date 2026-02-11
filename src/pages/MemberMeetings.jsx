@@ -162,28 +162,25 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
     const toastId = toast.loading('Uploading attendance photo...');
 
     try {
-      // 1. Get presigned URL
-      const presignRes = await apiClient.post('/upload/meeting-upload', {
-        fileName: selectedFile.name,
-        fileType: selectedFile.type,
-        fileSize: selectedFile.size,
-        type: 'attendance'
-      });
+      // Import the uploadFile utility dynamically
+      const { uploadFile } = await import('../utils/imageUpload');
 
-      const { uploadUrl, finalUrl } = presignRes.data;
-
-      // 2. Upload to storage
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        body: selectedFile,
-        headers: {
-          'Content-Type': selectedFile.type
+      // Upload directly to Firebase Storage
+      const photoUrl = await uploadFile(
+        selectedFile,
+        'attendance-photos',
+        (progress) => {
+          // Update progress if needed
+          console.log(`Upload progress: ${progress}%`);
+        },
+        (error) => {
+          console.error('Upload error:', error);
         }
-      });
+      );
 
-      // 3. Submit attendance with photo URL
+      // Submit attendance with photo URL
       await apiClient.post(`/meetings/${meeting._id}/attendance-photo`, {
-        photoUrl: finalUrl
+        photoUrl
       });
 
       toast.success('Attendance marked successfully!', { id: toastId });
@@ -192,7 +189,7 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
       setPreview(null);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload photo', { id: toastId });
+      toast.error(error.message || 'Failed to upload photo', { id: toastId });
     } finally {
       setUploading(false);
     }
