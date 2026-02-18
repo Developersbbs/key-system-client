@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllMeetings, fetchMeetingLogs } from '../redux/features/meetings/meetingSlice';
+import { fetchAllMeetings } from '../redux/features/meetings/meetingSlice';
 import { fetchAllMembers } from '../redux/features/members/memberSlice';
 import { Calendar, Users, Clock, Search, Download, ChevronRight, BarChart3, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
@@ -182,7 +182,7 @@ const AdminAttendance = () => {
     const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
-        dispatch(fetchAllMeetings());
+        dispatch(fetchAllMeetings({ page: 1, limit: 200 }));
     }, [dispatch]);
 
     const handleSelectMeeting = (meetingId) => {
@@ -191,25 +191,28 @@ const AdminAttendance = () => {
         fetchLogs(meetingId);
     };
 
-    const fetchLogs = (meetingId) => {
+    const fetchLogs = async (meetingId) => {
         setLoadingLogs(true);
-        dispatch(fetchMeetingLogs(meetingId))
-            .unwrap()
-            .then((data) => {
-                setAttendanceLogs(data.logs);
-            })
-            .catch(() => toast.error('Failed to load attendance logs'))
-            .finally(() => setLoadingLogs(false));
+        try {
+            const res = await apiClient.get(`/meetings/${meetingId}/logs`);
+            console.log('[AdminAttendance] Logs response:', res.data);
+            setAttendanceLogs(res.data.logs || []);
+        } catch (err) {
+            console.error('[AdminAttendance] Failed to load logs:', err.response?.data || err.message);
+            toast.error('Failed to load attendance logs');
+            setAttendanceLogs([]);
+        } finally {
+            setLoadingLogs(false);
+        }
     };
 
     const handleSyncAttendance = async (meetingId, e) => {
-        e.stopPropagation(); // Prevent row click
+        e?.stopPropagation();
         const toastId = toast.loading("Syncing with Zoom...");
         try {
             const res = await apiClient.post(`/meetings/${meetingId}/sync`);
             if (res.data.success) {
                 toast.success(res.data.message, { id: toastId });
-                // If this is the currently selected meeting, refresh logs
                 if (selectedMeetingId === meetingId) {
                     fetchLogs(meetingId);
                 }
@@ -218,6 +221,21 @@ const AdminAttendance = () => {
             console.error("Sync error:", error);
             toast.error(error.response?.data?.message || "Failed to sync attendance", { id: toastId });
         }
+    };
+
+    const handleSyncAll = async () => {
+        const zoomMeetings = meetings.filter(m => m.zoomMeetingId);
+        if (zoomMeetings.length === 0) return toast.error('No Zoom meetings found');
+        const toastId = toast.loading(`Syncing ${zoomMeetings.length} Zoom meetings...`);
+        let success = 0;
+        for (const m of zoomMeetings) {
+            try {
+                await apiClient.post(`/meetings/${m._id}/sync`);
+                success++;
+            } catch (_) { /* skip failed */ }
+        }
+        toast.success(`Synced ${success}/${zoomMeetings.length} meetings`, { id: toastId });
+        if (selectedMeetingId) fetchLogs(selectedMeetingId);
     };
 
     const filteredMeetings = meetings.filter(m =>
@@ -229,7 +247,7 @@ const AdminAttendance = () => {
     const downloadReport = () => {
         if (!attendanceLogs.length || !selectedMeeting) return;
 
-        const headers = ['Name', 'Email', 'Joined At', 'Left At', 'Duration (mins)'];
+        const headers = ['Name', 'Email', 'Joined At', 'Left At', 'System Duration (mins)', 'Zoom Duration (mins)'];
         const csvRows = [headers.join(',')];
 
         attendanceLogs.forEach(log => {
@@ -238,7 +256,8 @@ const AdminAttendance = () => {
                 `"${log.userId?.email || ''}"`,
                 `"${format(new Date(log.joinedAt), 'PP pp')}"`,
                 `"${log.leftAt ? format(new Date(log.leftAt), 'PP pp') : '-'}"`,
-                log.duration
+                log.duration || 0,
+                log.zoomDuration || 0
             ];
             csvRows.push(row.join(','));
         });
@@ -254,6 +273,7 @@ const AdminAttendance = () => {
     };
 
     const handleViewDetails = (log) => {
+        if (!log.userId) return; // No DB user linked — no session history
         setSelectedUser({
             userId: log.userId._id || log.userId,
             userName: log.userName
@@ -274,6 +294,14 @@ const AdminAttendance = () => {
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Attendance Reports</h1>
                     <p className="text-gray-500 mt-1">Track member participation and watching hours</p>
                 </div>
+                <button
+                    onClick={handleSyncAll}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm shadow"
+                    title="Sync attendance from Zoom for all meetings"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></svg>
+                    Sync All Zoom
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-180px)]">
@@ -402,35 +430,49 @@ const AdminAttendance = () => {
                                                                 {log.userName.charAt(0)}
                                                             </div>
                                                             <div className="flex-1">
-                                                                <button
-                                                                    onClick={() => handleViewDetails(log)}
-                                                                    className="text-left hover:text-emerald-600 transition-colors group"
-                                                                >
-                                                                    <p className="font-medium text-gray-900 text-sm group-hover:underline flex items-center gap-1">
-                                                                        {log.userName}
-                                                                        <Eye size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500">{log.userId?.email}</p>
-                                                                </button>
+                                                                {log.userId ? (
+                                                                    <button
+                                                                        onClick={() => handleViewDetails(log)}
+                                                                        className="text-left hover:text-emerald-600 transition-colors group"
+                                                                    >
+                                                                        <p className="font-medium text-gray-900 text-sm group-hover:underline flex items-center gap-1">
+                                                                            {log.userName}
+                                                                            <Eye size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500">{log.userId?.email}</p>
+                                                                    </button>
+                                                                ) : (
+                                                                    <p className="font-medium text-gray-900 text-sm">{log.userName}</p>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-sm text-gray-500">
-                                                        {format(new Date(log.joinedAt), 'h:mm a')}
+                                                        {format(new Date(log.zoomJoinedAt || log.joinedAt), 'h:mm a')}
                                                     </td>
                                                     <td className="p-4 text-sm text-gray-500">
-                                                        {log.leftAt ? format(new Date(log.leftAt), 'h:mm a') : '-'}
+                                                        {(log.zoomLeftAt || log.leftAt)
+                                                            ? format(new Date(log.zoomLeftAt || log.leftAt), 'h:mm a')
+                                                            : <span className="text-gray-300">—</span>}
                                                     </td>
                                                     <td className="p-4 text-sm text-right">
-                                                        {log.duration > 0 ? (
-                                                            <span className="font-bold text-blue-600">{log.duration} mins</span>
+                                                        {(log.zoomDuration || log.duration) > 0 ? (
+                                                            <span className="font-bold text-emerald-700">{log.zoomDuration || log.duration} mins</span>
                                                         ) : (
-                                                            <span className="text-gray-400">-</span>
+                                                            <span className="text-gray-300">—</span>
                                                         )}
                                                     </td>
+
                                                     <td className="p-4 text-center">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${log.duration > 30 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                            {log.duration > 30 ? 'Attended' : 'Partial'}
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(log.zoomDuration || log.duration) > 30
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : (log.zoomDuration || log.duration) > 0
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-gray-100 text-gray-500'
+                                                            }`}>
+                                                            {(log.zoomDuration || log.duration) > 30 ? 'Attended'
+                                                                : (log.zoomDuration || log.duration) > 0 ? 'Partial'
+                                                                    : 'No Data'}
                                                         </span>
                                                     </td>
                                                 </tr>

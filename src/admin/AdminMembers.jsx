@@ -15,8 +15,8 @@ const RoleToggle = ({ user, currentUser, onToggle }) => {
     return (
       <div className="flex items-center">
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'admin'
-            ? 'bg-green-100 text-green-800'
-            : 'bg-gray-100 text-gray-800'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-gray-100 text-gray-800'
           }`}>
           {user.role === 'admin' ? 'Admin' : 'Member'}
         </span>
@@ -231,7 +231,8 @@ const EditUserModal = ({ user, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phoneNumber: user?.phoneNumber || ''
+    phoneNumber: user?.phoneNumber || '',
+    zoomEmail: user?.zoomEmail || ''
   });
 
   const handleSubmit = (e) => {
@@ -278,6 +279,21 @@ const EditUserModal = ({ user, onClose, onSave }) => {
               onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Zoom Email
+              <span className="ml-2 text-xs text-blue-500 font-normal">(for attendance sync)</span>
+            </label>
+            <input
+              type="email"
+              value={formData.zoomEmail}
+              onChange={(e) => setFormData({ ...formData, zoomEmail: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g. richcrowdschennai@gmail.com"
+            />
+            <p className="text-xs text-gray-400 mt-1">Set this if the user joins Zoom with a different email than their login email.</p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

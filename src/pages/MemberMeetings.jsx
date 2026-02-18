@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllMeetings, joinMeeting } from '../redux/features/meetings/meetingSlice';
+import { useSelector } from 'react-redux';
 import { Calendar, Video, User, Clock, Users, ChevronRight, AlertCircle, Link, FileText, X, Save, PlayCircle, Camera, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
@@ -283,126 +282,36 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
 };
 
 const MemberMeetings = () => {
-  const dispatch = useDispatch();
-
   // Redux state selectors
-  const { meetings, loading, error } = useSelector(state => state.meetings);
   const { user } = useSelector(state => state.auth);
 
   // State
   const [memberMeetings, setMemberMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedMeeting, setSelectedMeeting] = useState(null); // For MOM Modal
   const [isMomModalOpen, setIsMomModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false); // For Photo Upload Modal
-  const [activeMeetingId, setActiveMeetingId] = useState(sessionStorage.getItem('activeMeetingId'));
 
-  // Fetch all meetings when component mounts
-  useEffect(() => {
-    dispatch(fetchAllMeetings());
-  }, [dispatch]);
-
-  // Filter meetings where current user is a participant
-  useEffect(() => {
-    if (user && meetings.length > 0) {
-      const filteredMeetings = meetings.filter(meeting =>
-        meeting.participants?.some(participant =>
-          participant._id === user._id || participant === user._id
-        )
-      );
-      setMemberMeetings(filteredMeetings);
-    }
-  }, [meetings, user]);
-
-  // Track meeting leave on page unload
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      // Get active meeting from sessionStorage
-      const activeMeetingId = sessionStorage.getItem('activeMeetingId');
-      if (activeMeetingId) {
-        const token = localStorage.getItem('token');
-
-        if (token) {
-          // Use sendBeacon for reliable tracking even when page is closing
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-          const url = `${apiUrl}/api/meetings/${activeMeetingId}/leave`;
-
-          // Create FormData with auth header embedded in the request
-          const data = new FormData();
-          data.append('token', token);
-
-          // sendBeacon is synchronous and will complete even if page is closing
-          navigator.sendBeacon(url, data);
-        }
-
-        // Clear the active meeting
-        sessionStorage.removeItem('activeMeetingId');
-      }
-    };
-
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    // document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      // document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-      // Also track on component unmount
-      // Commented out to prevent instant leave on re-renders or internal navigation
-      /*
-      const activeMeetingId = sessionStorage.getItem('activeMeetingId');
-      if (activeMeetingId) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-          const url = `${apiUrl}/api/meetings/${activeMeetingId}/leave`;
-          const data = new FormData();
-          data.append('token', token);
-          navigator.sendBeacon(url, data);
-        }
-        sessionStorage.removeItem('activeMeetingId');
-      }
-      */
-    };
-  }, []);
-
-  // Update active meeting state when storage changes
-  useEffect(() => {
-    const checkActiveMeeting = () => {
-      setActiveMeetingId(sessionStorage.getItem('activeMeetingId'));
-    };
-
-    // Check periodically
-    const interval = setInterval(checkActiveMeeting, 1000);
-
-    // Also listen for storage events
-    window.addEventListener('storage', checkActiveMeeting);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', checkActiveMeeting);
-    };
-  }, []);
-
-  const handleEndMeeting = async (meetingId) => {
-    if (!meetingId) return;
-
-    const toastId = toast.loading('Ending meeting session...');
+  // Fetch member meetings WITH attendance data directly from the correct endpoint
+  const fetchMeetings = async () => {
+    if (!user?._id) return;
+    setLoading(true);
     try {
-      await apiClient.post(`/meetings/${meetingId}/leave`);
-      sessionStorage.removeItem('activeMeetingId');
-      setActiveMeetingId(null);
-      toast.success('Meeting ended. Attendance recorded.', { id: toastId });
-      // Refresh meetings to show updated attendance
-      dispatch(fetchAllMeetings({ page: 1, limit: 10 }));
-    } catch (error) {
-      console.error('Error ending meeting:', error);
-      toast.error('Failed to record leave time', { id: toastId });
-      // Still clear local state on error to prevent broken UI
-      sessionStorage.removeItem('activeMeetingId');
-      setActiveMeetingId(null);
+      const res = await apiClient.get(`/meetings/member/${user._id}`);
+      setMemberMeetings(Array.isArray(res.data) ? res.data : []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching meetings:', err);
+      setError('Failed to load meetings.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMeetings();
+  }, [user]);
 
   const openMomModal = (meeting) => {
     setSelectedMeeting(meeting);
@@ -447,26 +356,6 @@ const MemberMeetings = () => {
           </div>
         </div>
 
-        {/* Active Meeting Banner */}
-        {activeMeetingId && (
-          <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center animate-pulse">
-                <Video size={20} className="text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-emerald-900">You are currently in a meeting</h3>
-                <p className="text-sm text-emerald-700">Don't forget to click "End Meeting" when you are done to record your attendance.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleEndMeeting(activeMeetingId)}
-              className="w-full sm:w-auto px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
-            >
-              <X size={18} /> End Meeting
-            </button>
-          </div>
-        )}
 
         {/* Stats Cards */}
         <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -609,41 +498,21 @@ const MemberMeetings = () => {
 
                   {/* Show Join button only for Zoom and Online meetings */}
                   {meeting.meetingType !== 'in-person' && (
-                    activeMeetingId === meeting._id ? (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleEndMeeting(meeting._id);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors border border-red-200"
-                      >
-                        <X size={16} /> End Meeting
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (meeting.meetingLink) {
-                            // Store meeting ID for leave tracking
-                            sessionStorage.setItem('activeMeetingId', meeting._id);
-                            setActiveMeetingId(meeting._id);
-
-                            // Log attendance
-                            dispatch(joinMeeting(meeting._id));
-
-                            // Open meeting in new tab
-                            window.open(meeting.meetingLink, '_blank');
-                          }
-                        }}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          }`}
-                        disabled={!meeting.meetingLink}
-                      >
-                        <Video size={16} /> Join Meeting
-                      </button>
-                    )
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (meeting.meetingLink) {
+                          window.open(meeting.meetingLink, '_blank');
+                        }
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }`}
+                      disabled={!meeting.meetingLink}
+                    >
+                      <Video size={16} /> Join Meeting
+                    </button>
                   )}
 
                   {/* Show upload photo button for in-person meetings */}
@@ -752,9 +621,6 @@ const MemberMeetings = () => {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          // Log attendance for recording view
-                          dispatch(joinMeeting(meeting._id));
-                          // Open recording in new tab
                           window.open(meeting.recordingLink, '_blank');
                         }}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
@@ -762,33 +628,15 @@ const MemberMeetings = () => {
                         <PlayCircle size={16} /> View Recording
                       </button>
                     ) : meeting.meetingLink ? (
-                      activeMeetingId === meeting._id ? (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleEndMeeting(meeting._id);
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors border border-red-200 shadow-md"
-                        >
-                          <X size={16} /> End Meeting
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            // Store meeting ID for leave tracking
-                            sessionStorage.setItem('activeMeetingId', meeting._id);
-                            setActiveMeetingId(meeting._id);
-                            // Log attendance
-                            dispatch(joinMeeting(meeting._id));
-                            // Open meeting link in new tab
-                            window.open(meeting.meetingLink, '_blank');
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-md hover:shadow-lg"
-                        >
-                          <Video size={16} /> Rejoin Meeting
-                        </button>
-                      )
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.open(meeting.meetingLink, '_blank');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-md hover:shadow-lg"
+                      >
+                        <Video size={16} /> Rejoin Meeting
+                      </button>
                     ) : (
                       <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
                         <Video size={16} /> No Link Available
