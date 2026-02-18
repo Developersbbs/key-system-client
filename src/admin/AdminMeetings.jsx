@@ -14,6 +14,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
     title: '',
     description: '',
     meetingDate: '',
+    meetingEndTime: '', // Optional end time
     meetingType: 'manual', // Default to manual
     host: '',
     participants: [],
@@ -77,6 +78,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         title: data.title || '',
         description: data.description || '',
         meetingDate: data.meetingDate ? new Date(data.meetingDate).toISOString().slice(0, 16) : '',
+        meetingEndTime: data.meetingEndTime ? new Date(data.meetingEndTime).toISOString().slice(0, 16) : '',
         meetingType: data.meetingType || 'manual',
         host: data.host?._id || data.host || '',
         participants: data.participants?.map(p => p._id || p) || [],
@@ -92,6 +94,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
         title: '',
         description: '',
         meetingDate: '',
+        meetingEndTime: '',
         meetingType: 'manual',
         host: '',
         participants: [],
@@ -220,7 +223,7 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Date & Time</label>
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Start Date & Time</label>
               <input
                 type="datetime-local"
                 value={formData.meetingDate}
@@ -228,6 +231,22 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
                 className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 required
               />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider flex items-center gap-2">
+                End Date & Time
+                <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">Optional</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={formData.meetingEndTime}
+                onChange={(e) => setFormData({ ...formData, meetingEndTime: e.target.value })}
+                min={formData.meetingDate} // End time must be after start time
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                placeholder="Leave empty if not applicable"
+              />
+              <p className="text-xs text-gray-400 ml-1 mt-1">Specify when the meeting is scheduled to end</p>
             </div>
 
             <div className="space-y-1">

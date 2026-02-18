@@ -2,10 +2,172 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, fetchMeetingLogs } from '../redux/features/meetings/meetingSlice';
 import { fetchAllMembers } from '../redux/features/members/memberSlice';
-import { Calendar, Users, Clock, Search, Download, ChevronRight, BarChart3 } from 'lucide-react';
+import { Calendar, Users, Clock, Search, Download, ChevronRight, BarChart3, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import apiClient from '../api/apiClient';
+
+// Attendance Details Modal Component
+const AttendanceDetailsModal = ({ isOpen, onClose, userId, meetingId, userName }) => {
+    const [sessionDetails, setSessionDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && userId && meetingId) {
+            fetchSessionDetails();
+        }
+    }, [isOpen, userId, meetingId]);
+
+    const fetchSessionDetails = async () => {
+        setLoading(true);
+        try {
+            const res = await apiClient.get(`/meetings/${meetingId}/attendance/${userId}`);
+            if (res.data.success) {
+                setSessionDetails(res.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching session details:', error);
+            toast.error('Failed to load session details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-blue-50">
+                    <div>
+                        <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <Eye className="text-emerald-600" size={24} />
+                            Session History
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Detailed attendance for: <span className="font-semibold text-gray-800">{userName || sessionDetails?.userName}</span>
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-white rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                        </div>
+                    ) : sessionDetails ? (
+                        <>
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-3 gap-4 mb-6">
+                                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+                                    <p className="text-xs text-emerald-700 font-semibold uppercase tracking-wide mb-1">Total Sessions</p>
+                                    <p className="text-3xl font-bold text-emerald-800">{sessionDetails.sessionCount}</p>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                                    <p className="text-xs text-blue-700 font-semibold uppercase tracking-wide mb-1">Total Duration</p>
+                                    <p className="text-3xl font-bold text-blue-800">{sessionDetails.totalDuration} <span className="text-lg">mins</span></p>
+                                </div>
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                                    <p className="text-xs text-purple-700 font-semibold uppercase tracking-wide mb-1">Avg Duration</p>
+                                    <p className="text-3xl font-bold text-purple-800">{Math.round(sessionDetails.totalDuration / sessionDetails.sessionCount)} <span className="text-lg">mins</span></p>
+                                </div>
+                            </div>
+
+                            {/* Sessions Timeline */}
+                            <div>
+                                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Clock size={20} className="text-emerald-600" />
+                                    Join/Rejoin Timeline
+                                </h4>
+                                <div className="space-y-3">
+                                    {sessionDetails.sessions.map((session, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                                                        #{session.sessionNumber}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-gray-800 text-sm">
+                                                            {index === 0 ? 'First Join' : `Rejoin ${index}`}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {session.status === 'Active' ? (
+                                                                <span className="text-green-600 font-medium">● Currently Active</span>
+                                                            ) : (
+                                                                'Completed'
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-bold text-blue-600">
+                                                        {session.duration > 0 ? `${session.duration} mins` : '-'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Joined At</p>
+                                                    <p className="text-sm font-medium text-gray-800">
+                                                        {format(new Date(session.joinedAt), 'MMM d, yyyy')}
+                                                    </p>
+                                                    <p className="text-sm text-emerald-600 font-semibold">
+                                                        {format(new Date(session.joinedAt), 'h:mm:ss a')}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Left At</p>
+                                                    {session.leftAt ? (
+                                                        <>
+                                                            <p className="text-sm font-medium text-gray-800">
+                                                                {format(new Date(session.leftAt), 'MMM d, yyyy')}
+                                                            </p>
+                                                            <p className="text-sm text-red-600 font-semibold">
+                                                                {format(new Date(session.leftAt), 'h:mm:ss a')}
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-400 italic">Still in meeting</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-12 text-gray-500">
+                            <p>No session data available</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end">
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-2.5 rounded-lg bg-gray-600 text-white font-medium hover:bg-gray-700 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminAttendance = () => {
     const dispatch = useDispatch();
@@ -14,6 +176,10 @@ const AdminAttendance = () => {
     const [attendanceLogs, setAttendanceLogs] = useState([]);
     const [loadingLogs, setLoadingLogs] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
         dispatch(fetchAllMeetings());
@@ -85,6 +251,14 @@ const AdminAttendance = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    const handleViewDetails = (log) => {
+        setSelectedUser({
+            userId: log.userId._id || log.userId,
+            userName: log.userName
+        });
+        setIsModalOpen(true);
     };
 
     // Calculate generic stats
@@ -227,9 +401,17 @@ const AdminAttendance = () => {
                                                             <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
                                                                 {log.userName.charAt(0)}
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-gray-900 text-sm">{log.userName}</p>
-                                                                <p className="text-xs text-gray-500">{log.userId?.email}</p>
+                                                            <div className="flex-1">
+                                                                <button
+                                                                    onClick={() => handleViewDetails(log)}
+                                                                    className="text-left hover:text-emerald-600 transition-colors group"
+                                                                >
+                                                                    <p className="font-medium text-gray-900 text-sm group-hover:underline flex items-center gap-1">
+                                                                        {log.userName}
+                                                                        <Eye size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500">{log.userId?.email}</p>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -261,6 +443,15 @@ const AdminAttendance = () => {
                     )}
                 </div>
             </div>
+
+            {/* Attendance Details Modal */}
+            <AttendanceDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={selectedUser?.userId}
+                meetingId={selectedMeetingId}
+                userName={selectedUser?.userName}
+            />
         </div>
     );
 };

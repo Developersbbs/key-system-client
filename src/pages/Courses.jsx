@@ -117,7 +117,15 @@ const InactiveUserMessage = () => (
       <p className="text-red-600 text-sm">
         Please contact an administrator to reactivate your account.
       </p>
-    </div>
+    </div>ng
+Testing
+
+Sathish R
+11:22 AM
+￼
+Attendance
+￼
+Sync
   </div>
 );
 

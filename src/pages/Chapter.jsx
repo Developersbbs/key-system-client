@@ -22,6 +22,7 @@ import apiClient from '../api/apiClient';
 // --- McqSection Component ---
 const McqSection = ({ chapter, user, courseId }) => {
   const dispatch = useDispatch();
+
   const { mcqSubmission } = useSelector((state) => state.chapters);
   const [answers, setAnswers] = useState({});
   const [results, setResults] = useState(null);

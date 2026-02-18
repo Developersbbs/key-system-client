@@ -294,6 +294,7 @@ const MemberMeetings = () => {
   const [selectedMeeting, setSelectedMeeting] = useState(null); // For MOM Modal
   const [isMomModalOpen, setIsMomModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false); // For Photo Upload Modal
+  const [activeMeetingId, setActiveMeetingId] = useState(sessionStorage.getItem('activeMeetingId'));
 
   // Fetch all meetings when component mounts
   useEffect(() => {
@@ -311,6 +312,97 @@ const MemberMeetings = () => {
       setMemberMeetings(filteredMeetings);
     }
   }, [meetings, user]);
+
+  // Track meeting leave on page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Get active meeting from sessionStorage
+      const activeMeetingId = sessionStorage.getItem('activeMeetingId');
+      if (activeMeetingId) {
+        const token = localStorage.getItem('token');
+
+        if (token) {
+          // Use sendBeacon for reliable tracking even when page is closing
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+          const url = `${apiUrl}/api/meetings/${activeMeetingId}/leave`;
+
+          // Create FormData with auth header embedded in the request
+          const data = new FormData();
+          data.append('token', token);
+
+          // sendBeacon is synchronous and will complete even if page is closing
+          navigator.sendBeacon(url, data);
+        }
+
+        // Clear the active meeting
+        sessionStorage.removeItem('activeMeetingId');
+      }
+    };
+
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      // Also track on component unmount
+      // Commented out to prevent instant leave on re-renders or internal navigation
+      /*
+      const activeMeetingId = sessionStorage.getItem('activeMeetingId');
+      if (activeMeetingId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+          const url = `${apiUrl}/api/meetings/${activeMeetingId}/leave`;
+          const data = new FormData();
+          data.append('token', token);
+          navigator.sendBeacon(url, data);
+        }
+        sessionStorage.removeItem('activeMeetingId');
+      }
+      */
+    };
+  }, []);
+
+  // Update active meeting state when storage changes
+  useEffect(() => {
+    const checkActiveMeeting = () => {
+      setActiveMeetingId(sessionStorage.getItem('activeMeetingId'));
+    };
+
+    // Check periodically
+    const interval = setInterval(checkActiveMeeting, 1000);
+
+    // Also listen for storage events
+    window.addEventListener('storage', checkActiveMeeting);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkActiveMeeting);
+    };
+  }, []);
+
+  const handleEndMeeting = async (meetingId) => {
+    if (!meetingId) return;
+
+    const toastId = toast.loading('Ending meeting session...');
+    try {
+      await apiClient.post(`/meetings/${meetingId}/leave`);
+      sessionStorage.removeItem('activeMeetingId');
+      setActiveMeetingId(null);
+      toast.success('Meeting ended. Attendance recorded.', { id: toastId });
+      // Refresh meetings to show updated attendance
+      dispatch(fetchAllMeetings({ page: 1, limit: 10 }));
+    } catch (error) {
+      console.error('Error ending meeting:', error);
+      toast.error('Failed to record leave time', { id: toastId });
+      // Still clear local state on error to prevent broken UI
+      sessionStorage.removeItem('activeMeetingId');
+      setActiveMeetingId(null);
+    }
+  };
 
   const openMomModal = (meeting) => {
     setSelectedMeeting(meeting);
@@ -354,6 +446,27 @@ const MemberMeetings = () => {
             <div className="text-sm text-emerald-600">Total Meetings</div>
           </div>
         </div>
+
+        {/* Active Meeting Banner */}
+        {activeMeetingId && (
+          <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center animate-pulse">
+                <Video size={20} className="text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-emerald-900">You are currently in a meeting</h3>
+                <p className="text-sm text-emerald-700">Don't forget to click "End Meeting" when you are done to record your attendance.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleEndMeeting(activeMeetingId)}
+              className="w-full sm:w-auto px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors shadow-md flex items-center justify-center gap-2"
+            >
+              <X size={18} /> End Meeting
+            </button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -456,6 +569,35 @@ const MemberMeetings = () => {
                   </div>
                 </div>
 
+                {/* Attendance Summary - for meetings joined today */}
+                {meeting.attendance && (
+                  <div className="bg-emerald-50 rounded-lg p-3 mb-4 border border-emerald-100">
+                    <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">Your Attendance Session</h4>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="block text-emerald-600">Total Duration</span>
+                        <span className="font-bold text-gray-800">{meeting.attendance.totalDuration || 0} mins</span>
+                      </div>
+                      <div>
+                        <span className="block text-emerald-600">Last Joined</span>
+                        <span className="font-bold text-gray-800">
+                          {meeting.attendance.sessions && meeting.attendance.sessions.length > 0
+                            ? format(new Date(meeting.attendance.sessions[meeting.attendance.sessions.length - 1].joinedAt), 'h:mm a')
+                            : format(new Date(meeting.attendance.firstJoinedAt), 'h:mm a')}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-emerald-600">Status</span>
+                        <span className={`font-bold ${meeting.attendance.lastLeftAt ? 'text-gray-800' : 'text-emerald-600 animate-pulse'}`}>
+                          {meeting.attendance.lastLeftAt
+                            ? `Left at ${format(new Date(meeting.attendance.lastLeftAt), 'h:mm a')}`
+                            : 'Active Now'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Buttons */}
                 <div className="flex gap-3">
                   <button
@@ -467,23 +609,41 @@ const MemberMeetings = () => {
 
                   {/* Show Join button only for Zoom and Online meetings */}
                   {meeting.meetingType !== 'in-person' && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (meeting.meetingLink) {
-                          dispatch(joinMeeting(meeting._id));
-                          window.open(meeting.meetingLink, '_blank');
-                        }
-                      }}
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                        }`}
-                      disabled={!meeting.meetingLink}
-                    >
-                      <Video size={16} />
-                      {meeting.meetingLink ? 'Join' : 'No Link'}
-                    </button>
+                    activeMeetingId === meeting._id ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEndMeeting(meeting._id);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors border border-red-200"
+                      >
+                        <X size={16} /> End Meeting
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (meeting.meetingLink) {
+                            // Store meeting ID for leave tracking
+                            sessionStorage.setItem('activeMeetingId', meeting._id);
+                            setActiveMeetingId(meeting._id);
+
+                            // Log attendance
+                            dispatch(joinMeeting(meeting._id));
+
+                            // Open meeting in new tab
+                            window.open(meeting.meetingLink, '_blank');
+                          }
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${meeting.meetingLink
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          }`}
+                        disabled={!meeting.meetingLink}
+                      >
+                        <Video size={16} /> Join Meeting
+                      </button>
+                    )
                   )}
 
                   {/* Show upload photo button for in-person meetings */}
@@ -501,107 +661,172 @@ const MemberMeetings = () => {
             ))}
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Past Meetings Section */}
-      {pastMeetings.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Clock size={24} className="text-gray-500" />
-              Past Meetings
-            </h2>
-            <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
-              {pastMeetings.length}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pastMeetings.map(meeting => (
-              <div key={meeting._id} className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-l-gray-300 opacity-80 hover:opacity-100 transition-opacity">
-                {/* Meeting Header */}
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-bold text-gray-700">{meeting.title}</h3>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
-                    Completed
-                  </span>
-                </div>
-
-                {/* Meeting Description */}
-                <p className="text-gray-600 mb-4 text-sm">{meeting.description}</p>
-
-                {/* Meeting Details */}
-                <div className="space-y-2 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-2">
-                    <User size={14} className="text-gray-500" />
-                    <span>Host: </span>
-                    <strong className="text-gray-700">
-                      {meeting.host?.name || meeting.createdBy?.name || 'Admin'}
-                    </strong>
+      {
+        pastMeetings.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Clock size={24} className="text-gray-500" />
+                Past Meetings
+              </h2>
+              <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                {pastMeetings.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {pastMeetings.map(meeting => (
+                <div key={meeting._id} className="bg-white rounded-xl shadow-lg p-5 border-l-4 border-l-gray-300 opacity-80 hover:opacity-100 transition-opacity">
+                  {/* Meeting Header */}
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-lg font-bold text-gray-700">{meeting.title}</h3>
+                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
+                      Completed
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-gray-500" />
-                    <span>Date: </span>
-                    <strong className="text-gray-700">
-                      {format(new Date(meeting.meetingDate), 'EEE, MMM d, yyyy')}
-                    </strong>
+
+                  {/* Meeting Description */}
+                  <p className="text-gray-600 mb-4 text-sm">{meeting.description}</p>
+
+                  {/* Meeting Details */}
+                  <div className="space-y-2 text-sm text-gray-500 mb-4">
+                    <div className="flex items-center gap-2">
+                      <User size={14} className="text-gray-500" />
+                      <span>Host: </span>
+                      <strong className="text-gray-700">
+                        {meeting.host?.name || meeting.createdBy?.name || 'Admin'}
+                      </strong>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} className="text-gray-500" />
+                      <span>Date: </span>
+                      <strong className="text-gray-700">
+                        {format(new Date(meeting.meetingDate), 'EEE, MMM d, yyyy')}
+                      </strong>
+                    </div>
                   </div>
-                </div>
 
-                {/* Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => openMomModal(meeting)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                  >
-                    <FileText size={16} /> My Notes
-                  </button>
-
-                  {meeting.recordingLink ? (
-                    <a
-                      href={meeting.recordingLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-                    >
-                      <PlayCircle size={16} /> Recording
-                    </a>
-                  ) : (
-                    <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
-                      <Video size={16} /> Ended
+                  {/* Attendance Summary */}
+                  {meeting.attendance && (
+                    <div className="bg-emerald-50 rounded-lg p-3 mb-4 border border-emerald-100">
+                      <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2">Your Attendance</h4>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="block text-emerald-600">Duration</span>
+                          <span className="font-bold text-gray-800">{meeting.attendance.totalDuration || 0} mins</span>
+                        </div>
+                        <div>
+                          <span className="block text-emerald-600">Last Joined</span>
+                          <span className="font-bold text-gray-800">
+                            {meeting.attendance.lastLeftAt
+                              ? format(new Date(meeting.attendance.sessions[meeting.attendance.sessions.length - 1].joinedAt), 'h:mm a')
+                              : format(new Date(meeting.attendance.firstJoinedAt), 'h:mm a')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-emerald-600">Last Left</span>
+                          <span className="font-bold text-gray-800">
+                            {meeting.attendance.lastLeftAt
+                              ? format(new Date(meeting.attendance.lastLeftAt), 'h:mm a')
+                              : 'Active'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* ✅ View MOM (Admin Uploaded) */}
-                  {meeting.momLink && (
-                    <a
-                      href={meeting.momLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
-                      title="View Minutes of Meeting"
+                  {/* Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => openMomModal(meeting)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                     >
-                      <FileText size={16} /> MOM
-                    </a>
-                  )}
+                      <FileText size={16} /> My Notes
+                    </button>
 
-                  {/* ✅ View Proof */}
-                  {meeting.engagementProof && (
-                    <a
-                      href={meeting.engagementProof}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md hover:shadow-lg"
-                      title="View Engagement Proof"
-                    >
-                      <Link size={16} /> Proof
-                    </a>
-                  )}
+                    {/* Join/Rejoin Button - Always available if link exists */}
+                    {meeting.recordingLink ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Log attendance for recording view
+                          dispatch(joinMeeting(meeting._id));
+                          // Open recording in new tab
+                          window.open(meeting.recordingLink, '_blank');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+                      >
+                        <PlayCircle size={16} /> View Recording
+                      </button>
+                    ) : meeting.meetingLink ? (
+                      activeMeetingId === meeting._id ? (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleEndMeeting(meeting._id);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-700 hover:bg-red-200 transition-colors border border-red-200 shadow-md"
+                        >
+                          <X size={16} /> End Meeting
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // Store meeting ID for leave tracking
+                            sessionStorage.setItem('activeMeetingId', meeting._id);
+                            setActiveMeetingId(meeting._id);
+                            // Log attendance
+                            dispatch(joinMeeting(meeting._id));
+                            // Open meeting link in new tab
+                            window.open(meeting.meetingLink, '_blank');
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-md hover:shadow-lg"
+                        >
+                          <Video size={16} /> Rejoin Meeting
+                        </button>
+                      )
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-500 cursor-not-allowed">
+                        <Video size={16} /> No Link Available
+                      </div>
+                    )}
+
+                    {/* ✅ View MOM (Admin Uploaded) */}
+                    {meeting.momLink && (
+                      <a
+                        href={meeting.momLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
+                        title="View Minutes of Meeting"
+                      >
+                        <FileText size={16} /> MOM
+                      </a>
+                    )}
+
+                    {/* ✅ View Proof */}
+                    {meeting.engagementProof && (
+                      <a
+                        href={meeting.engagementProof}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-orange-600 text-white hover:bg-orange-700 transition-colors shadow-md hover:shadow-lg"
+                        title="View Engagement Proof"
+                      >
+                        <Link size={16} /> Proof
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* MOM Modal */}
       <MomModal
@@ -617,7 +842,7 @@ const MemberMeetings = () => {
         onClose={() => setIsPhotoModalOpen(false)}
         meeting={selectedMeeting}
       />
-    </div>
+    </div >
   );
 };
 

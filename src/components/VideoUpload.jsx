@@ -4,13 +4,13 @@ import { Upload, X, Play, Loader, AlertCircle, CheckCircle, Video } from 'lucide
 import { uploadVideo, validateVideoFile, formatFileSize } from '../utils/videoUpload';
 import toast from 'react-hot-toast';
 
-const VideoUpload = ({ 
-  courseId, 
-  chapterId, 
-  onUploadSuccess, 
+const VideoUpload = ({
+  courseId,
+  chapterId,
+  onUploadSuccess,
   onUploadError,
   existingVideoUrl = null,
-  disabled = false 
+  disabled = false
 }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -31,7 +31,7 @@ const VideoUpload = ({
     }
 
     setSelectedFile(file);
-    
+
     // Create preview URL
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
@@ -92,13 +92,13 @@ const VideoUpload = ({
       uploadTaskRef.current = uploadTask;
 
       const videoUrl = await uploadTask;
-      
+
       setUploading(false);
       setUploadProgress(100);
-      
+
       toast.success('Video uploaded successfully!');
       onUploadSuccess?.(videoUrl);
-      
+
       // Update preview URL to the uploaded video
       setPreviewUrl(videoUrl);
 
@@ -146,13 +146,12 @@ const VideoUpload = ({
 
       {/* File Upload Area */}
       <div
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${
-          dragActive
+        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${dragActive
             ? 'border-blue-500 bg-blue-50'
             : disabled
-            ? 'border-gray-200 bg-gray-50'
-            : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
-        }`}
+              ? 'border-gray-200 bg-gray-50'
+              : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+          }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
