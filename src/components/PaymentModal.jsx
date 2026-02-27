@@ -14,7 +14,7 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
 
     // Payment details (you can make these configurable)
     const paymentDetails = {
-        amount: '$10',
+        amount: '10 USDT',
         upiId: 'keysystem@upi', // Replace with actual UPI ID
         accountNumber: '1234567890', // Replace with actual account
         ifscCode: 'ABCD0123456', // Replace with actual IFSC
@@ -67,7 +67,7 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
         try {
             const response = await apiClient.post('/subscriptions/create', {
                 amount: 10,
-                currency: 'USD'
+                currency: 'USDT'
             });
             setSubscriptionId(response.data.subscription._id);
             setStep(2);
@@ -88,11 +88,7 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
             formData.append('subscriptionId', subscriptionId);
 
             // Backend uploads to Firebase Storage
-            await apiClient.post('/subscriptions/upload-proof', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                }
-            });
+            await apiClient.post('/subscriptions/upload-proof', formData);
 
             setStep(3);
             toast.success('Payment proof uploaded successfully!');

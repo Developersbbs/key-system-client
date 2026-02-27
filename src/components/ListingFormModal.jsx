@@ -18,35 +18,35 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit, cryptoTypes }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Validate form data
     if (parseFloat(formData.availableQuantity) <= 0) {
       alert('Available quantity must be greater than 0');
       return;
     }
-    
+
     if (formData.minPurchase && parseFloat(formData.minPurchase) <= 0) {
       alert('Minimum purchase must be greater than 0');
       return;
     }
-    
+
     if (formData.maxPurchase && parseFloat(formData.maxPurchase) < parseFloat(formData.minPurchase || 0)) {
       alert('Maximum purchase must be greater than minimum purchase');
       return;
     }
-    
+
     // Call onSubmit first, then reset form on success
     onSubmit(formData);
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (type === 'checkbox') {
-      const updatedMethods = checked 
+      const updatedMethods = checked
         ? [...formData.paymentMethods, value]
         : formData.paymentMethods.filter(method => method !== value);
-      
+
       setFormData(prev => ({ ...prev, paymentMethods: updatedMethods }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
@@ -105,7 +105,7 @@ const ListingFormModal = ({ isOpen, onClose, onSubmit, cryptoTypes }) => {
             {/* Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price per coin (USD) *
+                Price per coin (USDT) *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

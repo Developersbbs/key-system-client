@@ -41,102 +41,112 @@ const InactiveUserMessage = () => {
     );
   }
 
-  // Show different messages based on subscription status
-  if (subscription?.status === 'pending') {
-    return (
-      <div className="w-full max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
-          <Clock size={48} className="mx-auto text-blue-500 mb-4" />
-          <h2 className="text-2xl font-bold text-blue-900 mb-2">Payment Under Review</h2>
-          <p className="text-blue-700 mb-4">
-            Your payment is being verified by our admin team. This usually takes up to 24 hours.
-          </p>
-          <p className="text-blue-600 text-sm mb-6">
-            You'll be notified once your account is activated.
-          </p>
-          <button
-            onClick={fetchSubscriptionStatus}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            Refresh Status
-          </button>
-        </div>
-      </div>
-    );
+  // Define dynamic title and styling based on status
+  const isPending = subscription?.status === 'pending';
+  const isRejected = subscription?.status === 'rejected';
+
+  let title = "Account Inactive";
+  let titleColor = "text-red-900";
+  let iconColor = "text-red-500";
+  let bgColor = "from-red-50 to-orange-50 border-red-200";
+
+  if (isPending) {
+    title = "Payment Under Review";
+    titleColor = "text-blue-900";
+    iconColor = "text-blue-500";
+    bgColor = "from-blue-50 to-indigo-50 border-blue-200";
+  } else if (isRejected) {
+    title = "Payment Verification Failed";
   }
 
-  if (subscription?.status === 'rejected') {
-    return (
-      <div className="w-full max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-          <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-          <h2 className="text-2xl font-bold text-red-900 mb-2">Payment Verification Failed</h2>
-          <p className="text-red-700 mb-4">
-            {subscription.rejectionReason || 'Your payment could not be verified.'}
-          </p>
-          <p className="text-red-600 text-sm mb-6">
-            Please try again with a clear payment screenshot or contact support.
-          </p>
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-lg font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl"
-          >
-            Try Again
-          </button>
-        </div>
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-        />
-      </div>
-    );
-  }
-
-  // Default inactive message
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-8 text-center shadow-lg">
-        <AlertCircle size={56} className="mx-auto text-red-500 mb-4" />
-        <h2 className="text-3xl font-bold text-red-900 mb-3">Account Inactive</h2>
-        <p className="text-red-700 text-lg mb-2">
-          Your account is currently inactive. You don't have access to the dashboard or courses at this time.
-        </p>
-        <p className="text-red-600 mb-8">
-          Subscribe now to reactivate your account and get full access!
-        </p>
+      <div className={`bg-gradient-to-br ${bgColor} border-2 rounded-2xl p-8 text-center shadow-lg relative overflow-hidden transition-all duration-300`}>
 
-        {/* Subscription Features */}
-        <div className="bg-white rounded-xl p-6 mb-8 max-w-md mx-auto">
+        {/* Dynamic Icon */}
+        {isPending ? (
+          <Clock size={56} className={`mx-auto ${iconColor} mb-4`} />
+        ) : (
+          <AlertCircle size={56} className={`mx-auto ${iconColor} mb-4`} />
+        )}
+
+        <h2 className={`text-3xl font-bold ${titleColor} mb-3`}>{title}</h2>
+
+        {/* Dynamic Context Description */}
+        {isPending ? (
+          <div className="mb-8">
+            <p className="text-blue-700 text-lg mb-2">
+              Your payment is being verified by our admin team. This usually takes up to 24 hours.
+            </p>
+            <p className="text-blue-600">
+              You'll be notified once your account is activated.
+            </p>
+          </div>
+        ) : isRejected ? (
+          <div className="mb-8">
+            <p className="text-red-700 text-lg mb-2">
+              {subscription.rejectionReason || 'Your payment could not be verified.'}
+            </p>
+            <p className="text-red-600">
+              Please try again with a clear payment screenshot or contact support.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <p className="text-red-700 text-lg mb-2">
+              Your account is currently inactive. You don't have access to the dashboard or courses at this time.
+            </p>
+            <p className="text-red-600">
+              Subscribe now to reactivate your account and get full access!
+            </p>
+          </div>
+        )}
+
+        {/* Subscription Features (Always Visible) */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 mb-8 max-w-md mx-auto shadow-sm border border-white/50">
           <h3 className="font-bold text-gray-900 mb-4">What you'll get:</h3>
-          <ul className="text-left space-y-2 text-gray-700">
-            <li className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
-              <span>Access to all courses and materials</span>
+          <ul className="text-left space-y-3 text-gray-700">
+            <li className="flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-500 flex-shrink-0" />
+              <span className="font-medium">Access to all courses and materials</span>
             </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
-              <span>Interactive quizzes and assessments</span>
+            <li className="flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-500 flex-shrink-0" />
+              <span className="font-medium">Interactive quizzes and assessments</span>
             </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
-              <span>Progress tracking and certificates</span>
+            <li className="flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-500 flex-shrink-0" />
+              <span className="font-medium">Progress tracking and certificates</span>
             </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-600 flex-shrink-0" />
-              <span>1 year of unlimited learning</span>
+            <li className="flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-500 flex-shrink-0" />
+              <span className="font-medium">1 year of unlimited learning</span>
             </li>
           </ul>
         </div>
 
-        {/* Subscription Button */}
-        <button
-          onClick={() => setShowPaymentModal(true)}
-          className="inline-flex items-center px-10 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xl font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transform hover:-translate-y-1 transition-all duration-300 shadow-xl hover:shadow-2xl"
-        >
-          Subscribe for $10/year
-        </button>
-        <p className="text-sm text-gray-600 mt-4">Instant activation after payment verification</p>
+        {/* Dynamic Action Button / Action Area */}
+        {isPending ? (
+          <div>
+            <button
+              onClick={fetchSubscriptionStatus}
+              className="inline-flex items-center px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+            >
+              Refresh Status
+            </button>
+            <p className="text-sm text-blue-600/80 mt-4">Hang tight while we verify your transaction</p>
+          </div>
+        ) : (
+          <div>
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="inline-flex items-center px-10 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xl font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transform hover:-translate-y-1 transition-all duration-300 shadow-xl hover:shadow-2xl"
+            >
+              {isRejected ? 'Try Subscribing Again' : 'Subscribe for 10 USDT/year'}
+            </button>
+            <p className="text-sm text-gray-600 mt-4">Instant activation after payment verification</p>
+          </div>
+        )}
       </div>
 
       <PaymentModal

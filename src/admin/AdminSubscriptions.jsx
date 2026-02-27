@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, Eye, Search, Filter, Download, Home, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, Search, Filter, Download, Home, ChevronRight, Mail, Phone } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
 
@@ -130,8 +130,8 @@ const AdminSubscriptions = () => {
                             <button
                                 onClick={() => setActiveTab('pending')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending'
-                                        ? 'border-green-600 text-green-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-green-600 text-green-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 <div className="flex items-center gap-2">
@@ -147,8 +147,8 @@ const AdminSubscriptions = () => {
                             <button
                                 onClick={() => setActiveTab('all')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                                        ? 'border-green-600 text-green-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    ? 'border-green-600 text-green-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 All Subscriptions
@@ -197,14 +197,21 @@ const AdminSubscriptions = () => {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-bold text-lg text-gray-900">{subscription.user?.name || 'Unknown User'}</h3>
-                                                    <p className="text-sm text-gray-500">{subscription.user?.email}</p>
+                                                    <div className="flex flex-col gap-1 mt-1">
+                                                        <p className="text-sm text-gray-500 flex items-center gap-2">
+                                                            <Mail size={14} /> {subscription.user?.email || 'No email provided'}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500 flex items-center gap-2">
+                                                            <Phone size={14} /> {subscription.user?.phoneNumber || subscription.user?.phone || 'No phone provided'}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="ml-15 space-y-2">
+                                            <div className="ml-12 space-y-2">
                                                 <div className="flex items-center gap-4 text-sm">
                                                     <span className="text-gray-600">
-                                                        <strong>Amount:</strong> ${subscription.amount} {subscription.currency}
+                                                        <strong>Amount:</strong> {subscription.amount} {subscription.currency}
                                                     </span>
                                                     <span className="text-gray-600">
                                                         <strong>Submitted:</strong> {new Date(subscription.createdAt).toLocaleDateString()}
@@ -230,7 +237,7 @@ const AdminSubscriptions = () => {
                                         {/* Actions */}
                                         <div className="flex flex-col items-end gap-3 ml-4">
                                             {/* Payment Screenshot */}
-                                            {subscription.paymentScreenshot && (
+                                            {subscription.paymentScreenshot ? (
                                                 <button
                                                     onClick={() => setSelectedImage(subscription.paymentScreenshot)}
                                                     className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
@@ -238,6 +245,10 @@ const AdminSubscriptions = () => {
                                                     <Eye size={18} />
                                                     View Screenshot
                                                 </button>
+                                            ) : (
+                                                <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100">
+                                                    No Screenshot Uploaded
+                                                </span>
                                             )}
 
                                             {/* Approve/Reject Buttons */}

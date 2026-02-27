@@ -5,14 +5,11 @@ import axios from 'axios';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const apiClient = axios.create({
-  baseURL: isProduction 
-    ? 'https://keysystem.in/api' 
+  baseURL: isProduction
+    ? 'https://keysystem.in/api'
     : 'http://localhost:5001/api',
   withCredentials: true,
   timeout: 30000, // Increased timeout to 30 seconds
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor
@@ -48,7 +45,7 @@ apiClient.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data,
     });
-    
+
     if (error.code === 'ECONNABORTED') {
       error.message = 'Request timed out. Please check your internet connection or try again later.';
     } else if (!error.response) {
@@ -59,7 +56,7 @@ apiClient.interceptors.response.use(
     } else if (error.response.status === 500) {
       error.message = 'Server error. Please try again later.';
     }
-    
+
     return Promise.reject(error);
   }
 );
