@@ -17,7 +17,9 @@ const AdminSettings = () => {
         accountNumber: '',
         ifscCode: '',
         accountName: '',
-        qrCodeUrl: ''
+        qrCodeUrl: '',
+        bankImage1: '',
+        bankImage2: ''
     });
 
     useEffect(() => {
@@ -51,7 +53,7 @@ const AdminSettings = () => {
         }));
     };
 
-    const handleFileChange = async (e) => {
+    const handleFileChange = async (e, fieldName = 'qrCodeUrl') => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -90,10 +92,10 @@ const AdminSettings = () => {
             // 3. Update config state with new URL
             setConfig(prev => ({
                 ...prev,
-                qrCodeUrl: finalUrl
+                [fieldName]: finalUrl
             }));
 
-            toast.success('QR Code uploaded successfully', { id: uploadToast });
+            toast.success('Image uploaded successfully', { id: uploadToast });
         } catch (error) {
             console.error('QR upload error:', error);
             toast.error('Failed to upload QR code');
@@ -315,7 +317,7 @@ const AdminSettings = () => {
                             {/* QR Code Upload */}
                             <div className="col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Payment QR Code
+                                    Payment QR Code / Slider Image 1
                                 </label>
                                 <div className="flex items-center space-x-4">
                                     {config.qrCodeUrl && (
@@ -328,13 +330,73 @@ const AdminSettings = () => {
                                             <input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={handleFileChange}
+                                                onChange={(e) => handleFileChange(e, 'qrCodeUrl')}
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             />
                                             <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-colors">
                                                 <Upload className="w-5 h-5 text-gray-400 mr-2" />
                                                 <span className="text-sm text-gray-500">
-                                                    {config.qrCodeUrl ? 'Change QR Code Image' : 'Upload QR Code Image'}
+                                                    {config.qrCodeUrl ? 'Change Image' : 'Upload QR Code / Image 1'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bank Image 1 Upload */}
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Slider Image 2 (Bank Details Image)
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    {config.bankImage1 && (
+                                        <div className="w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                                            <img src={config.bankImage1} alt="Bank Details" className="object-contain w-full h-full" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleFileChange(e, 'bankImage1')}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-colors">
+                                                <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                                                <span className="text-sm text-gray-500">
+                                                    {config.bankImage1 ? 'Change Image' : 'Upload Slider Image 2'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Bank Image 2 Upload */}
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Slider Image 3 (Optional)
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    {config.bankImage2 && (
+                                        <div className="w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                                            <img src={config.bankImage2} alt="Additional Detail" className="object-contain w-full h-full" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleFileChange(e, 'bankImage2')}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-colors">
+                                                <Upload className="w-5 h-5 text-gray-400 mr-2" />
+                                                <span className="text-sm text-gray-500">
+                                                    {config.bankImage2 ? 'Change Image' : 'Upload Slider Image 3'}
                                                 </span>
                                             </div>
                                         </div>

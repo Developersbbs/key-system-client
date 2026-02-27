@@ -1,7 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, CheckCircle, Clock, Copy, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, CheckCircle, Clock, Copy, AlertCircle, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
+
+// Import Swiper React components
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination, Navigation, Autoplay } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
 
 const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
     const [step, setStep] = useState(1); // 1: Payment Info, 2: Upload Proof, 3: Status
@@ -12,13 +21,36 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
     const [status, setStatus] = useState('pending'); // pending, approved, rejected
     const fileInputRef = useRef(null);
 
-    // Payment details (you can make these configurable)
-    const paymentDetails = {
+    const [paymentDetails, setPaymentDetails] = useState({
         amount: '10 USDT',
-        upiId: 'keysystem@upi', // Replace with actual UPI ID
-        accountNumber: '1234567890', // Replace with actual account
-        ifscCode: 'ABCD0123456', // Replace with actual IFSC
-        accountName: 'Key System'
+        upiId: '',
+        accountNumber: '',
+        ifscCode: '',
+        accountName: '',
+        qrCodeUrl: '',
+        bankImage1: '',
+        bankImage2: ''
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchPaymentConfig();
+        }
+    }, [isOpen]);
+
+    const fetchPaymentConfig = async () => {
+        try {
+            const res = await apiClient.get('/system-config/payment-info');
+            if (res.data.success) {
+                setPaymentDetails(prev => ({
+                    ...prev,
+                    ...res.data.config
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching payment info:', error);
+            // Fallback value if fetch fails
+        }
     };
 
     const handleCopy = (text, label) => {
@@ -159,18 +191,43 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
                                 <p className="text-gray-600">Scan the QR code or use the payment details below</p>
                             </div>
 
-                            {/* QR Code */}
+                            {/* QR Code & Bank Images Slider */}
                             <div className="flex justify-center">
-                                <div className="bg-white p-6 rounded-xl shadow-lg border-2 border-emerald-200">
-                                    <img
-                                        src="/payment-qr.png"
-                                        alt="Payment QR Code"
-                                        className="w-64 h-64 object-contain"
-                                        onError={(e) => {
-                                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23f0f0f0"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="16">QR Code</text></svg>';
+                                <div className="bg-white p-4 rounded-xl shadow-lg border-2 border-emerald-200 w-full max-w-sm">
+                                    <Swiper
+                                        modules={[Pagination, Navigation, Autoplay]}
+                                        spaceBetween={10}
+                                        slidesPerView={1}
+                                        navigation={{
+                                            prevEl: '.swiper-button-prev-custom',
+                                            nextEl: '.swiper-button-next-custom',
                                         }}
-                                    />
-                                    <p className="text-center mt-3 font-semibold text-emerald-700">Scan to Pay {paymentDetails.amount}</p>
+                                        pagination={{ clickable: true }}
+                                        autoplay={{ delay: 5000, disableOnInteraction: false }}
+                                        className="rounded-lg overflow-hidden relative"
+                                    >
+                                        {[paymentDetails.qrCodeUrl, paymentDetails.bankImage1, paymentDetails.bankImage2].filter(url => url).map((url, idx) => (
+                                            <SwiperSlide key={idx}>
+                                                <img
+                                                    src={url}
+                                                    alt={`Payment info ${idx + 1}`}
+                                                    className="w-full h-80 object-contain bg-gray-50"
+                                                    onError={(e) => {
+                                                        e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="%23f0f0f0"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999" font-size="16">Image Missing</text></svg>';
+                                                    }}
+                                                />
+                                            </SwiperSlide>
+                                        ))}
+
+                                        {/* Custom Navigation Arrows */}
+                                        <button className="swiper-button-prev-custom absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 p-2 rounded-full shadow-md text-emerald-600 hover:bg-white transition-colors">
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <button className="swiper-button-next-custom absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 p-2 rounded-full shadow-md text-emerald-600 hover:bg-white transition-colors">
+                                            <ChevronRight size={20} />
+                                        </button>
+                                    </Swiper>
+                                    <p className="text-center mt-3 font-semibold text-emerald-700">Scan QR or slide for details</p>
                                 </div>
                             </div>
 
