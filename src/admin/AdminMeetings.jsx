@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, addMeeting, removeMeeting, fetchMeetingLogs, updateMeeting } from '../redux/features/meetings/meetingSlice';
 import { fetchAllAdmins, fetchAllMembers } from '../redux/features/members/memberSlice';
+import { fetchAdminFounders } from '../redux/features/founders/founderSlice';
 import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft, Edit2, PlayCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
@@ -9,7 +10,7 @@ import { Select } from 'antd';
 import apiClient from '../api/apiClient';
 
 // Meeting Form Modal Component
-const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
+const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members, founders }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -106,6 +107,13 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
       });
     }
   }, [isOpen, onSubmit.initialData]);
+
+  // Extract unique designations from founders that are linked to users
+  const categories = [...new Set(
+    (founders || [])
+      .filter(f => f.user && f.designation)
+      .map(f => f.designation)
+  )];
 
   const handleGenerateZoom = async () => {
     try {
@@ -254,18 +262,68 @@ const MeetingFormModal = ({ isOpen, onClose, onSubmit, admins, members }) => {
               <Select
                 placeholder="Select Host (Admin)"
                 className="w-full h-11"
+                value={formData.host || undefined}
                 onChange={(value) => setFormData({ ...formData, host: value })}
                 options={admins.map(admin => ({ label: admin.name, value: admin._id }))}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium ml-1 uppercase tracking-wider">Participants</label>
+              <div className="flex flex-col gap-2 ml-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs text-gray-500 font-medium uppercase tracking-wider">Participants</label>
+                  <div className="space-x-3 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, participants: members.map(m => m._id) })}
+                      className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold tracking-wide uppercase transition-colors bg-emerald-50 px-2 py-0.5 rounded"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, participants: [] })}
+                      className="text-[11px] text-red-500 hover:text-red-600 font-bold tracking-wide uppercase transition-colors bg-red-50 px-2 py-0.5 rounded"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter by Categories */}
+                {categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1 mb-2">
+                    <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider self-center mr-1">Quick Select:</span>
+                    {categories.map((category, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          const categoryUserIds = founders
+                            .filter(f => f.designation === category && f.user)
+                            .map(f => typeof f.user === 'object' ? f.user._id : f.user);
+
+                          // Use a Set to avoid duplicates if merging, but here we just append to existing
+                          const currentSet = new Set(formData.participants);
+                          categoryUserIds.forEach(id => currentSet.add(id));
+
+                          setFormData({ ...formData, participants: Array.from(currentSet) });
+                          toast.success(`Added ${categoryUserIds.length} ${category}(s)`);
+                        }}
+                        className="text-[11px] text-purple-600 hover:text-purple-700 font-bold tracking-wide uppercase transition-colors border border-purple-200 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Select
                 mode="multiple"
                 allowClear
                 placeholder="Select Participants (Members)"
                 className="w-full"
+                value={formData.participants}
                 onChange={(values) => setFormData({ ...formData, participants: values })}
                 options={members.map(member => ({ label: member.name, value: member._id }))}
               />
@@ -481,6 +539,7 @@ const AdminMeetings = () => {
   const dispatch = useDispatch();
   const { meetings, loading, error, pagination } = useSelector(state => state.meetings);
   const { members, admins } = useSelector(state => state.members);
+  const { founders } = useSelector(state => state.founders);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -489,6 +548,7 @@ const AdminMeetings = () => {
     dispatch(fetchAllMeetings({ page: currentPage, limit: itemsPerPage }));
     dispatch(fetchAllMembers());
     dispatch(fetchAllAdmins());
+    dispatch(fetchAdminFounders());
   }, [dispatch, currentPage]);
 
   console.log("DEBUG: Pagination State:", { meetingsLength: meetings.length, pagination, loading });
@@ -862,6 +922,7 @@ const AdminMeetings = () => {
         onSubmit={{ handler: editingMeeting ? handleUpdateMeeting : handleAddMeeting, initialData: editingMeeting }}
         admins={admins}
         members={members}
+        founders={founders}
       />
 
       <LogsModal

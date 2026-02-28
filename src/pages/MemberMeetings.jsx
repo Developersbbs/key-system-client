@@ -211,7 +211,7 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
         <div className="flex justify-between items-center p-5 border-b border-gray-100">
           <div>
             <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-              <Camera className="text-purple-600" size={20} />
+              <Camera className="text-emerald-600" size={20} />
               Upload Attendance Photo
             </h3>
             <p className="text-sm text-gray-500 mt-1">
@@ -240,7 +240,7 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all">
+            <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <Upload className="w-12 h-12 mb-3 text-gray-400" />
                 <p className="mb-2 text-sm text-gray-500">
@@ -270,7 +270,7 @@ const PhotoUploadModal = ({ isOpen, onClose, meeting }) => {
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            className="px-6 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {uploading ? <span className="animate-spin">⌛</span> : <Camera size={18} />}
             {uploading ? 'Uploading...' : 'Mark Attendance'}
@@ -519,7 +519,7 @@ const MemberMeetings = () => {
                   {meeting.meetingType === 'in-person' && (
                     <button
                       onClick={() => openPhotoModal(meeting)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                     >
                       <Camera size={16} />
                       Upload Attendance Photo
