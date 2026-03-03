@@ -50,6 +50,19 @@ export const registerWithOTP = createAsyncThunk(
   }
 );
 
+// Handles Google login
+export const loginWithGoogle = createAsyncThunk(
+  "auth/loginWithGoogle",
+  async (googleData, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.post('/auth/google', googleData);
+      return res.data.user;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Google login failed");
+    }
+  }
+);
+
 // ✅ This is the function that needs to be exported
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
@@ -75,7 +88,7 @@ const authSlice = createSlice({
     builder
       // Fulfilled: Any of these actions mean the user is now logged in
       .addMatcher(
-        (action) => [loginWithOTP.fulfilled.type, registerWithOTP.fulfilled.type, fetchUserProfile.fulfilled.type].includes(action.type),
+        (action) => [loginWithOTP.fulfilled.type, registerWithOTP.fulfilled.type, fetchUserProfile.fulfilled.type, loginWithGoogle.fulfilled.type].includes(action.type),
         (state, action) => {
           state.user = action.payload;
           state.isLoggedIn = true;

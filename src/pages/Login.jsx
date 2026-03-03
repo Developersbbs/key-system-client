@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { auth } from "../lib/firebase"; 
-import { loginWithOTP } from "../redux/features/auth/authSlice";
+import { RecaptchaVerifier, signInWithPhoneNumber, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../lib/firebase";
+import { loginWithOTP, loginWithGoogle } from "../redux/features/auth/authSlice";
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -15,7 +15,7 @@ const Login = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
-  
+
   // Display Redux errors as toasts
   useEffect(() => {
     if (error) {
@@ -67,31 +67,31 @@ const Login = () => {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container-login", {
           size: "invisible",
         });
-        
+
         // Render the new verifier
         await window.recaptchaVerifier.render();
         console.log("reCAPTCHA initialized successfully for Login");
-        
+
       } catch (error) {
         console.error("Error initializing reCAPTCHA:", error);
-        
+
         // Force complete reset if still failing
         try {
           // Clear everything
           window.recaptchaVerifier = null;
-          
+
           // Remove all reCAPTCHA related elements
           const allContainers = document.querySelectorAll('[id*="recaptcha"]');
           allContainers.forEach(container => {
             container.innerHTML = '';
             container.remove();
           });
-          
+
           // Recreate the container
           const newContainer = document.createElement('div');
           newContainer.id = 'recaptcha-container-login';
           document.body.appendChild(newContainer);
-          
+
           // Wait and retry
           setTimeout(async () => {
             try {
@@ -105,7 +105,7 @@ const Login = () => {
               toast.error("reCAPTCHA initialization failed. Please refresh the page.");
             }
           }, 1000);
-          
+
         } catch (cleanupError) {
           console.error("Error during force cleanup:", cleanupError);
         }
@@ -129,27 +129,27 @@ const Login = () => {
 
   const handleSendOtp = async () => {
     console.log("[DEBUG] handleSendOtp called with phone:", phone);
-    
+
     if (!phone || phone.length !== 10) {
       const errorMsg = "Please enter a valid 10-digit phone number.";
       console.error("[DEBUG] Validation failed:", errorMsg);
       return toast.error(errorMsg);
     }
-    
+
     try {
       console.log("[DEBUG] Initializing reCAPTCHA verifier");
       const appVerifier = window.recaptchaVerifier;
       const formattedPhoneNumber = `+91${phone}`;
-      
+
       console.log("[DEBUG] Sending OTP to:", formattedPhoneNumber);
       console.log("[DEBUG] reCAPTCHA verifier state:", {
         type: typeof window.recaptchaVerifier,
         container: document.getElementById('recaptcha-container-login')?.outerHTML
       });
-      
+
       const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
       console.log("[DEBUG] OTP sent successfully, confirmation result:", result);
-      
+
       setConfirmationResult(result);
       setOtpSent(true);
       toast.success("OTP sent successfully!");
@@ -169,16 +169,16 @@ const Login = () => {
     if (!phone || phone.length !== 10) {
       return toast.error("Please enter a valid phone number first.");
     }
-    
+
     try {
       const appVerifier = window.recaptchaVerifier;
       const formattedPhoneNumber = `+91${phone}`;
-      
+
       const result = await signInWithPhoneNumber(auth, formattedPhoneNumber, appVerifier);
-      
+
       setConfirmationResult(result);
       toast.success("New OTP sent successfully!");
-      
+
     } catch (err) {
       console.error("Error resending OTP:", err);
       toast.error("Failed to resend OTP. Please try again.");
@@ -188,12 +188,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("[DEBUG] handleSubmit called with OTP:", otp);
-    
+
     if (!confirmationResult) {
       console.error("[DEBUG] No confirmation result available");
       return toast.error("Please request an OTP first.");
     }
-    
+
     if (otp.length !== 6) {
       console.error("[DEBUG] Invalid OTP length:", otp.length);
       return toast.error("Please enter a valid 6-digit OTP.");
@@ -203,28 +203,28 @@ const Login = () => {
       console.log("[DEBUG] Verifying OTP...");
       const userCredential = await confirmationResult.confirm(otp);
       console.log("[DEBUG] OTP verified successfully, user:", userCredential.user);
-      
+
       console.log("[DEBUG] Getting ID token...");
       const idToken = await userCredential.user.getIdToken();
       console.log("[DEBUG] ID token retrieved, length:", idToken ? idToken.length : 0);
 
       const loginData = { idToken, rememberMe: true };
-      console.log("[DEBUG] Dispatching loginWithOTP with data:", { 
+      console.log("[DEBUG] Dispatching loginWithOTP with data:", {
         hasToken: !!idToken,
-        rememberMe: true 
+        rememberMe: true
       });
 
       const resultAction = await dispatch(loginWithOTP(loginData)).unwrap();
       console.log("[DEBUG] Login response:", resultAction);
-      
+
       if (!resultAction) {
         throw new Error("No user data returned from server");
       }
-      
+
       const userRole = resultAction.role;
       console.log("[DEBUG] Login successful, user role:", userRole);
       toast.success("Login successful! Welcome back.");
-      
+
       const redirectPath = userRole === "admin" ? "/admin/dashboard" : "/member";
       console.log("[DEBUG] Navigating to:", redirectPath);
       navigate(redirectPath);
@@ -249,6 +249,30 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      const loginData = { idToken, rememberMe: true };
+      const resultAction = await dispatch(loginWithGoogle(loginData)).unwrap();
+
+      if (!resultAction) {
+        throw new Error("No user data returned from server");
+      }
+
+      const userRole = resultAction.role;
+      toast.success("Login successful! Welcome back.");
+
+      const redirectPath = userRole === "admin" ? "/admin/dashboard" : "/member";
+      navigate(redirectPath);
+    } catch (err) {
+      console.error("Google Login Error:", err);
+      toast.error(err.message || "Google Login failed. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -257,12 +281,12 @@ const Login = () => {
           <h1 className="text-2xl font-bold">Welcome Back!</h1>
           <p className="text-teal-100">Login to access your account</p>
         </div>
-        
+
         {/* Main content */}
         <div className="p-8">
           {/* Hidden reCAPTCHA container */}
           <div id="recaptcha-container-login" className="hidden"></div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Phone input */}
             <div>
@@ -290,11 +314,10 @@ const Login = () => {
                   type="button"
                   onClick={handleSendOtp}
                   disabled={loading || phone.length !== 10}
-                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
-                    (loading || phone.length !== 10) 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || phone.length !== 10)
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                  }`}
+                    }`}
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">
@@ -308,7 +331,7 @@ const Login = () => {
                 </button>
               )}
             </div>
-            
+
             {/* OTP Input */}
             {otpSent && (
               <div className="space-y-4 transition-all duration-300 ease-in-out">
@@ -352,15 +375,14 @@ const Login = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6}
-                  className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${
-                    (loading || otp.length !== 6) 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                  className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || otp.length !== 6)
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                  }`}
+                    }`}
                 >
                   {loading ? (
                     <>
@@ -375,7 +397,44 @@ const Login = () => {
               </div>
             )}
           </form>
-          
+
+          {/* Divider */}
+          <div className="mt-8 flex items-center justify-center space-x-4">
+            <div className="h-px bg-gray-300 flex-1"></div>
+            <span className="text-sm font-medium text-gray-500">OR</span>
+            <div className="h-px bg-gray-300 flex-1"></div>
+          </div>
+
+          {/* Google Login Button */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200"
+            >
+              <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Sign in with Google
+            </button>
+          </div>
+
           {/* Help text */}
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>We'll send you a verification code via SMS</p>
