@@ -14,6 +14,8 @@ import userProfileReducer from "../features/userProfileSlice/userProfileSlice";
 import announcementReducer from '../features/announcements/announcementSlice';
 import founderReducer from '../features/founders/founderSlice';
 import toolReducer from '../features/tool/toolSlice';
+import worksheetReducer from '../features/worksheets/worksheetSlice';
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -30,6 +32,7 @@ export const store = configureStore({
     announcements: announcementReducer,
     founders: founderReducer,
     tools: toolReducer,
+    worksheets: worksheetReducer,
   },
 });
 

@@ -40,6 +40,9 @@ import AdminTools from "./admin/AdminTools";
 import Tools from "./pages/Tools";
 import AdminSubscriptions from "./admin/AdminSubscriptions";
 
+import MemberWorksheet from "./pages/MemberWorksheet";
+import AdminWorksheet from "./admin/AdminWorksheet";
+
 // Import Protected Route Component
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -95,6 +98,11 @@ const App = () => {
           <Route path="/member" element={
             <ProtectedRoute requiredRole="member">
               <MemberDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/member/worksheet" element={
+            <ProtectedRoute requiredRole="member">
+              <MemberWorksheet />
             </ProtectedRoute>
           } />
           <Route path="/profile" element={
@@ -207,6 +215,11 @@ const App = () => {
           <Route path="/admin/subscriptions" element={
             <ProtectedRoute requiredRole="admin">
               <AdminSubscriptions />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/worksheet" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminWorksheet />
             </ProtectedRoute>
           } />
         </Routes>

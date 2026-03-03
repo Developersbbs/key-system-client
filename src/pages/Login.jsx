@@ -11,6 +11,7 @@ const Login = () => {
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -137,6 +138,7 @@ const Login = () => {
     }
 
     try {
+      setIsSendingOtp(true);
       console.log("[DEBUG] Initializing reCAPTCHA verifier");
       const appVerifier = window.recaptchaVerifier;
       const formattedPhoneNumber = `+91${phone}`;
@@ -162,6 +164,8 @@ const Login = () => {
         stack: err.stack
       });
       toast.error(err.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
@@ -313,13 +317,13 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  disabled={loading || phone.length !== 10}
-                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || phone.length !== 10)
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  disabled={isSendingOtp || phone.length !== 10}
+                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(isSendingOtp || phone.length !== 10)
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     }`}
                 >
-                  {loading ? (
+                  {isSendingOtp ? (
                     <span className="flex items-center justify-center">
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -380,8 +384,8 @@ const Login = () => {
                   type="submit"
                   disabled={loading || otp.length !== 6}
                   className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || otp.length !== 6)
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     }`}
                 >
                   {loading ? (
@@ -411,7 +415,7 @@ const Login = () => {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200"
+              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:cursor-pointer disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200"
             >
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path

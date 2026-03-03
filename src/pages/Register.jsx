@@ -19,6 +19,7 @@ const Register = () => {
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   // Initialize reCAPTCHA on component mount
   useEffect(() => {
@@ -92,6 +93,7 @@ const Register = () => {
     }
 
     try {
+      setIsSendingOtp(true);
       const appVerifier = window.recaptchaVerifier;
       const formattedPhoneNumber = `+91${formData.phoneNumber}`;
 
@@ -104,6 +106,8 @@ const Register = () => {
     } catch (err) {
       console.error("Error sending OTP:", err);
       toast.error("Failed to send OTP. Please try again or check the console.");
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
@@ -252,13 +256,13 @@ const Register = () => {
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  disabled={loading || formData.phoneNumber.length !== 10}
-                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || formData.phoneNumber.length !== 10)
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                  disabled={isSendingOtp || formData.phoneNumber.length !== 10}
+                  className={`w-full mt-4 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(isSendingOtp || formData.phoneNumber.length !== 10)
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     }`}
                 >
-                  {loading ? (
+                  {isSendingOtp ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -319,8 +323,8 @@ const Register = () => {
                   type="submit"
                   disabled={loading || otp.length !== 6}
                   className={`w-full px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 flex items-center justify-center ${(loading || otp.length !== 6)
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
                     }`}
                 >
                   {loading ? (
@@ -350,7 +354,7 @@ const Register = () => {
               type="button"
               onClick={handleGoogleRegister}
               disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200"
+              className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:cursor-pointer disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200"
             >
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path

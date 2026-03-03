@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAdminFounders, createFounder, updateFounder, deleteFounder, fetchUsersToLink } from '../redux/features/founders/founderSlice';
 
@@ -21,6 +21,20 @@ const AdminFounders = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDesignation, setFilterDesignation] = useState('All');
+
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    const userDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+                setUserDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -70,6 +84,8 @@ const AdminFounders = () => {
     }, [formData.state]);
 
     const designations = ['Founder', 'Director', 'Senior Director', 'Key Leader'];
+    const dynamicDesignations = Array.from(new Set(founders.map(f => f.designation).filter(d => d && !designations.includes(d))));
+    const allDesignations = [...designations, ...dynamicDesignations];
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -361,34 +377,69 @@ const AdminFounders = () => {
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
+                                    <div className="md:col-span-2" ref={userDropdownRef}>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Select User (Optional)</label>
-                                        <select
-                                            name="user"
-                                            value={formData.user}
-                                            onChange={(e) => {
-                                                const selectedUserId = e.target.value;
-                                                const selectedUser = users.find(u => u._id === selectedUserId);
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    user: selectedUserId,
-                                                    name: selectedUserId && selectedUser ? selectedUser.name : prev.name,
-                                                    mobile: selectedUserId && selectedUser ? selectedUser.phoneNumber || prev.mobile : prev.mobile
-                                                }));
-                                            }}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
-                                        >
-                                            <option value="">-- Select a registered member --</option>
-                                            {users && users.length > 0 ? (
-                                                users.map(user => (
-                                                    <option key={user._id} value={user._id}>
-                                                        {user.name} ({user.email}) - {user.role}
-                                                    </option>
-                                                ))
-                                            ) : (
-                                                <option disabled>No members available</option>
+                                        <div className="relative">
+                                            <div
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 bg-white flex items-center justify-between cursor-pointer"
+                                                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                                            >
+                                                <span className={formData.user ? "text-gray-900" : "text-gray-500"}>
+                                                    {formData.user ? users.find(u => u._id === formData.user)?.name || 'Selected User' : '-- Search and select a registered member --'}
+                                                </span>
+                                                <Search size={18} className="text-gray-400" />
+                                            </div>
+
+                                            {userDropdownOpen && (
+                                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 flex flex-col">
+                                                    <div className="p-2 border-b border-gray-100 flex-shrink-0">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search by name or email..."
+                                                            value={userSearchTerm}
+                                                            onChange={(e) => setUserSearchTerm(e.target.value)}
+                                                            className="w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:border-emerald-500 text-sm"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div className="overflow-y-auto flex-grow">
+                                                        <div
+                                                            className="px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm text-gray-600 border-b border-gray-50"
+                                                            onClick={() => {
+                                                                setFormData(prev => ({ ...prev, user: '', name: '', mobile: '' }));
+                                                                setUserDropdownOpen(false);
+                                                                setUserSearchTerm('');
+                                                            }}
+                                                        >
+                                                            -- Clear Selection --
+                                                        </div>
+                                                        {users.filter(u => u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.email?.toLowerCase().includes(userSearchTerm.toLowerCase())).length > 0 ? (
+                                                            users.filter(u => u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || u.email?.toLowerCase().includes(userSearchTerm.toLowerCase())).map(user => (
+                                                                <div
+                                                                    key={user._id}
+                                                                    className={`px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm ${formData.user === user._id ? 'bg-emerald-50 font-medium text-emerald-700' : 'text-gray-700'}`}
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({
+                                                                            ...prev,
+                                                                            user: user._id,
+                                                                            name: user.name,
+                                                                            mobile: user.phoneNumber || prev.mobile
+                                                                        }));
+                                                                        setUserDropdownOpen(false);
+                                                                        setUserSearchTerm('');
+                                                                    }}
+                                                                >
+                                                                    {user.name} ({user.email}) - {user.role}
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="px-4 py-3 text-sm text-gray-500 text-center">No members found</div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
-                                        </select>
+                                        </div>
                                         <p className="text-xs text-gray-500 mt-1">Selecting a user will auto-fill name and mobile number.</p>
                                     </div>
 
@@ -409,33 +460,25 @@ const AdminFounders = () => {
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
-                                        <select
-                                            name="designation"
-                                            value={formData.isCustomDesignation ? 'Custom' : formData.designation}
-                                            onChange={(e) => {
-                                                if (e.target.value === 'Custom') {
-                                                    setFormData(prev => ({ ...prev, isCustomDesignation: true, designation: '' }));
-                                                } else {
-                                                    setFormData(prev => ({ ...prev, isCustomDesignation: false, designation: e.target.value }));
-                                                }
-                                            }}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white mb-2"
-                                        >
-                                            {designations.map(d => (
-                                                <option key={d} value={d}>{d}</option>
-                                            ))}
-                                            <option value="Custom">Different Designation...</option>
-                                        </select>
-                                        {formData.isCustomDesignation && (
+                                        <div className="relative">
                                             <input
-                                                type="text"
+                                                list="designations-list"
                                                 name="designation"
                                                 value={formData.designation}
                                                 onChange={handleInputChange}
-                                                placeholder="Enter custom designation"
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white pr-10"
+                                                placeholder="Select or type designation..."
+                                                required
                                             />
-                                        )}
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                                            </div>
+                                        </div>
+                                        <datalist id="designations-list">
+                                            {allDesignations.map(d => (
+                                                <option key={d} value={d} />
+                                            ))}
+                                        </datalist>
                                     </div>
 
                                     <div>

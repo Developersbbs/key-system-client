@@ -215,7 +215,13 @@ const Layout = ({ children }) => {
     navigate("/");
   };
 
-  const isActive = (path) => location.pathname.startsWith(path);
+  const isActive = (path) => {
+    // Exact match for root/dashboard paths to prevent them from staying active on sub-pages
+    if (path === '/admin' || path === '/admin/dashboard' || path === '/member' || path === '/member/dashboard') {
+      return location.pathname === path || location.pathname === path + '/';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const adminNavItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: Home },
@@ -224,6 +230,7 @@ const Layout = ({ children }) => {
     { path: '/admin/levels', label: 'Levels', icon: CircleGauge },
     { path: '/admin/meetings', label: 'Meetings', icon: VideoIcon },
     { path: '/admin/attendance', label: 'Attendance', icon: Users },
+    { path: '/admin/worksheet', label: 'Worksheet', icon: FolderOpen },
     { path: '/admin/events', label: 'Events', icon: Calendar },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/admin/transactions', label: 'Transactions', icon: DollarSign },
@@ -239,6 +246,7 @@ const Layout = ({ children }) => {
   const memberNavItems = [
     { path: '/member', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
+    { path: '/member/worksheet', label: 'Worksheet', icon: FolderOpen },
     { path: '/marketplace', label: 'Marketplace', icon: CircleDollarSign },
     { path: '/transactions', label: 'Transactions', icon: DollarSign },
     { path: '/meeting', label: 'Meetings', icon: Projector },
