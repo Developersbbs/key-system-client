@@ -1374,6 +1374,61 @@ const Home = () => {
       </section >
 
 
+      {/* Crypto Shorts Section */}
+      <section className="py-24 bg-gradient-to-br from-gray-50 via-white to-emerald-50 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full font-semibold text-sm mb-4">
+              <Video className="w-4 h-4 mr-2" />
+              Crypto Shorts
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 mb-4">
+              Quick Bites of
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600">
+                Crypto Knowledge
+              </span>
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Swipe through our latest quick tips and market updates in vertical format.
+            </p>
+          </div>
+
+          {/* Reels Container */}
+          <div className="flex overflow-x-auto pb-8 pt-4 snap-x snap-mandatory hide-scrollbar gap-4 md:gap-6 px-4 md:px-8 w-full max-w-7xl mx-auto">
+            {/* Left Spacer to ensure perfect alignment offset on mobile */}
+            <div className="shrink-0 w-0 md:w-2"></div>
+            {[
+              { id: "Pw1Fsj8SFBc", image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=600&h=1066&q=80" },
+              { id: "RCTFnwe3K1s", image: "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&w=600&h=1066&q=80" },
+              { id: "ypeZdqaHKTo", image: "https://images.unsplash.com/photo-1622630998477-20b41cd0e0b2?auto=format&fit=crop&w=600&h=1066&q=80" },
+              { id: "tiUJixp-9w0", image: "https://images.unsplash.com/photo-1605792657660-596af9009e82?auto=format&fit=crop&w=600&h=1066&q=80" },
+              { id: "9dGW5lkYYU0", image: "https://images.unsplash.com/photo-1625806335347-195935061b47?auto=format&fit=crop&w=600&h=1066&q=80" }
+            ].map((video, index) => (
+              <div
+                key={index}
+                className="relative snap-start shrink-0 w-[80vw] sm:w-[320px] max-w-[320px] aspect-[9/16] bg-gray-900 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-cover bg-center"
+                style={{ backgroundImage: `url('${video.image}')` }}
+              >
+                {/* Visual Overlay */}
+                <div className="absolute inset-0 bg-black/20 hover:bg-black/10 transition-colors"></div>
+              </div>
+            ))}
+            {/* Right Spacer for mobile scrolling */}
+            <div className="shrink-0 w-4 lg:w-0"></div>
+          </div>
+
+          <style jsx>{`
+            .hide-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+            .hide-scrollbar {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
+        </div>
+      </section>
+
       {/* Enhanced Contact Section */}
       < section id="contacts" className="py-24 bg-gradient-to-br from-gray-50 via-white to-emerald-50" >
         <div className="container mx-auto px-6">

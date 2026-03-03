@@ -1,0 +1,1 @@
+fixed padding width to be 100% visible on first element while scrolling.
