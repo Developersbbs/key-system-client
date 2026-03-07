@@ -32,6 +32,7 @@ import MemberTransactions from "./pages/MemberTransactions";
 import AdminAnnouncements from "./admin/AdminAnnouncements";
 import MemberAnnouncements from "./pages/MemberAnnouncement";
 import Founders from "./pages/Founders";
+import FounderProfile from './pages/FounderProfile';
 import AdminFounders from "./admin/AdminFounders";
 import AdminAttendance from "./admin/AdminAttendance";
 import Achievers from "./pages/Achievers";
@@ -130,6 +131,12 @@ const App = () => {
               <Founders />
             </ProtectedRoute>
           } />
+
+          <Route path="/founders/:id" element={
+            <ProtectedRoute>
+              <FounderProfile/>
+            </ProtectedRoute>
+          }/>
           <Route path="/achievers" element={
             <ProtectedRoute>
               <Achievers />
