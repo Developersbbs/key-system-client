@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { submitWorksheet, updateWorksheet, deleteWorksheet, fetchMyWorksheets, clearWorksheetState } from '../redux/features/worksheets/worksheetSlice';
+import { submitWorksheet, updateWorksheet, deleteWorksheet, fetchMyWorksheets, clearWorksheetState, fetchActiveFields } from '../redux/features/worksheets/worksheetSlice';
 import toast from 'react-hot-toast';
 
 const MemberWorksheet = () => {
     const dispatch = useDispatch();
-    const { worksheets, loading, success, error } = useSelector((state) => state.worksheets);
+    const { worksheets, fields, loading, success, error } = useSelector((state) => state.worksheets);
 
     const initialFormState = {
-        name: '', bom: '', bdm: '', tm: '', sCall: '', jCall: '',
-        stp1Name: '', stp2Name: '', register: '', staking: '', income: ''
+        name: '',
+        data: {}
     };
 
     const [editId, setEditId] = useState(null);
@@ -26,6 +26,7 @@ const MemberWorksheet = () => {
 
     useEffect(() => {
         dispatch(fetchMyWorksheets());
+        dispatch(fetchActiveFields());
         return () => dispatch(clearWorksheetState());
     }, [dispatch]);
 
@@ -46,7 +47,15 @@ const MemberWorksheet = () => {
     }, [success, error, dispatch, editId]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'name') {
+            setFormData({ ...formData, name: value });
+        } else {
+            setFormData({
+                ...formData,
+                data: { ...formData.data, [name]: value }
+            });
+        }
     };
 
     const handleSubmit = (e) => {
@@ -65,16 +74,7 @@ const MemberWorksheet = () => {
         setEditId(sheet._id);
         setFormData({
             name: sheet.name || '',
-            bom: sheet.bom || '',
-            bdm: sheet.bdm || '',
-            tm: sheet.tm || '',
-            sCall: sheet.sCall || '',
-            jCall: sheet.jCall || '',
-            stp1Name: sheet.stp1Name || '',
-            stp2Name: sheet.stp2Name || '',
-            register: sheet.register || '',
-            staking: sheet.staking || '',
-            income: sheet.income || ''
+            data: sheet.data || {}
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -136,46 +136,18 @@ const MemberWorksheet = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                                 <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">BOM</label>
-                                <input type="text" name="bom" value={formData.bom} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">BDM</label>
-                                <input type="text" name="bdm" value={formData.bdm} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">TM</label>
-                                <input type="text" name="tm" value={formData.tm} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">S - CALL</label>
-                                <input type="text" name="sCall" value={formData.sCall} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">J - CALL</label>
-                                <input type="text" name="jCall" value={formData.jCall} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STP 1 - NAME</label>
-                                <input type="text" name="stp1Name" value={formData.stp1Name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STP 2 - NAME</label>
-                                <input type="text" name="stp2Name" value={formData.stp2Name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">REGISTER</label>
-                                <input type="text" name="register" value={formData.register} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STAKING</label>
-                                <input type="text" name="staking" value={formData.staking} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">INCOME</label>
-                                <input type="text" name="income" value={formData.income} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
+                            {fields && fields.map(field => (
+                                <div key={field.key}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 uppercase tracking-tight text-[11px] font-bold">{field.label}</label>
+                                    <input
+                                        type="text"
+                                        name={field.key}
+                                        value={formData.data?.[field.key] || ''}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                                    />
+                                </div>
+                            ))}
                         </div>
 
                         <div className="mt-6 flex justify-end gap-3">
@@ -236,16 +208,9 @@ const MemberWorksheet = () => {
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">BOM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">BDM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">TM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S-Call</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">J-Call</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">STP 1</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">STP 2</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Register</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staking</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Income</th>
+                                {fields && fields.map(field => (
+                                    <th key={field.key} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{field.label}</th>
+                                ))}
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -272,16 +237,11 @@ const MemberWorksheet = () => {
                                             {new Date(sheet.date).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.bom}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.bdm}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.tm}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.sCall}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.jCall}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.stp1Name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.stp2Name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.register}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.staking}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">{sheet.income}</td>
+                                        {fields && fields.map(field => (
+                                            <td key={field.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {sheet.data?.[field.key] || '-'}
+                                            </td>
+                                        ))}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
                                             {isToday(sheet.date) && (
                                                 <div className="flex items-center justify-center gap-2">

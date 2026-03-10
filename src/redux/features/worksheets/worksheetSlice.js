@@ -62,10 +62,73 @@ export const fetchAllWorksheets = createAsyncThunk(
     }
 );
 
+// Worksheet Fields Thunks
+export const fetchActiveFields = createAsyncThunk(
+    'worksheets/fetchActiveFields',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await apiClient.get('/worksheet-fields/active');
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch active fields');
+        }
+    }
+);
+
+export const fetchAdminFields = createAsyncThunk(
+    'worksheets/fetchAdminFields',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await apiClient.get('/worksheet-fields/admin/all');
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to fetch admin fields');
+        }
+    }
+);
+
+export const createWorksheetField = createAsyncThunk(
+    'worksheets/createField',
+    async (fieldData, { rejectWithValue }) => {
+        try {
+            const response = await apiClient.post('/worksheet-fields', fieldData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to create field');
+        }
+    }
+);
+
+export const updateWorksheetField = createAsyncThunk(
+    'worksheets/updateField',
+    async ({ id, fieldData }, { rejectWithValue }) => {
+        try {
+            const response = await apiClient.put(`/worksheet-fields/${id}`, fieldData);
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to update field');
+        }
+    }
+);
+
+export const deleteWorksheetField = createAsyncThunk(
+    'worksheets/deleteField',
+    async (id, { rejectWithValue }) => {
+        try {
+            await apiClient.delete(`/worksheet-fields/${id}`);
+            return id;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || 'Failed to delete field');
+        }
+    }
+);
+
 const worksheetSlice = createSlice({
     name: 'worksheets',
     initialState: {
         worksheets: [],
+        fields: [], // Current active fields for form
+        adminFields: [], // All fields for admin management
         loading: false,
         error: null,
         success: false,
@@ -157,6 +220,48 @@ const worksheetSlice = createSlice({
             .addCase(deleteWorksheet.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+
+            // Fetch Fields
+            .addCase(fetchActiveFields.fulfilled, (state, action) => {
+                state.fields = action.payload;
+            })
+            .addCase(fetchAdminFields.fulfilled, (state, action) => {
+                state.adminFields = action.payload;
+                state.loading = false;
+            })
+            .addCase(fetchAdminFields.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchAdminFields.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+
+            // Create Field
+            .addCase(createWorksheetField.fulfilled, (state, action) => {
+                state.adminFields.push(action.payload);
+                state.success = true;
+                state.loading = false;
+            })
+            .addCase(createWorksheetField.pending, (state) => {
+                state.loading = true;
+            })
+
+            // Update Field
+            .addCase(updateWorksheetField.fulfilled, (state, action) => {
+                const index = state.adminFields.findIndex(f => f._id === action.payload._id);
+                if (index !== -1) {
+                    state.adminFields[index] = action.payload;
+                }
+                state.success = true;
+                state.loading = false;
+            })
+
+            // Delete Field
+            .addCase(deleteWorksheetField.fulfilled, (state, action) => {
+                state.adminFields = state.adminFields.filter(f => f._id !== action.payload);
+                state.loading = false;
             });
     }
 });

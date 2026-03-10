@@ -400,9 +400,21 @@ const Layout = ({ children }) => {
                   <div className="flex items-center gap-4">
                     {/* Add Notification Bell to the header */}
                     <NotificationBell />
-                    <span className="text-gray-800 font-medium hidden sm:block">
-                      {user?.name || 'User'}
-                    </span>
+                    <div className="flex flex-col items-end mr-2">
+                      <span className="text-gray-800 font-bold hidden sm:block text-sm">
+                        {user?.name || 'User'}
+                      </span>
+                      {user?.role && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider hidden sm:block ${user.isSuperadmin
+                            ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                            : user.role === 'admin'
+                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          }`}>
+                          {user.isSuperadmin ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Member'}
+                        </span>
+                      )}
+                    </div>
                     {user?.imageUrl ? (
                       <Link to="/profile">
                         <img

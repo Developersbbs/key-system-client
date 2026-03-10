@@ -1,17 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllWorksheets, submitWorksheet, updateWorksheet, deleteWorksheet, clearWorksheetState } from '../redux/features/worksheets/worksheetSlice';
+import {
+    fetchAllWorksheets, submitWorksheet, updateWorksheet, deleteWorksheet, clearWorksheetState,
+    fetchAdminFields, createWorksheetField, updateWorksheetField, deleteWorksheetField
+} from '../redux/features/worksheets/worksheetSlice';
+import { Plus, X, Edit, Trash2, Settings, Save, Check, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminWorksheet = () => {
     const dispatch = useDispatch();
-    const { worksheets, loading, success, error } = useSelector((state) => state.worksheets);
+    const { worksheets, adminFields, loading, success, error } = useSelector((state) => state.worksheets);
     const { user: currentUser } = useSelector((state) => state.auth);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [isFieldManagerOpen, setIsFieldManagerOpen] = useState(false);
+    const [fieldFormData, setFieldFormData] = useState({ label: '', key: '', order: 0, isActive: true });
+    const [editingFieldId, setEditingFieldId] = useState(null);
+
     const initialFormState = {
-        name: '', bom: '', bdm: '', tm: '', sCall: '', jCall: '',
-        stp1Name: '', stp2Name: '', register: '', staking: '', income: ''
+        name: '',
+        data: {}
     };
 
     const [editId, setEditId] = useState(null);
@@ -28,6 +36,7 @@ const AdminWorksheet = () => {
 
     useEffect(() => {
         dispatch(fetchAllWorksheets());
+        dispatch(fetchAdminFields());
         return () => dispatch(clearWorksheetState());
     }, [dispatch]);
 
@@ -48,7 +57,15 @@ const AdminWorksheet = () => {
     }, [success, error, dispatch, editId]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'name') {
+            setFormData({ ...formData, name: value });
+        } else {
+            setFormData({
+                ...formData,
+                data: { ...formData.data, [name]: value }
+            });
+        }
     };
 
     const handleSubmit = (e) => {
@@ -67,16 +84,7 @@ const AdminWorksheet = () => {
         setEditId(sheet._id);
         setFormData({
             name: sheet.name || '',
-            bom: sheet.bom || '',
-            bdm: sheet.bdm || '',
-            tm: sheet.tm || '',
-            sCall: sheet.sCall || '',
-            jCall: sheet.jCall || '',
-            stp1Name: sheet.stp1Name || '',
-            stp2Name: sheet.stp2Name || '',
-            register: sheet.register || '',
-            staking: sheet.staking || '',
-            income: sheet.income || ''
+            data: sheet.data || {}
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -97,6 +105,45 @@ const AdminWorksheet = () => {
         setEditId(null);
         const savedDraft = localStorage.getItem('adminWorksheetDraft');
         setFormData(savedDraft ? JSON.parse(savedDraft) : initialFormState);
+    };
+
+    // Field Management Handlers
+    const handleFieldSubmit = (e) => {
+        e.preventDefault();
+        if (!fieldFormData.label || !fieldFormData.key) return toast.error('Label and Key are required');
+
+        if (editingFieldId) {
+            dispatch(updateWorksheetField({ id: editingFieldId, fieldData: fieldFormData }))
+                .then(() => {
+                    toast.success('Field updated');
+                    setEditingFieldId(null);
+                    setFieldFormData({ label: '', key: '', order: 0, isActive: true });
+                });
+        } else {
+            dispatch(createWorksheetField(fieldFormData))
+                .then((res) => {
+                    if (!res.error) {
+                        toast.success('Field added');
+                        setFieldFormData({ label: '', key: '', order: 0, isActive: true });
+                    }
+                });
+        }
+    };
+
+    const handleEditField = (field) => {
+        setEditingFieldId(field._id);
+        setFieldFormData({ label: field.label, key: field.key, order: field.order, isActive: field.isActive });
+    };
+
+    const handleDeleteField = (id) => {
+        if (window.confirm('Are you sure you want to delete this field? Data at this key will no longer be visible in the active form.')) {
+            dispatch(deleteWorksheetField(id)).then(() => toast.success('Field deleted'));
+        }
+    };
+
+    const toggleFieldStatus = (field) => {
+        dispatch(updateWorksheetField({ id: field._id, fieldData: { isActive: !field.isActive } }))
+            .then(() => toast.success(`Field ${!field.isActive ? 'activated' : 'deactivated'}`));
     };
 
     const isToday = (dateString) => {
@@ -128,20 +175,15 @@ const AdminWorksheet = () => {
                     <p className="text-gray-600 mt-1">Review daily worksheet submissions from all members.</p>
                 </div>
 
-                {/* Search / Filters */}
+                {/* Action Buttons */}
                 <div className="flex gap-3">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search by name..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors w-full md:w-64 shadow-sm"
-                        />
-                        <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
+                    <button
+                        onClick={() => setIsFieldManagerOpen(!isFieldManagerOpen)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors shadow-sm"
+                    >
+                        <Settings size={18} />
+                        <span className="hidden sm:inline">Configure Fields</span>
+                    </button>
                     <button
                         onClick={() => dispatch(fetchAllWorksheets())}
                         className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors shadow-sm"
@@ -153,6 +195,97 @@ const AdminWorksheet = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Field Manager Section */}
+            {isFieldManagerOpen && (
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-8 overflow-hidden animate-in slide-in-from-top duration-300">
+                    <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
+                        <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <Settings size={20} className="text-teal-600" />
+                            Worksheet Field Customization
+                        </h2>
+                        <button onClick={() => setIsFieldManagerOpen(false)} className="text-gray-400 hover:text-gray-600">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        <form onSubmit={handleFieldSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-teal-50/30 p-4 rounded-xl border border-teal-100">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Field Label (Display Name)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. BOM Count"
+                                    value={fieldFormData.label}
+                                    onChange={(e) => setFieldFormData({ ...fieldFormData, label: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Field Key (Permanent ID)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. bom_count"
+                                    value={fieldFormData.key}
+                                    disabled={!!editingFieldId}
+                                    onChange={(e) => setFieldFormData({ ...fieldFormData, key: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Display Order</label>
+                                <input
+                                    type="number"
+                                    value={fieldFormData.order}
+                                    onChange={(e) => setFieldFormData({ ...fieldFormData, order: parseInt(e.target.value) })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            <div className="flex items-end gap-2">
+                                <button type="submit" className="flex-1 bg-teal-600 text-white py-2 rounded-lg font-bold hover:bg-teal-700 transition flex items-center justify-center gap-2">
+                                    {editingFieldId ? <Save size={18} /> : <Plus size={18} />}
+                                    {editingFieldId ? 'Update' : 'Add Field'}
+                                </button>
+                                {editingFieldId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setEditingFieldId(null); setFieldFormData({ label: '', key: '', order: 0, isActive: true }); }}
+                                        className="bg-gray-200 text-gray-600 py-2 px-3 rounded-lg hover:bg-gray-300"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {adminFields && adminFields.length > 0 ? adminFields.map(field => (
+                                <div key={field._id} className={`p-4 rounded-xl border-2 transition-all ${field.isActive ? 'border-gray-100 bg-white' : 'border-dashed border-gray-200 bg-gray-50 grayscale'}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${field.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                                            {field.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => handleEditField(field)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit size={14} /></button>
+                                            <button onClick={() => toggleFieldStatus(field)} className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"><Check size={14} /></button>
+                                            <button onClick={() => handleDeleteField(field._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                    <h3 className="font-bold text-gray-800">{field.label}</h3>
+                                    <p className="text-[10px] text-gray-400 font-mono mt-1">Key: {field.key}</p>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Order: {field.order}</span>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="col-span-full text-center py-8 text-gray-400 italic">No fields configured yet. Add your first field above!</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-start gap-3">
@@ -180,46 +313,18 @@ const AdminWorksheet = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                                 <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">BOM</label>
-                                <input type="text" name="bom" value={formData.bom} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">BDM</label>
-                                <input type="text" name="bdm" value={formData.bdm} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">TM</label>
-                                <input type="text" name="tm" value={formData.tm} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">S - CALL</label>
-                                <input type="text" name="sCall" value={formData.sCall} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">J - CALL</label>
-                                <input type="text" name="jCall" value={formData.jCall} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STP 1 - NAME</label>
-                                <input type="text" name="stp1Name" value={formData.stp1Name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STP 2 - NAME</label>
-                                <input type="text" name="stp2Name" value={formData.stp2Name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">REGISTER</label>
-                                <input type="text" name="register" value={formData.register} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">STAKING</label>
-                                <input type="text" name="staking" value={formData.staking} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">INCOME</label>
-                                <input type="text" name="income" value={formData.income} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors" />
-                            </div>
+                            {adminFields && adminFields.filter(f => f.isActive).map(field => (
+                                <div key={field.key}>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 uppercase tracking-tight text-[11px] font-bold">{field.label}</label>
+                                    <input
+                                        type="text"
+                                        name={field.key}
+                                        value={formData.data?.[field.key] || ''}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                                    />
+                                </div>
+                            ))}
                         </div>
 
                         <div className="mt-6 flex justify-end gap-3">
@@ -277,16 +382,9 @@ const AdminWorksheet = () => {
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S.NO</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">BOM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">BDM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">TM</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S-Call</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">J-Call</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">STP 1</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">STP 2</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Register</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Staking</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Income</th>
+                                {adminFields && adminFields.filter(f => f.isActive).map(field => (
+                                    <th key={field.key} className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{field.label}</th>
+                                ))}
                                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -326,16 +424,11 @@ const AdminWorksheet = () => {
                                             <div>{sheet.name}</div>
                                             <div className="text-xs text-gray-500 font-normal">{sheet.user?.email}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.bom}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.bdm}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.tm}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.sCall}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.jCall}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.stp1Name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.stp2Name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.register}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sheet.staking}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">{sheet.income}</td>
+                                        {adminFields && adminFields.filter(f => f.isActive).map(field => (
+                                            <td key={field.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {sheet.data?.[field.key] || '-'}
+                                            </td>
+                                        ))}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
                                             {isToday(sheet.date) && sheet.user?._id === currentUser?._id && (
                                                 <div className="flex items-center justify-center gap-2">
