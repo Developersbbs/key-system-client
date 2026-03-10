@@ -8,16 +8,20 @@ import {
 } from 'lucide-react';
 import apiClient from '../api/apiClient';
 import PaymentModal from '../components/PaymentModal';
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { auth } from '../lib/firebase';
+import { verifyPhoneNumber } from '../redux/features/auth/authSlice';
+import toast from 'react-hot-toast';
 
 /* ─── Profile completion helpers (mirrors Profile.jsx) ─────────────── */
 const COMPLETION_FIELDS = [
-  { key: 'name',                    label: 'Full Name' },
-  { key: 'phoneNumber',             label: 'Phone' },
-  { key: 'profileDetails.gender',   label: 'Gender' },
-  { key: 'profileDetails.dob',      label: 'Date of Birth' },
-  { key: 'profileDetails.state',    label: 'State' },
+  { key: 'name', label: 'Full Name' },
+  { key: 'phoneNumber', label: 'Phone' },
+  { key: 'profileDetails.gender', label: 'Gender' },
+  { key: 'profileDetails.dob', label: 'Date of Birth' },
+  { key: 'profileDetails.state', label: 'State' },
   { key: 'profileDetails.district', label: 'District' },
-  { key: 'profileDetails.address',  label: 'Address' },
+  { key: 'profileDetails.address', label: 'Address' },
 ];
 
 const WEIGHTS = { name: 20, phoneNumber: 15, 'profileDetails.gender': 10, 'profileDetails.dob': 10, 'profileDetails.state': 15, 'profileDetails.district': 15, 'profileDetails.address': 15 };
@@ -55,8 +59,8 @@ const ProfileCompletionBanner = ({ user }) => {
   const scheme = isLow
     ? { bg: 'from-red-50 to-orange-50', border: 'border-red-200', bar: 'bg-red-400', pill: 'bg-red-100 text-red-700', text: 'text-red-700', btn: 'bg-red-500 hover:bg-red-600', label: 'text-red-600', pctColor: 'text-red-500' }
     : isMid
-    ? { bg: 'from-amber-50 to-yellow-50', border: 'border-amber-200', bar: 'bg-amber-400', pill: 'bg-amber-100 text-amber-700', text: 'text-amber-700', btn: 'bg-amber-500 hover:bg-amber-600', label: 'text-amber-600', pctColor: 'text-amber-500' }
-    : { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200', bar: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-700', btn: 'bg-emerald-600 hover:bg-emerald-700', label: 'text-emerald-600', pctColor: 'text-emerald-600' };
+      ? { bg: 'from-amber-50 to-yellow-50', border: 'border-amber-200', bar: 'bg-amber-400', pill: 'bg-amber-100 text-amber-700', text: 'text-amber-700', btn: 'bg-amber-500 hover:bg-amber-600', label: 'text-amber-600', pctColor: 'text-amber-500' }
+      : { bg: 'from-emerald-50 to-teal-50', border: 'border-emerald-200', bar: 'bg-emerald-400', pill: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-700', btn: 'bg-emerald-600 hover:bg-emerald-700', label: 'text-emerald-600', pctColor: 'text-emerald-600' };
 
   return (
     <div className={`bg-gradient-to-r ${scheme.bg} border ${scheme.border} rounded-2xl p-5 mb-8 shadow-sm`}>
@@ -118,20 +122,46 @@ const ProfileCompletionBanner = ({ user }) => {
   );
 };
 
-// Inactive User Message Component (unchanged)
-const InactiveUserMessage = () => {
+// Inactive User Message Component (updated for multi-step registration)
+const InactiveUserMessage = ({ user }) => {
+  const dispatch = useDispatch();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // OTP Verification state
+  const [step, setStep] = useState(1); // 1: Subscription, 2: OTP
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [otpSent, setOtpSent] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   useEffect(() => {
     fetchSubscriptionStatus();
   }, []);
 
+  useEffect(() => {
+    if (user?.phoneNumberVerified) {
+      // If already verified, don't show OTP step
+      setStep(1);
+    }
+  }, [user]);
+
   const fetchSubscriptionStatus = async () => {
     try {
       const response = await apiClient.get('/subscriptions/my-subscription');
-      setSubscription(response.data.subscription);
+      const sub = response.data.subscription;
+      setSubscription(sub);
+
+      // If user has a subscription (even pending) but phone is not verified, 
+      // they can proceed to OTP verification
+      if (sub && !user?.phoneNumberVerified) {
+        // We stay in step 1 if the user wants to see their sub status, 
+        // or we could auto-transition if approved. 
+        // User requested: "after show subscribtion button" mobile verify.
+      }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
     } finally {
@@ -142,6 +172,55 @@ const InactiveUserMessage = () => {
   const handlePaymentSuccess = () => {
     setShowPaymentModal(false);
     fetchSubscriptionStatus();
+    // After successful payment submission, show the OTP step
+    if (!user?.phoneNumberVerified) {
+      setStep(2);
+    }
+  };
+
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-dashboard', {
+        size: 'invisible',
+      });
+    }
+  };
+
+  const handleSendOtp = async () => {
+    if (!phone || phone.length !== 10) {
+      return toast.error("Please enter a valid 10-digit phone number.");
+    }
+    setIsSendingOtp(true);
+    try {
+      setupRecaptcha();
+      const formattedPhone = `+91${phone}`;
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+      toast.success("OTP sent successfully!");
+    } catch (error) {
+      console.error("OTP Error:", error);
+      toast.error(error.message || "Failed to send OTP");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      return toast.error("Please enter a 6-digit OTP.");
+    }
+    setIsVerifying(true);
+    try {
+      await confirmationResult.confirm(otp);
+      await dispatch(verifyPhoneNumber({ phoneNumber: phone })).unwrap();
+      toast.success("Phone number verified successfully!");
+    } catch (error) {
+      console.error("Verification Error:", error);
+      toast.error(error.message || "Invalid OTP");
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   if (loading) {
@@ -149,6 +228,79 @@ const InactiveUserMessage = () => {
       <div className="w-full max-w-4xl mx-auto px-4 py-12 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (step === 2 || (subscription && !user?.phoneNumberVerified)) {
+    return (
+      <div className="w-full max-w-lg mx-auto px-4 py-12">
+        <div id="recaptcha-container-dashboard"></div>
+        <div className="bg-white rounded-2xl p-8 shadow-xl border border-emerald-100">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="text-emerald-600" size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Final Step!</h2>
+            <p className="text-gray-600 mt-2">Please verify your mobile number to complete registration.</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg text-sm">+91</span>
+                <input
+                  type="tel"
+                  disabled={otpSent}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter 10-digit number"
+                  className="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                />
+              </div>
+            </div>
+
+            {!otpSent ? (
+              <button
+                onClick={handleSendOtp}
+                disabled={isSendingOtp || phone.length !== 10}
+                className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:bg-gray-400 transition-colors"
+              >
+                {isSendingOtp ? "Sending..." : "Send Verification Code"}
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit code"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-center tracking-widest text-xl font-bold"
+                  />
+                </div>
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={isVerifying || otp.length !== 6}
+                  className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:bg-gray-400 transition-colors"
+                >
+                  {isVerifying ? "Verifying..." : "Verify & Complete"}
+                </button>
+                <div className="text-center">
+                  <button onClick={() => setOtpSent(false)} className="text-sm text-emerald-600 hover:underline">Change phone number</button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="flex items-center gap-2 text-sm text-gray-500 bg-emerald-50 p-3 rounded-lg">
+              <AlertCircle size={16} className="text-emerald-500" />
+              <span>You'll get full access once your payment is verified and phone is confirmed.</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -205,9 +357,10 @@ const InactiveUserMessage = () => {
           </ul>
         </div>
         {isPending ? (
-          <div>
+          <div className="flex flex-col gap-4 items-center">
             <button onClick={fetchSubscriptionStatus} className="inline-flex items-center px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg">Refresh Status</button>
-            <p className="text-sm text-blue-600/80 mt-4">Hang tight while we verify your transaction</p>
+            <button onClick={() => setStep(2)} className="text-blue-600 font-bold hover:underline">Continue to Phone Verification →</button>
+            <p className="text-sm text-blue-600/80 mt-2">Hang tight while we verify your transaction</p>
           </div>
         ) : (
           <div>
@@ -231,7 +384,7 @@ const MemberDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const { courses, error, userProgress } = useSelector((state) => state.courses);
 
-  const isUserActive = user?.isActive !== false;
+  const isUserActive = user?.isActive !== false && user?.phoneNumberVerified === true;
 
   const fetchQuizResults = async () => {
     try {
@@ -262,7 +415,7 @@ const MemberDashboard = () => {
   }, [dispatch, isUserActive]);
 
   if (!isUserActive) {
-    return <InactiveUserMessage />;
+    return <InactiveUserMessage user={user} />;
   }
 
   const stats = {

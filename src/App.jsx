@@ -134,9 +134,9 @@ const App = () => {
 
           <Route path="/founders/:id" element={
             <ProtectedRoute>
-              <FounderProfile/>
+              <FounderProfile />
             </ProtectedRoute>
-          }/>
+          } />
           <Route path="/achievers" element={
             <ProtectedRoute>
               <Achievers />

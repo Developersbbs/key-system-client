@@ -18,7 +18,7 @@ export const fetchUserProfile = createAsyncThunk(
     try {
       const res = await apiClient.get('/auth/me');
       return res.data.user;
-    } catch (err) {
+    } catch {
       return rejectWithValue('No active session');
     }
   }
@@ -63,6 +63,19 @@ export const loginWithGoogle = createAsyncThunk(
   }
 );
 
+// Verify phone number
+export const verifyPhoneNumber = createAsyncThunk(
+  "auth/verifyPhoneNumber",
+  async (phoneData, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.post('/users/verify-phone', phoneData);
+      return res.data.user;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || "Phone verification failed");
+    }
+  }
+);
+
 // ✅ This is the function that needs to be exported
 export const logoutUser = createAsyncThunk(
   "auth/logoutUser",
@@ -86,6 +99,12 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // verifyPhoneNumber
+      .addCase(verifyPhoneNumber.fulfilled, (state, action) => {
+        state.user = action.payload;
+        localStorage.setItem("user", JSON.stringify(action.payload));
+        state.loading = false;
+      })
       // Fulfilled: Any of these actions mean the user is now logged in
       .addMatcher(
         (action) => [loginWithOTP.fulfilled.type, registerWithOTP.fulfilled.type, fetchUserProfile.fulfilled.type, loginWithGoogle.fulfilled.type].includes(action.type),
