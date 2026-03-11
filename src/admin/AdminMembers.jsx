@@ -2,8 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMembers, fetchAllAdmins, updateUserRole, updateUserStatus, updateUserDetails } from '../redux/features/members/memberSlice';
 import { fetchAllBatches, createBatch, updateBatch, addMembersToBatch, removeMemberFromBatch, deleteBatch } from '../redux/features/batches/batchSlice';
-import { Users, ShieldCheck, Phone, X, Plus, Edit, Trash2, UserPlus, Package, ToggleLeft, ToggleRight, BarChart3, Filter, Search, Mail } from 'lucide-react';
+import { Users, ShieldCheck, Phone, X, Plus, Edit, Trash2, UserPlus, Package, ToggleLeft, ToggleRight, BarChart3, Filter, Search, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Helper function to check profile completion
+const getProfileCompletionStatus = (user) => {
+  const requiredFields = {
+    name: !!user?.name,
+    phoneNumber: !!user?.phoneNumber,
+    address: !!user?.profileDetails?.address,
+    state: !!user?.profileDetails?.state,
+    gender: !!user?.profileDetails?.gender,
+  };
+  
+  const completedFields = Object.values(requiredFields).filter(Boolean).length;
+  const totalFields = Object.keys(requiredFields).length;
+  const percentage = Math.round((completedFields / totalFields) * 100);
+  
+  return {
+    percentage,
+    isComplete: percentage === 100,
+    completedFields,
+    totalFields,
+  };
+};
+
+// Profile Status Indicator Component
+const ProfileStatusBadge = ({ user }) => {
+  const status = getProfileCompletionStatus(user);
+  
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 mb-1">
+        {status.isComplete ? (
+          <CheckCircle size={16} className="text-green-600" />
+        ) : (
+          <AlertCircle size={16} className="text-amber-600" />
+        )}
+        <span className={`text-xs font-semibold ${
+          status.isComplete ? 'text-green-700' : 'text-amber-700'
+        }`}>
+          {status.percentage}%
+        </span>
+      </div>
+      <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            status.isComplete ? 'bg-green-500' : 'bg-amber-500'
+          }`}
+          style={{ width: `${status.percentage}%` }}
+        />
+      </div>
+      <span className="text-xs text-gray-500 mt-1">
+        {status.completedFields}/{status.totalFields}
+      </span>
+    </div>
+  );
+};
 
 // Reusable Toggle Switch Component for Role
 const RoleToggle = ({ user, currentUser, onToggle }) => {
@@ -589,16 +644,18 @@ const AdminMembers = () => {
         {/* Members Tab */}
         {activeTab === 'members' && (
           <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredMembers.map((user) => (
                   <tr key={user._id} className={user.isActive === false ? 'opacity-70 bg-gray-50' : 'hover:bg-green-50'}>
@@ -626,6 +683,9 @@ const AdminMembers = () => {
                     <td className="px-6 py-4">
                       <StatusToggle user={user} onToggle={handleStatusChange} />
                     </td>
+                    <td className="px-6 py-4">
+                      <ProfileStatusBadge user={user} />
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => setEditUserModal({ show: true, user })}
@@ -639,6 +699,7 @@ const AdminMembers = () => {
                 ))}
               </tbody>
             </table>
+            </div>
             {filteredMembers.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 {searchTerm ? 'No members match your search' : 'No members found'}
@@ -650,15 +711,17 @@ const AdminMembers = () => {
         {/* Admins Tab */}
         {activeTab === 'admins' && (
           <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredAdmins.map((user) => (
                   <tr key={user._id} className={user.isActive === false ? 'opacity-70 bg-gray-50' : 'hover:bg-green-50'}>
@@ -684,6 +747,9 @@ const AdminMembers = () => {
                     <td className="px-6 py-4">
                       <StatusToggle user={user} onToggle={handleStatusChange} />
                     </td>
+                    <td className="px-6 py-4">
+                      <ProfileStatusBadge user={user} />
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => setEditUserModal({ show: true, user })}
@@ -697,6 +763,7 @@ const AdminMembers = () => {
                 ))}
               </tbody>
             </table>
+            </div>
             {filteredAdmins.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 {searchTerm ? 'No admins match your search' : 'No admins found'}
