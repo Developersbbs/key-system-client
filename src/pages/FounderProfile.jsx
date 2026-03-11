@@ -161,7 +161,7 @@ const GallerySection = ({ images }) => {
                             <GalleryThumb img={second} idx={1} onClick={() => setLightboxIndex(1)}
                                 className="aspect-square" />
 
-                            {/* 3rd slot — if more than 4 show "+N" overlay */}
+                            {/* 3rd slot — if more than 4 show "+N" overlay */}https://docs.google.com/document/d/1atxGm1HD2fp5reboCJ_eL_t_UKkbWxsHwCHjps9ZSHA/edit?usp=sharing
                             {sorted.length === 4 ? (
                                 <GalleryThumb img={third} idx={2} onClick={() => setLightboxIndex(2)}
                                     className="aspect-square" />

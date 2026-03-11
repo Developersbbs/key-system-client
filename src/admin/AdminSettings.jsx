@@ -28,6 +28,11 @@ const AdminSettings = () => {
     zoomClientId: '',
     zoomClientSecret: '',
     zoomHostEmail: '',
+    worksheetSettings: {
+      startHour: 6,
+      endHour: 24,
+      editWindowDays: 0,
+    },
   });
 
   // Array of bank payment entries
@@ -60,7 +65,18 @@ const AdminSettings = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setConfig(prev => ({ ...prev, [name]: value }));
+    if (name.startsWith('worksheet_')) {
+      const field = name.replace('worksheet_', '');
+      setConfig(prev => ({
+        ...prev,
+        worksheetSettings: {
+          ...prev.worksheetSettings,
+          [field]: value
+        }
+      }));
+    } else {
+      setConfig(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   /* ── Bank entry handlers ── */
@@ -126,15 +142,15 @@ const AdminSettings = () => {
         ...config,
         // send as 'payments' — matches backend controller key
         payments: banks.map(({ collapsed, ...rest }) => ({
-          upiId:         rest.upiId         || '',
+          upiId: rest.upiId || '',
           accountNumber: rest.accountNumber || '',
-          ifscCode:      rest.ifscCode      || '',
-          accountName:   rest.accountName   || '',
-          qrCodeUrl:     rest.qrCodeUrl     || '',
-          bankImage1:    rest.bankImage1    || '',
-          bankImage2:    rest.bankImage2    || '',
-          label:         rest.label         || '',
-          id:            rest.id,
+          ifscCode: rest.ifscCode || '',
+          accountName: rest.accountName || '',
+          qrCodeUrl: rest.qrCodeUrl || '',
+          bankImage1: rest.bankImage1 || '',
+          bankImage2: rest.bankImage2 || '',
+          label: rest.label || '',
+          id: rest.id,
         })),
       };
       const res = await apiClient.put('/system-config', payload);
@@ -226,6 +242,58 @@ const AdminSettings = () => {
                   placeholder="e.g. your-zoom-account-email@example.com"
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring focus:ring-emerald-200 transition-all outline-none" />
                 <p className="text-xs text-gray-500 mt-1">If set, ALL meetings will be created under this Zoom user.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Worksheet Settings ─────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="bg-teal-100 p-2 rounded-lg"><Clock className="w-5 h-5 text-teal-600" /></div>
+              <h2 className="text-lg font-bold text-gray-800">Worksheet Timing Settings</h2>
+            </div>
+            <span className="text-xs font-medium px-2 py-1 bg-teal-100 text-teal-700 rounded-full">Submission & Edits</span>
+          </div>
+
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Submission Start Hour (0-23)</label>
+                <input
+                  type="number"
+                  name="worksheet_startHour"
+                  min="0" max="23"
+                  value={config.worksheetSettings?.startHour ?? 6}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring focus:ring-teal-200 transition-all outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Example: 6 for 6:00 AM</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Submission End Hour (1-24)</label>
+                <input
+                  type="number"
+                  name="worksheet_endHour"
+                  min="1" max="24"
+                  value={config.worksheetSettings?.endHour ?? 24}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring focus:ring-teal-200 transition-all outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Example: 24 for 12:00 AM Midnight</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Edit/Delete Window (Days)</label>
+                <input
+                  type="number"
+                  name="worksheet_editWindowDays"
+                  min="0"
+                  value={config.worksheetSettings?.editWindowDays ?? 0}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring focus:ring-teal-200 transition-all outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">0 = Only Same Day, 1 = Until tomorrow, etc.</p>
               </div>
             </div>
           </div>
@@ -460,11 +528,10 @@ const ImageUploadField = ({ label, fieldName, currentUrl, isUploading, onChange,
             disabled={isUploading}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           />
-          <div className={`flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${
-            isUploading
+          <div className={`flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${isUploading
               ? 'border-emerald-300 bg-emerald-50'
               : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50'
-          }`}>
+            }`}>
             {isUploading
               ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600-600 mr-2"></div><span className="text-sm text-emerald-600 font-medium">Uploading…</span></>
               : <><Upload className="w-4 h-4 text-gray-400 mr-2" /><span className="text-sm text-gray-500">{currentUrl ? 'Change Image' : `Upload ${label}`}</span></>

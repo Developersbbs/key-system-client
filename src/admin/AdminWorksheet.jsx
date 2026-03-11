@@ -12,6 +12,7 @@ const AdminWorksheet = () => {
     const { worksheets, adminFields, loading, success, error } = useSelector((state) => state.worksheets);
     const { user: currentUser } = useSelector((state) => state.auth);
     const [searchTerm, setSearchTerm] = useState('');
+    const [systemSettings, setSystemSettings] = useState({ startHour: 6, endHour: 24, editWindowDays: 0 });
 
     const [isFieldManagerOpen, setIsFieldManagerOpen] = useState(false);
     const [fieldFormData, setFieldFormData] = useState({ label: '', key: '', order: 0, isActive: true });
@@ -37,8 +38,20 @@ const AdminWorksheet = () => {
     useEffect(() => {
         dispatch(fetchAllWorksheets());
         dispatch(fetchAdminFields());
+        fetchSystemConfig();
         return () => dispatch(clearWorksheetState());
     }, [dispatch]);
+
+    const fetchSystemConfig = async () => {
+        try {
+            const res = await apiClient.get('/system-config');
+            if (res.data.success && res.data.config.worksheetSettings) {
+                setSystemSettings(res.data.config.worksheetSettings);
+            }
+        } catch (error) {
+            console.error('Error fetching system config:', error);
+        }
+    };
 
     useEffect(() => {
         if (success) {
@@ -156,11 +169,24 @@ const AdminWorksheet = () => {
         );
     };
 
+    const isWithinWindow = (dateString) => {
+        const worksheetDate = new Date(dateString);
+        worksheetDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = Math.abs(today - worksheetDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays <= systemSettings.editWindowDays;
+    };
+
     const hasSubmittedToday = worksheets.some(sheet => isToday(sheet.date) && sheet.user?._id === currentUser?._id);
 
-    // Submission is allowed if it's between 6 AM and Midnight (11:59 PM) AND they haven't submitted today, OR if they are currently editing an entry.
+    // Calculate if submission is allowed based on dynamic settings
     const currentHour = new Date().getHours();
-    const isSubmissionAllowed = (currentHour >= 6 && currentHour < 24 && !hasSubmittedToday) || editId !== null;
+    const isSubmissionAllowed = (currentHour >= systemSettings.startHour && currentHour < systemSettings.endHour && !hasSubmittedToday) || editId !== null;
 
     const filteredWorksheets = worksheets.filter((sheet) =>
         sheet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -368,7 +394,7 @@ const AdminWorksheet = () => {
                     <p className="text-amber-700 max-w-lg mx-auto">
                         {hasSubmittedToday
                             ? 'You have already submitted your worksheet for today. Great job! You can review or edit it below.'
-                            : 'Worksheets can only be submitted between 6:00 AM and 11:59 PM daily. Your window to submit has either not opened yet or has closed. Please return during this time.'}
+                            : `Worksheets can only be submitted between ${systemSettings.startHour > 12 ? systemSettings.startHour - 12 + ':00 PM' : systemSettings.startHour + ':00 AM'} and ${systemSettings.endHour > 12 ? systemSettings.endHour - 12 + ':00 PM' : (systemSettings.endHour === 24 ? '12:00 AM Midnight' : systemSettings.endHour + ':00 AM')} daily. Your window to submit has either not opened yet or has closed. Please return during this time.`}
                     </p>
                 </div>
             )}
@@ -430,7 +456,7 @@ const AdminWorksheet = () => {
                                             </td>
                                         ))}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-medium">
-                                            {isToday(sheet.date) && sheet.user?._id === currentUser?._id && (
+                                            {isWithinWindow(sheet.date) && sheet.user?._id === currentUser?._id && (
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => handleEdit(sheet)}
