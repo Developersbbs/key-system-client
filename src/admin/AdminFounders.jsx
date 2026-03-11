@@ -564,19 +564,26 @@ const AdminFounders = () => {
                               -- Clear Selection --
                             </div>
                             {/* // ✅ Backend returns only members who have completed all lessons and levels (isComplete: true) */}
-{users
-  .filter(
-    (u) =>
-      u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(userSearchTerm.toLowerCase()),
-  ).length > 0 ? (
-  users
-    .filter(
-      (u) =>
-        u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-        u.email?.toLowerCase().includes(userSearchTerm.toLowerCase()),
-    )
-    .map((user) => (
+                            {users.filter(
+                              (u) =>
+                                u.name
+                                  ?.toLowerCase()
+                                  .includes(userSearchTerm.toLowerCase()) ||
+                                u.email
+                                  ?.toLowerCase()
+                                  .includes(userSearchTerm.toLowerCase()),
+                            ).length > 0 ? (
+                              users
+                                .filter(
+                                  (u) =>
+                                    u.name
+                                      ?.toLowerCase()
+                                      .includes(userSearchTerm.toLowerCase()) ||
+                                    u.email
+                                      ?.toLowerCase()
+                                      .includes(userSearchTerm.toLowerCase()),
+                                )
+                                .map((user) => (
                                   <div
                                     key={user._id}
                                     className={`px-4 py-2 hover:bg-emerald-50 cursor-pointer text-sm ${formData.user === user._id ? "bg-emerald-50 font-medium text-emerald-700" : "text-gray-700"}`}

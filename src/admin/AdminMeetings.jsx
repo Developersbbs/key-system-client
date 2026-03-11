@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllMeetings, addMeeting, removeMeeting, fetchMeetingLogs, updateMeeting } from '../redux/features/meetings/meetingSlice';
 import { fetchAllAdmins, fetchAllMembers } from '../redux/features/members/memberSlice';
 import { fetchAdminFounders } from '../redux/features/founders/founderSlice';
-import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft, Edit2, PlayCircle } from 'lucide-react';
+import { Plus, X, Calendar, Video, User, Clock, Trash2, Users, BarChart3, ChevronRight, Link as LinkIcon, ChevronLeft, Edit2, PlayCircle, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, isToday, isThisWeek, isThisMonth, isAfter } from 'date-fns';
 import { Select } from 'antd';
@@ -530,11 +530,231 @@ const LogsModal = ({ isOpen, onClose, logs, users }) => {
   );
 };
 
+// ─── Search & Filter Bar ───────────────────────────────────────────────────────
+const MeetingSearchBar = ({ meetings, members, founders, onFilteredResults }) => {
+  const [searchText, setSearchText] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedLeader, setSelectedLeader] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Unique leaders (founders with linked users)
+  const leaderOptions = useMemo(() => {
+    return (founders || [])
+      .filter(f => f.user)
+      .map(f => ({ label: `${f.name} (${f.designation})`, value: f._id }));
+  }, [founders]);
+
+  const activeFiltersCount = [searchText, startDate, endDate, selectedLeader].filter(Boolean).length;
+
+  const handleReset = () => {
+    setSearchText('');
+    setStartDate('');
+    setEndDate('');
+    setSelectedLeader('');
+  };
+
+  useEffect(() => {
+    let filtered = [...meetings];
+
+    // Text search: title + description + participant names
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      filtered = filtered.filter(m => {
+        // Match title or description
+        const matchesTitleOrDesc =
+          m.title?.toLowerCase().includes(q) ||
+          m.description?.toLowerCase().includes(q);
+
+        // Match any participant name (participants can be objects with .name or just IDs)
+        const matchesParticipant = (m.participants || []).some(p => {
+          if (typeof p === 'object' && p !== null) {
+            return (
+              p.name?.toLowerCase().includes(q) ||
+              p.email?.toLowerCase().includes(q)
+            );
+          }
+          // If participant is just an ID, match against members list
+          const member = (members || []).find(mem => mem._id === p);
+          return member?.name?.toLowerCase().includes(q);
+        });
+
+        // Match host name
+        const hostName = typeof m.host === 'object' ? m.host?.name : '';
+        const matchesHost = hostName?.toLowerCase().includes(q);
+
+        // Match createdBy name
+        const createdByName = m.createdBy?.name || '';
+        const matchesCreatedBy = createdByName.toLowerCase().includes(q);
+
+        return matchesTitleOrDesc || matchesParticipant || matchesHost || matchesCreatedBy;
+      });
+    }
+
+    // Date range filter
+    if (startDate) {
+      filtered = filtered.filter(m =>
+        new Date(m.meetingDate) >= new Date(startDate)
+      );
+    }
+    if (endDate) {
+      // include entire end day
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(m => new Date(m.meetingDate) <= end);
+    }
+
+    // Leader filter: match host by founder's linked user ID
+    if (selectedLeader) {
+      const founder = (founders || []).find(f => f._id === selectedLeader);
+      const founderUserId = founder?.user
+        ? (typeof founder.user === 'object' ? founder.user._id : founder.user)
+        : null;
+
+      filtered = filtered.filter(m => {
+        const hostId = typeof m.host === 'object' ? m.host?._id : m.host;
+        return (
+          hostId === selectedLeader ||
+          (founderUserId && hostId === founderUserId)
+        );
+      });
+    }
+
+    onFilteredResults(filtered);
+  }, [searchText, startDate, endDate, selectedLeader, meetings, members, founders]);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+      {/* Row 1: Main search + toggle */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        {/* Text search */}
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" />
+          <input
+            type="text"
+            placeholder="Search by title, description, participant name or host..."
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-gray-50 placeholder-gray-400"
+          />
+        </div>
+
+        {/* Advanced toggle */}
+        <button
+          onClick={() => setShowAdvanced(prev => !prev)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all whitespace-nowrap ${
+            showAdvanced || activeFiltersCount > 0
+              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+              : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-emerald-300 hover:text-emerald-600'
+          }`}
+        >
+          <SlidersHorizontal size={16} />
+          Filters
+          {activeFiltersCount > 0 && (
+            <span className="bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+              {activeFiltersCount}
+            </span>
+          )}
+        </button>
+
+        {/* Reset — only show when filters active */}
+        {activeFiltersCount > 0 && (
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-500 hover:bg-red-100 text-sm font-semibold transition-all whitespace-nowrap"
+          >
+            <X size={14} /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Row 2: Advanced filters (collapsible) */}
+      {showAdvanced && (
+        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+          {/* Start Date */}
+          <div className="space-y-1">
+            <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+              <Calendar size={11} /> Start Date
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-gray-50 text-gray-700"
+            />
+          </div>
+
+          {/* End Date */}
+          <div className="space-y-1">
+            <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+              <Calendar size={11} /> End Date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-gray-50 text-gray-700"
+            />
+          </div>
+
+          {/* Leader/Founder filter */}
+          <div className="space-y-1">
+            <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+              <User size={11} /> Leader / Host
+            </label>
+            <select
+              value={selectedLeader}
+              onChange={e => setSelectedLeader(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-gray-50 text-gray-700"
+            >
+              <option value="">All Leaders</option>
+              {leaderOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Active filter summary chips */}
+      {activeFiltersCount > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {searchText && (
+            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
+              <Search size={10} /> "{searchText}"
+              <button onClick={() => setSearchText('')} className="ml-1 hover:text-emerald-900"><X size={10} /></button>
+            </span>
+          )}
+          {(startDate || endDate) && (
+            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200">
+              <Calendar size={10} />
+              {startDate && format(new Date(startDate), 'MMM d, yyyy')}
+              {startDate && endDate && ' → '}
+              {endDate && format(new Date(endDate), 'MMM d, yyyy')}
+              <button onClick={() => { setStartDate(''); setEndDate(''); }} className="ml-1 hover:text-blue-900"><X size={10} /></button>
+            </span>
+          )}
+          {selectedLeader && (
+            <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200">
+              <User size={10} /> {leaderOptions.find(l => l.value === selectedLeader)?.label}
+              <button onClick={() => setSelectedLeader('')} className="ml-1 hover:text-amber-900"><X size={10} /></button>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+// ──────────────────────────────────────────────────────────────────────────────
+
 const AdminMeetings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState(null); // Track editing state
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false); // Log Modal State
   const [currentMeetingLogs, setCurrentMeetingLogs] = useState([]); // Store current logs
+  const [filteredMeetings, setFilteredMeetings] = useState([]); // ← filtered results
 
   const dispatch = useDispatch();
   const { meetings, loading, error, pagination } = useSelector(state => state.meetings);
@@ -550,6 +770,11 @@ const AdminMeetings = () => {
     dispatch(fetchAllAdmins());
     dispatch(fetchAdminFounders());
   }, [dispatch, currentPage]);
+
+  // Sync filteredMeetings whenever raw meetings change
+  useEffect(() => {
+    setFilteredMeetings(meetings);
+  }, [meetings]);
 
   console.log("DEBUG: Pagination State:", { meetingsLength: meetings.length, pagination, loading });
 
@@ -683,6 +908,15 @@ const AdminMeetings = () => {
         />
       </div>
 
+      {/* ─── Search & Filter Bar ─────────────────────────────────────────────── */}
+      <MeetingSearchBar
+        meetings={meetings}
+        members={members}
+        founders={founders}
+        onFilteredResults={setFilteredMeetings}
+      />
+      {/* ──────────────────────────────────────────────────────────────────────── */}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming Meetings Section */}
         <div className="lg:col-span-1">
@@ -717,7 +951,14 @@ const AdminMeetings = () => {
         {/* All Meetings Section */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">All Meetings</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">All Meetings</h2>
+              {filteredMeetings.length !== meetings.length && (
+                <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-semibold">
+                  {filteredMeetings.length} of {meetings.length} shown
+                </span>
+              )}
+            </div>
 
             {loading && meetings.length === 0 && (
               <div className="flex flex-col items-center justify-center p-10">
@@ -745,8 +986,17 @@ const AdminMeetings = () => {
               </div>
             )}
 
+            {/* No results from filter */}
+            {filteredMeetings.length === 0 && meetings.length > 0 && !loading && (
+              <div className="text-center p-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Search size={36} className="text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No meetings match your search filters.</p>
+                <p className="text-gray-400 text-sm mt-1">Try adjusting or resetting your filters.</p>
+              </div>
+            )}
+
             <div className="space-y-4">
-              {meetings.map(meeting => (
+              {filteredMeetings.map(meeting => (
                 <div key={meeting._id} className="border border-gray-100 rounded-xl p-5 hover:shadow-lg hover:border-emerald-200 transition-all duration-300 group bg-white">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
