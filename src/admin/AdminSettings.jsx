@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Lock, Video, AlertCircle, CreditCard, Upload, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Save, Lock, Video, AlertCircle, CreditCard, Upload, Plus, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import axios from 'axios';
 import apiClient from '../api/apiClient';
 import toast from 'react-hot-toast';
@@ -529,8 +529,8 @@ const ImageUploadField = ({ label, fieldName, currentUrl, isUploading, onChange,
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           />
           <div className={`flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${isUploading
-              ? 'border-emerald-300 bg-emerald-50'
-              : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50'
+            ? 'border-emerald-300 bg-emerald-50'
+            : 'border-gray-200 hover:border-emerald-400 hover:bg-emerald-50'
             }`}>
             {isUploading
               ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600-600 mr-2"></div><span className="text-sm text-emerald-600 font-medium">Uploading…</span></>
