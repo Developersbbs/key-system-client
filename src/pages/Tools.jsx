@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllTools } from '../redux/features/tool/toolSlice';
-import { FileText, Image, Video, Link as LinkIcon, Search, ExternalLink, Download, FolderOpen, Play, X } from 'lucide-react';
+import { FileText, Image, Video, Link as LinkIcon, Search, ExternalLink, Download, FolderOpen, Play, X, Headphones, Table2, Presentation, BookOpen, Tag } from 'lucide-react';
+import apiClient from '../api/apiClient';
 
 const VideoPlayerModal = ({ isOpen, onClose, videoUrl, title }) => {
     if (!isOpen || !videoUrl) return null;
@@ -40,10 +41,15 @@ const Tools = () => {
     const { tools, loading, error } = useSelector(state => state.tools);
     const [filterType, setFilterType] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [previewVideo, setPreviewVideo] = useState(null); // { url, title }
+    const [previewVideo, setPreviewVideo] = useState(null);
+    const [customTags, setCustomTags] = useState([]);
 
     useEffect(() => {
         dispatch(fetchAllTools());
+        // Fetch custom tags from system config
+        apiClient.get('/system-config')
+            .then(res => { if (res.data.success) setCustomTags(res.data.config.toolTags || []); })
+            .catch(() => { });
     }, [dispatch]);
 
     const getIcon = (type) => {
@@ -52,7 +58,12 @@ const Tools = () => {
             case 'image': return <Image size={24} className="text-purple-600" />;
             case 'video': return <Video size={24} className="text-red-600" />;
             case 'tutorial': return <LinkIcon size={24} className="text-green-600" />;
-            default: return <FileText size={24} className="text-gray-600" />;
+            case 'audio': return <Headphones size={24} className="text-orange-600" />;
+            case 'spreadsheet': return <Table2 size={24} className="text-teal-600" />;
+            case 'presentation': return <Presentation size={24} className="text-yellow-600" />;
+            case 'link': return <LinkIcon size={24} className="text-sky-600" />;
+            case 'ebook': return <BookOpen size={24} className="text-rose-600" />;
+            default: return <Tag size={24} className="text-violet-600" />;
         }
     };
 
@@ -62,6 +73,11 @@ const Tools = () => {
             case 'image': return 'View Image';
             case 'video': return 'Watch Video';
             case 'tutorial': return 'Open Tutorial';
+            case 'audio': return 'Listen Now';
+            case 'spreadsheet': return 'Open Spreadsheet';
+            case 'presentation': return 'View Slides';
+            case 'link': return 'Open Link';
+            case 'ebook': return 'Read eBook';
             default: return 'Open Resource';
         }
     };
@@ -89,10 +105,7 @@ const Tools = () => {
                     <div className="w-full md:w-auto flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
                         {[
                             { id: 'all', label: 'All Resources' },
-                            { id: 'document', label: 'Documents' },
-                            { id: 'video', label: 'Videos' },
-                            { id: 'image', label: 'Images' },
-                            { id: 'tutorial', label: 'Tutorials' }
+                            ...customTags.map(tag => ({ id: tag, label: tag.charAt(0).toUpperCase() + tag.slice(1) })),
                         ].map(type => (
                             <button
                                 key={type.id}
@@ -157,7 +170,12 @@ const Tools = () => {
                                     <div className={`h-3 bg-gradient-to-r ${tool.type === 'video' ? 'from-red-500 to-pink-500' :
                                         tool.type === 'document' ? 'from-blue-500 to-indigo-500' :
                                             tool.type === 'image' ? 'from-purple-500 to-violet-500' :
-                                                'from-green-500 to-teal-500'
+                                                tool.type === 'audio' ? 'from-orange-400 to-amber-500' :
+                                                    tool.type === 'spreadsheet' ? 'from-teal-500 to-cyan-500' :
+                                                        tool.type === 'presentation' ? 'from-yellow-400 to-amber-500' :
+                                                            tool.type === 'link' ? 'from-sky-400 to-blue-500' :
+                                                                tool.type === 'ebook' ? 'from-rose-500 to-pink-500' :
+                                                                    'from-green-500 to-teal-500'
                                         }`}></div>
                                 )}
 
@@ -181,7 +199,7 @@ const Tools = () => {
                                         {tool.description || 'No description provided for this resource.'}
                                     </p>
 
-                                    {(tool.type === 'video' || tool.type === 'tutorial') ? (
+                                    {(tool.type === 'video' || tool.type === 'tutorial' || tool.type === 'audio') ? (
                                         <button
                                             onClick={() => setPreviewVideo({ url: tool.url, title: tool.title })}
                                             className="mt-auto w-full flex items-center justify-center gap-2 bg-gray-50 hover:bg-green-600 text-gray-700 hover:text-white px-4 py-3 rounded-xl font-semibold transition-all duration-300 border border-gray-100 hover:border-transparent group-hover:shadow-md"

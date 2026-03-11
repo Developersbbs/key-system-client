@@ -105,7 +105,14 @@ const PaymentModal = ({ isOpen, onClose, onSuccess }) => {
             setStep(2);
             toast.success('Subscription request created!');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create subscription');
+            // Check if error is because a pending subscription already exists
+            if (error.response?.status === 400 && error.response?.data?.subscription) {
+                setSubscriptionId(error.response.data.subscription._id);
+                setStep(2);
+                toast.success('Continuing existing subscription request');
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to create subscription');
+            }
         }
     };
 
